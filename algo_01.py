@@ -122,7 +122,7 @@ ts_str = ''
 
 for ticker in tickers:
 
-    limit = 20
+    limit = 15
 
     payload_1m = {
         "symbols": ticker,
@@ -166,12 +166,13 @@ for ticker in tickers:
         # APPEND TO LIST
 
         # append 1m bars to list
-        ol_1m.append(v5m['o'])
-        ll_1m.append(v5m['l'])
-        hl_1m.append(v5m['h'])
-        cl_1m.append(v5m['c'])
-        vl_1m.append(v5m['v'])
-        tl_1m.append(v5m['t'])
+        ol_1m.append(v1m['o'])
+        ll_1m.append(v1m['l'])
+        hl_1m.append(v1m['h'])
+        cl_1m.append(v1m['c'])
+        vl_1m.append(v1m['v'])
+        # tl_1m.append(v1m['t'])
+        tl_1m.append(datetime.utcfromtimestamp(v1m['t']).strftime('%m%d%H%M'))
 
         # append 5m bars to list
         ol_5m.append(v5m['o'])
@@ -179,7 +180,8 @@ for ticker in tickers:
         hl_5m.append(v5m['h'])
         cl_5m.append(v5m['c'])
         vl_5m.append(v5m['v'])
-        tl_5m.append(v5m['t'])
+        # tl_5m.append(v5m['t'])
+        tl_5m.append(datetime.utcfromtimestamp(v5m['t']).strftime('%m%d%H%M'))
 
         # append 5m bars to list
         ol_15m.append(v15m['o'])
@@ -198,13 +200,13 @@ for ticker in tickers:
 
     # CONVERT TO NP ARRAYS - OUTSIDE THE FOR
 
-    # convert to 15m np array
-    np_ol_15m = np.array(ol_15m)
-    np_hl_15m = np.array(hl_15m)
-    np_ll_15m = np.array(ll_15m)
-    np_cl_15m = np.array(cl_15m)
-    np_vl_15m = np.array(vl_15m)
-    np_tl_15m = np.array(tl_15m)
+    # convert to 1m np array
+    np_ol_1m = np.array(ol_1m)
+    np_hl_1m = np.array(hl_1m)
+    np_ll_1m = np.array(ll_1m)
+    np_cl_1m = np.array(cl_1m)
+    np_vl_1m = np.array(vl_1m)
+    np_tl_1m = np.array(tl_1m)
 
     # convert to 5m np array
     np_ol_5m = np.array(ol_5m)
@@ -214,13 +216,54 @@ for ticker in tickers:
     np_vl_5m = np.array(vl_5m)
     np_tl_5m = np.array(tl_5m)
 
+    # convert to 15m np array
+    np_ol_15m = np.array(ol_15m)
+    np_hl_15m = np.array(hl_15m)
+    np_ll_15m = np.array(ll_15m)
+    np_cl_15m = np.array(cl_15m)
+    np_vl_15m = np.array(vl_15m)
+    np_tl_15m = np.array(tl_15m)
 
 
     print(f"[{datetime.now()}] Completed loading OHLCV NP ARRARYS")
 
+# MOMENTUM INDICATOR START
+
+    # MOM = price - previous_price
+
+    mom_1m = talib.MOM(np_cl_1m, timeperiod=1)
+    mom_5m = talib.MOM(np_cl_5m, timeperiod=1)
+    mom_15m = talib.MOM(np_cl_15m, timeperiod=1)
 
 
+    print(f'MOM 1M: {mom_1m}')
+    print(f'MOM 5M: {mom_5m}')
+    print(f'MOM 15M: {mom_15m}')
 
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharey=True)
+
+    ax1.set_ylabel('$ value')
+
+    ax1.set_xlabel('time (1m)')
+    ax2.set_xlabel('time (5m)')
+    ax2.set_xlabel('time (15m)')
+
+    # plt.style.use('dark_background')
+    ax1.plot(np_tl_1m, mom_1m, label='MOM-1Min')
+    ax2.plot(np_tl_5m, mom_5m, label='MOM-5Min')
+    ax3.plot(np_tl_15m, mom_15m, label='MOM-15Min')
+
+    # for cross in crosses:
+    #     plt.plot(cross[0], cross[1], cross[2])
+    #         plt.plot(np_tl_15m, macdhist, label='MACD Histogram')
+    # ax1.title(f"MOM 1 Min Plot for {ticker}")
+    # ax2.title(f"MOM 5 Min Plot for {ticker}")
+    # ax3.title(f"MOM 15 Min Plot for {ticker}")
+
+    # plt.title(f"MOM Plots for {ticker}")
+    plt.xticks(rotation=90)
+    plt.legend()
+    plt.show()
 
 
 # MACD SIGNAL CROSS START #########
