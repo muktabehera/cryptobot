@@ -89,7 +89,7 @@ base_uri_5m = f'https://data.alpaca.markets/v1/bars/{bar_interval["5MIN"]}'
 base_uri_15m = f'https://data.alpaca.markets/v1/bars/{bar_interval["15MIN"]}'
 # base_uri_1d = f'https://data.alpaca.markets/v1/bars/{bar_interval["1D"]}'
 
-tickers = ['MSFT']
+tickers = ['V']
 
 tl_1m = list()  # time
 ol_1m = list()  # open
@@ -122,7 +122,7 @@ ts_str = ''
 
 for ticker in tickers:
 
-    limit = 15
+    limit = 250
 
     payload_1m = {
         "symbols": ticker,
@@ -224,7 +224,6 @@ for ticker in tickers:
     np_vl_15m = np.array(vl_15m)
     np_tl_15m = np.array(tl_15m)
 
-
     print(f"[{datetime.now()}] Completed loading OHLCV NP ARRARYS")
 
 # MOMENTUM INDICATOR START
@@ -235,11 +234,73 @@ for ticker in tickers:
     mom_5m = talib.MOM(np_cl_5m, timeperiod=1)
     mom_15m = talib.MOM(np_cl_15m, timeperiod=1)
 
+    # STRATEGY 1 :
+    #   Buy when 3 mom bars are +ve
+    #   Sell after next 3 bars
+    #   Only buy->sell, not sell->buy
 
-    print(f'MOM 1M: {mom_1m}')
-    print(f'MOM 5M: {mom_5m}')
-    print(f'MOM 15M: {mom_15m}')
+    # TODO: Cancel order if not executed in 5 mins??
 
+    signals = []
+
+    mom_positive = False
+    position = False
+    BUY_PRICE = np.array([0])
+
+    for i in range(len(np_cl_1m)):
+
+        # TODO: check if sell price > buy price
+
+        # STRAT 1: 3 BAR UP 3 DOWN CURRENT_PRICE > BUY
+        '''
+        BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i-2] > 0
+        SELL_SIGNAL = mom_1m[i] < 0 and mom_1m[i-1] < 0 and mom_1m[i-2] < 0 and int(np_cl_1m[i]) > int(BUY_PRICE[0])
+        '''
+        # START 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
+
+        BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i] > mom_1m[i-1]
+        SELL_SIGNAL = mom_1m[i] < 0 and mom_1m[i-1] < 0 and int(np_cl_1m[i]) > int(BUY_PRICE[0])
+
+
+        # try:
+        #     SELL_2 = int(np_cl_1m[i]) > int(BUY_PRICE[0])
+        #     print(f'SELL_2: {SELL_2}')
+        # except Exception as e:
+        #     print(f'Error: {str(e)}')
+
+        if np.isnan(mom_1m[i]):
+            continue
+        else:
+            if not position and BUY_SIGNAL:     # if no position exists and a buy sig is found
+
+                # TODO: check clock and don't buy 30 min before market close
+
+                signal = [np_tl_1m[i], np_cl_1m[i], 'g^', f'BUY@ {np_cl_1m[i]} [{np_tl_1m[i]}]']
+                signals.append(signal)
+                position = True
+                BUY_PRICE[0] = int(np_cl_1m[i])
+
+            elif position and SELL_SIGNAL:
+                signal = [np_tl_1m[i], np_cl_1m[i], 'rv', f'SELL@{np_cl_1m[i]} [{np_tl_1m[i]}]']
+                signals.append(signal)
+                position = False
+
+    # plt.plot(np_tl_15m, mom_1m, label='MOM 1Min')
+    plt.plot(np_tl_1m, np_cl_1m, label='close', color='blue', linewidth=1, markersize=2, markerfacecolor='blue',
+             marker='o', linestyle='dashed')
+
+    for signal in signals:
+        plt.plot(signal[0], signal[1], signal[2], label=signal[3])
+
+    plt.title(f"MOM Plot for {ticker}")
+    plt.xlabel("Time")
+    plt.ylabel("$ Value")
+    plt.legend()
+    plt.xticks(rotation=90)
+    plt.show()
+
+# THREE MOM SUBPLOTS START
+    '''
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharey=True)
 
     ax1.set_ylabel('$ value')
@@ -256,15 +317,15 @@ for ticker in tickers:
     # for cross in crosses:
     #     plt.plot(cross[0], cross[1], cross[2])
     #         plt.plot(np_tl_15m, macdhist, label='MACD Histogram')
-    # ax1.title(f"MOM 1 Min Plot for {ticker}")
-    # ax2.title(f"MOM 5 Min Plot for {ticker}")
-    # ax3.title(f"MOM 15 Min Plot for {ticker}")
+    ax1.set_title(f"MOM 1 Min Plot for {ticker}")
+    ax2.set_title(f"MOM 5 Min Plot for {ticker}")
+    ax3.set_title(f"MOM 15 Min Plot for {ticker}")
 
     # plt.title(f"MOM Plots for {ticker}")
     plt.xticks(rotation=90)
     plt.legend()
     plt.show()
-
+    '''
 
 # MACD SIGNAL CROSS START #########
 '''
@@ -296,7 +357,7 @@ for ticker in tickers:
     plt.plot(np_tl_15m, macdsignal, label='MACD Signal')
     for cross in crosses:
         plt.plot(cross[0], cross[1], cross[2])
-            plt.plot(np_tl_15m, macdhist, label='MACD Histogram')
+            # plt.plot(np_tl_15m, macdhist, label='MACD Histogram')
     plt.title(f"MACD Plot for {ticker}")
     plt.xlabel("Open Time")
     plt.ylabel("Value")
