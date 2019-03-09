@@ -5,7 +5,12 @@ import logging
 import config
 import requests
 import json
+
 from datetime import datetime
+import pytz # for timezones
+import dateutil.parser
+# ref: https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+
 import numpy as np
 import talib    # https://mrjbq7.github.io/ta-lib/
 import matplotlib
@@ -23,8 +28,6 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-
-
 NY = 'America/New_York'
 
 # api = tradeapi.REST(
@@ -35,23 +38,53 @@ NY = 'America/New_York'
 
 header = {
     "APCA-API-KEY-ID": config.APCA_API_KEY_ID,
-    "APCA-API-SECRET-KEY": config.APCA_API_SECRET_KEY
+    "APCA-API-SECRET-KEY": config.APCA_API_SECRET_KEY,
+    "Content-Type": "application/json"
 }
 
 # CHECK IF MARKET IS OPEN FOR TRADING
 
 clock_uri = 'https://paper-api.alpaca.markets/v1/clock'
-market_is_open = requests.get(url=clock_uri, headers=header).json()["is_open"]
 
+clock = requests.get(url=clock_uri, headers=header).json()
+market_is_open = clock["is_open"]
+next_open_ts = dateutil.parser.parse(clock['next_open'])
+next_close_ts = dateutil.parser.parse(clock['next_close'])
+
+clock_ts = dateutil.parser.parse(clock['timestamp'])
 
 # SET START AND END TIMES
 
-now = pd.Timestamp.now(tz=NY)
-# now = pd.Timestamp.now(tz=NY) - pd.Timedelta('180 Days ')  # FOR QA
+end_time = clock_ts
+print(f'NOW: {clock_ts}, NEXT_OPEN: {next_open_ts}, NEXT_CLOSE: {next_close_ts}')
 
-end_time = now
+# Get when the market opens or opened today
+
+nyc = pytz.timezone('America/New_York')
+today = datetime.today().astimezone(nyc)
+today_str = datetime.today().astimezone(nyc).strftime('%Y-%m-%d')
+now = datetime.now().astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S')
+
 # https://pandas.pydata.org/pandas-docs/stable/user_guide/timedeltas.html
-# start_dt = end_dt - pd.Timedelta('5 days')  # 1 Minutes
+
+cal_uri = f"https://paper-api.alpaca.markets/v1/calendar?start={today.strftime('%Y-%m-%d')}&end={today.strftime('%Y-%m-%d')}"
+cal = requests.get(cal_uri, headers=header).json()
+
+open_ts = datetime.strptime(today.strftime('%Y-%m-%d') + ' ' + cal[0]['open'], '%Y-%m-%d %H:%M')
+close_ts = datetime.strptime(today.strftime('%Y-%m-%d') + ' ' + cal[0]['close'], '%Y-%m-%d %H:%M')
+
+
+closing_window = 30     # time in min left for market to close
+
+about_to_close_ts = clock_ts - pd.Timedelta(f'{closing_window} Minutes')
+market_about_to_close = False   # default market is not closing in the next 30 min
+
+if clock_ts >= about_to_close_ts:
+    market_about_to_close = True    # if there are 30 min left for market to close
+
+print(f'market_about_to_close: {market_about_to_close} about_to_close_ts: {about_to_close_ts}')
+
+print(f'OPEN: {open_ts} CLOSE: {close_ts}')
 
 start_1m = end_time - pd.Timedelta('1 Minutes')
 start_5m = end_time - pd.Timedelta('5 Minutes')
@@ -89,7 +122,7 @@ base_uri_5m = f'https://data.alpaca.markets/v1/bars/{bar_interval["5MIN"]}'
 base_uri_15m = f'https://data.alpaca.markets/v1/bars/{bar_interval["15MIN"]}'
 # base_uri_1d = f'https://data.alpaca.markets/v1/bars/{bar_interval["1D"]}'
 
-tickers = ['V']
+tickers = ['AAPL']
 
 tl_1m = list()  # time
 ol_1m = list()  # open
@@ -115,10 +148,11 @@ vl_15m = list()
 
 ts_str = ''
 
-# while market_is_open:
 
+# TODO: implement a check for clock['is_open'] --> MARKET IS OPEN
 
-# positionSizing = 0.25
+# TODO: Add positionSizing = 0.25 for each stock
+
 
 for ticker in tickers:
 
@@ -194,9 +228,10 @@ for ticker in tickers:
 
         pass
 
-    eta = datetime.now() - startTime
+    # TODO: Add ETAs at each step
 
-    print(f"[{datetime.now()}] Completed loading OHLCV LISTS")
+    now = datetime.now().astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S')
+    print(f"[{now}] Completed loading OHLCV LISTS")
 
     # CONVERT TO NP ARRAYS - OUTSIDE THE FOR
 
@@ -224,7 +259,8 @@ for ticker in tickers:
     np_vl_15m = np.array(vl_15m)
     np_tl_15m = np.array(tl_15m)
 
-    print(f"[{datetime.now()}] Completed loading OHLCV NP ARRARYS")
+    now = datetime.now().astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S')
+    print(f"[{now}] Completed loading OHLCV NP ARRARYS")
 
 # MOMENTUM INDICATOR START
 
@@ -246,21 +282,22 @@ for ticker in tickers:
     mom_positive = False
     position = False
     BUY_PRICE = np.array([0])
+    # TODO: Add a var window_small = '1m'
+
+    # if
+
 
     for i in range(len(np_cl_1m)):
 
-        # TODO: check if sell price > buy price
-
-        # STRAT 1: 3 BAR UP 3 DOWN CURRENT_PRICE > BUY
+        # STRATEGY 1: 3 BAR UP 3 DOWN CURRENT_PRICE > BUY
         '''
         BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i-2] > 0
         SELL_SIGNAL = mom_1m[i] < 0 and mom_1m[i-1] < 0 and mom_1m[i-2] < 0 and int(np_cl_1m[i]) > int(BUY_PRICE[0])
         '''
-        # START 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
 
-        BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i] > mom_1m[i-1]
+        # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
+        BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i] > mom_1m[i-1] # and not market_about_to_close
         SELL_SIGNAL = mom_1m[i] < 0 and mom_1m[i-1] < 0 and int(np_cl_1m[i]) > int(BUY_PRICE[0])
-
 
         # try:
         #     SELL_2 = int(np_cl_1m[i]) > int(BUY_PRICE[0])
@@ -275,13 +312,13 @@ for ticker in tickers:
 
                 # TODO: check clock and don't buy 30 min before market close
 
-                signal = [np_tl_1m[i], np_cl_1m[i], 'g^', f'BUY@ {np_cl_1m[i]} [{np_tl_1m[i]}]']
+                signal = [np_tl_1m[i], np_cl_1m[i-2], 'g^', f'BUY@ {np_cl_1m[i-2]} [{np_tl_1m[i]}]'] # Buy at price 2 bars prior
                 signals.append(signal)
                 position = True
                 BUY_PRICE[0] = int(np_cl_1m[i])
 
             elif position and SELL_SIGNAL:
-                signal = [np_tl_1m[i], np_cl_1m[i], 'rv', f'SELL@{np_cl_1m[i]} [{np_tl_1m[i]}]']
+                signal = [np_tl_1m[i], np_cl_1m[i-2], 'rv', f'SELL@{np_cl_1m[i-2]} [{np_tl_1m[i]}]']    # Sell at price 2 bars prior
                 signals.append(signal)
                 position = False
 
@@ -297,6 +334,7 @@ for ticker in tickers:
     plt.ylabel("$ Value")
     plt.legend()
     plt.xticks(rotation=90)
+    plt.style.use('dark_background')
     plt.show()
 
 # THREE MOM SUBPLOTS START
