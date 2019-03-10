@@ -114,15 +114,13 @@ bar_interval = {
     "1MIN": "1Min",
     "5MIN": "5Min",
     "15MIN": "15Min",
-    # "1D": "1D"
+    "1D": "1D"
 }
 
 base_uri_1m = f'https://data.alpaca.markets/v1/bars/{bar_interval["1MIN"]}'
 base_uri_5m = f'https://data.alpaca.markets/v1/bars/{bar_interval["5MIN"]}'
 base_uri_15m = f'https://data.alpaca.markets/v1/bars/{bar_interval["15MIN"]}'
 # base_uri_1d = f'https://data.alpaca.markets/v1/bars/{bar_interval["1D"]}'
-
-tickers = ['V']
 
 tl_1m = list()  # time
 ol_1m = list()  # open
@@ -153,26 +151,29 @@ ts_str = ''
 
 # TODO: Add positionSizing = 0.25 for each stock
 
+tickers = ['FB']
 
 for ticker in tickers:
 
-    limit = 90
+    limit_1m = 350  # 78 * 5
+    limit_5m = 78   # 78 bars in a regular trading day 9.30 AM - 3:55 PM
+    limit_15m = 29  # 78 / 3
 
     payload_1m = {
         "symbols": ticker,
-        "limit": limit,
+        "limit": limit_1m,
         "start": log_start_1m,
         "end": log_end_time
     }
     payload_5m = {
         "symbols": ticker,
-        "limit": limit,
+        "limit": limit_5m,
         "start": log_start_5m,
         "end": log_end_time
     }
     payload_15m = {
         "symbols": ticker,
-        "limit": limit,
+        "limit": limit_15m,
         "start": log_start_15m,
         "end": log_end_time
     }
@@ -187,12 +188,73 @@ for ticker in tickers:
     # TODO: pull bars async
     # print(bars_1m)
 
+    for i, v1m in enumerate(bars_1m[ticker]):
+
+        # CONVERT UNIX TS TO READABLE TS
+        v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+        v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+
+        # APPEND TO LIST
+
+        # append 1m bars to list
+        ol_1m.append(v1m['o'])
+        ll_1m.append(v1m['l'])
+        hl_1m.append(v1m['h'])
+        cl_1m.append(v1m['c'])
+        vl_1m.append(v1m['v'])
+
+        tl_1m.append(v1m_ts)
+
+    for i, v5m in enumerate(bars_5m[ticker]):
+
+        # CONVERT UNIX TS TO READABLE TS
+        v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+        v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+
+        # APPEND TO LIST
+
+        ####    FOR DEBUGGING   ####
+
+        # print('#########')
+        # print(f"v5m['t']    {v5m['t']}")
+        # print(f'v5m_ts_nyc  {v5m_ts_nyc}')
+        # print(f'v5m_ts_tz   {v5m_ts}')
+        # print('#########')
+
+        ####    FOR DEBUGGING   ####
+
+        # append 5m bars to list
+        ol_5m.append(v5m['o'])
+        ll_5m.append(v5m['l'])
+        hl_5m.append(v5m['h'])
+        cl_5m.append(v5m['c'])
+        vl_5m.append(v5m['v'])
+
+        tl_1m.append(v5m_ts)
+
+    for i, v15m in enumerate(bars_15m[ticker]):
+
+        # CONVERT UNIX TS TO READABLE TS
+        v15m_ts_nyc = datetime.fromtimestamp(v15m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+        v15m_ts = v15m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+
+        # APPEND TO LIST
+
+        # append 15m bars to list
+        ol_15m.append(v15m['o'])
+        ll_15m.append(v15m['l'])
+        hl_15m.append(v15m['h'])
+        cl_15m.append(v15m['c'])
+        vl_15m.append(v15m['v'])
+
+        tl_15m.append(v15m_ts)
+
+
+    # TODO: REMOVE zip and pull bars separately by time wwindow
+    # [NOTE] Zipping causes limits to not work, all limits are reduced to 15min limit (or lower limit of all 3 lists)
+
+    ''' 
     for i, (v1m, v5m, v15m) in enumerate(zip(bars_1m[ticker], bars_5m[ticker], bars_15m[ticker])):
-    # for i, v15m in enumerate(bars_15m[ticker]):
-
-        # calc per_change here
-
-        # ts = bars_15m[ticker][i]['t']
 
         # CONVERT UNIX TS TO READABLE TS
 
@@ -202,12 +264,16 @@ for ticker in tickers:
         v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)
         v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')
 
-        print('\n')
-        print(f"v5m['t']    {v5m['t']}")
-        print(f'v5m_ts_nyc  {v5m_ts_nyc}')
-        print(f'v5m_ts_tz   {v5m_ts}')
-        print('\n')
-
+        ####    FOR DEBUGGING   ####
+        
+        # print('#########')
+        # print(f"v5m['t']    {v5m['t']}")
+        # print(f'v5m_ts_nyc  {v5m_ts_nyc}')
+        # print(f'v5m_ts_tz   {v5m_ts}')
+        # print('#########')
+        
+        ####    FOR DEBUGGING   ####
+        
         v15m_ts_nyc = datetime.fromtimestamp(v15m['t']).astimezone(nyc)
         v15m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -220,9 +286,7 @@ for ticker in tickers:
         hl_1m.append(v1m['h'])
         cl_1m.append(v1m['c'])
         vl_1m.append(v1m['v'])
-        # tl_1m.append(v1m['t'])
-        # tl_1m.append(datetime.utcfromtimestamp(v1m['t']).strftime('%m%d%H%M'))
-        # tl_1m.append(datetime.v1m['t'].astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S'))
+
         tl_1m.append(v1m_ts)
 
         # append 5m bars to list
@@ -231,9 +295,7 @@ for ticker in tickers:
         hl_5m.append(v5m['h'])
         cl_5m.append(v5m['c'])
         vl_5m.append(v5m['v'])
-        # tl_5m.append(v5m['t'])
-        # tl_5m.append(datetime.utcfromtimestamp(v5m['t']).strftime('%m%d%H%M'))
-        # tl_5m.append(datetime.v5m['t'].astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S'))
+
         tl_5m.append(v5m_ts)
 
         # append 5m bars to list
@@ -242,12 +304,11 @@ for ticker in tickers:
         hl_15m.append(v15m['h'])
         cl_15m.append(v15m['c'])
         vl_15m.append(v15m['v'])
-        # tl_15m.append(v15m['t'])
-        # tl_15m.append(datetime.v15m['t'].astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S'))
-        # tl_15m.append(datetime.utcfromtimestamp(v15m['t']).strftime('%m%d%H%M'))    # TODO: CHECK IF TS is UTC?
+
         tl_15m.append(v15m_ts)
 
         pass
+    '''
 
     # TODO: Add ETAs at each step
 
@@ -262,7 +323,9 @@ for ticker in tickers:
     np_ll_1m = np.array(ll_1m)
     np_cl_1m = np.array(cl_1m)
     np_vl_1m = np.array(vl_1m)
-    np_tl_1m = np.array(tl_1m)
+    np_tl_1m = np.array(tl_1m)[:limit_1m]   # TODO: Remove redundant check
+
+    print(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
     # convert to 5m np array
     np_ol_5m = np.array(ol_5m)
@@ -306,7 +369,7 @@ for ticker in tickers:
     # TODO: Add a var window_small = '1m'
 
     # 1 MIN BARS START
-    '''
+
     for i in range(len(np_cl_1m)):
 
         # STRATEGY 1: 3 BAR UP 3 DOWN CURRENT_PRICE > BUY
@@ -338,13 +401,13 @@ for ticker in tickers:
 
                 # TODO: check clock and don't buy 30 min before market close
 
-                signal = [np_tl_1m[i], np_cl_1m[i-2], 'g^', f'BUY@ {np_cl_1m[i-2]} [{np_tl_1m[i]}]']  # Buy at price 2 bars prior
+                signal = [np_tl_1m[i-2], np_cl_1m[i-2], 'g^', f'BUY@ {np_cl_1m[i-2]} [{np_tl_1m[i]}]']  # Buy at price 2 bars prior
                 signals.append(signal)
                 position = True
-                BUY_PRICE[0] = int(np_cl_1m[i])
+                BUY_PRICE[0] = int(np_cl_1m[i-2])
 
             elif position and SELL_SIGNAL:
-                signal = [np_tl_1m[i], np_cl_1m[i-2], 'rv', f'SELL@{np_cl_1m[i-2]} [{np_tl_1m[i]}]']   # Sell at price 2 bars prior
+                signal = [np_tl_1m[i-2], np_cl_1m[i-2], 'rv', f'SELL@{np_cl_1m[i-2]} [{np_tl_1m[i]}]']   # Sell at price 2 bars prior
                 signals.append(signal)
                 position = False
 
@@ -362,11 +425,12 @@ for ticker in tickers:
     plt.xticks(rotation=90)
     plt.style.use('dark_background')
     plt.show()
-    '''
+
+
     # 1 MIN BARS END
 
     # 5 MIN BARS START
-
+    '''
     for i in range(len(np_cl_5m)):
 
 
@@ -430,6 +494,7 @@ for ticker in tickers:
     plt.style.use('dark_background')
     plt.show()
 
+    '''
     # 5 MIN BARS END
 
 
