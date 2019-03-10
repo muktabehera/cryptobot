@@ -151,7 +151,7 @@ ts_str = ''
 
 # TODO: Add positionSizing = 0.25 for each stock
 
-tickers = ['FB']
+tickers = ['AMZN']
 
 for ticker in tickers:
 
@@ -230,7 +230,7 @@ for ticker in tickers:
         cl_5m.append(v5m['c'])
         vl_5m.append(v5m['v'])
 
-        tl_1m.append(v5m_ts)
+        tl_5m.append(v5m_ts)
 
     for i, v15m in enumerate(bars_15m[ticker]):
 
@@ -249,8 +249,7 @@ for ticker in tickers:
 
         tl_15m.append(v15m_ts)
 
-
-    # TODO: REMOVE zip and pull bars separately by time wwindow
+    # TODO: REMOVE zip and pull bars separately by time window
     # [NOTE] Zipping causes limits to not work, all limits are reduced to 15min limit (or lower limit of all 3 lists)
 
     ''' 
@@ -335,6 +334,8 @@ for ticker in tickers:
     np_vl_5m = np.array(vl_5m)
     np_tl_5m = np.array(tl_5m)
 
+    print(f'np_tl_5m    {len(np_tl_5m)}  np_cl_5m    {len(np_cl_5m)}')
+
     # convert to 15m np array
     np_ol_15m = np.array(ol_15m)
     np_hl_15m = np.array(hl_15m)
@@ -342,6 +343,8 @@ for ticker in tickers:
     np_cl_15m = np.array(cl_15m)
     np_vl_15m = np.array(vl_15m)
     np_tl_15m = np.array(tl_15m)
+
+    print(f'np_tl_15m    {len(np_tl_15m)}  np_cl_15m    {len(np_cl_15m)}')
 
     now = datetime.now().astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S')
     print(f"[{now}] Completed loading OHLCV NP ARRARYS \n")
@@ -363,13 +366,24 @@ for ticker in tickers:
 
     signals = []
 
-
     position = False
-    BUY_PRICE = np.array([0])
+    BUY_PRICE = np.array([0])   # initialization
+    sell_target_based_on_profit_percentage = np.array([0])  # initialization
+
+    ###########################
+
+    # Profit percentage (price above buy price) 25% as 0.25, 10% as 0.1
+    # used to set -> sell_target_based_on_profit_percentage
+
+    profit_percentage = 0.050    # 0.2 for 20%
+
+    ###########################
+
+
     # TODO: Add a var window_small = '1m'
 
     # 1 MIN BARS START
-
+    '''
     for i in range(len(np_cl_1m)):
 
         # STRATEGY 1: 3 BAR UP 3 DOWN CURRENT_PRICE > BUY
@@ -426,41 +440,36 @@ for ticker in tickers:
     plt.style.use('dark_background')
     plt.show()
 
-
+    '''
     # 1 MIN BARS END
 
     # 5 MIN BARS START
-    '''
-    for i in range(len(np_cl_5m)):
 
+    for i in range(len(np_cl_5m)):
 
         # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
 
-        CLOSING_TIME_CONDITION = market_about_to_close
+        bool_closing_time = market_about_to_close
+        bool_buy_momentum = (mom_5m[i] > 0 and mom_5m[i - 1] > 0) and (mom_5m[i] > mom_5m[i - 1])
 
-        BUY_MOM_CONDITION = mom_5m[i] > 0 and mom_5m[i-1] > 0 and mom_5m[i] > mom_5m[i-1]
-        if BUY_MOM_CONDITION:
-            print(f'[{np_tl_5m[i]}] [BUY_MOM]   {BUY_MOM_CONDITION}   mom5m[{i}]: {mom_5m[i]}   mom5m[{i}-1]    {mom_5m[i-1]}')
+        ################################
 
-        ########
-        BUY_SIGNAL = BUY_MOM_CONDITION #and CLOSING_TIME_CONDITION
-        print(f'[{np_tl_5m[i]}] [BUY_SIGNAL]   {BUY_SIGNAL}   BUY_MOM   {BUY_MOM_CONDITION}   CLOSING {CLOSING_TIME_CONDITION}')
-        ########
+        BUY_SIGNAL = bool_buy_momentum # and not CLOSING_TIME # TODO: [IMPORTANT] include closing time check in actual trades
 
-        SELL_MOM_CONDITION = mom_5m[i] < 0 and mom_5m[i-1] < 0
-        if SELL_MOM_CONDITION:
-            print(f'[{np_tl_5m[i]}] [SELL_MOM_CONDITION]    {SELL_MOM_CONDITION}    mom5m[{i}]  {mom_5m[i]} mom5m[{i-1}]    {mom_5m[i-1]}')
+        ################################
 
-        SELL_PRICE_CONDITION = int(np_cl_5m[i]) > int(BUY_PRICE[0])
+        bool_sell_momentum = mom_5m[i] < 0 and mom_5m[i-1] < 0                                          # current and prev momentum are positive
+        bool_sell_price = int(np_cl_5m[i]) > int(BUY_PRICE[0])                                          # current price is gt buy price
+        bool_sell_profit_target = float(np_cl_5m[i]) >= float(sell_target_based_on_profit_percentage)   # current price > sell target
+        # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
-        if SELL_PRICE_CONDITION:
-            print(f'[{np_tl_5m[i]}] [SELL_PRICE_CONDITION]  {SELL_PRICE_CONDITION}  np_cl_5m[{i}]   {np_cl_5m[i]}    BUY_PRICE[0]  {BUY_PRICE[0]}')
+        ################################
 
-        ########
-        SELL_SIGNAL = (SELL_MOM_CONDITION and SELL_PRICE_CONDITION) or (SELL_PRICE_CONDITION and CLOSING_TIME_CONDITION)
-        print(f'[{np_tl_5m[i]}] [SELL_SIGNAL]   {SELL_SIGNAL}   SELL_MOM    {SELL_MOM_CONDITION}    SELL_PRICE  {SELL_PRICE_CONDITION}  CLOSING {CLOSING_TIME_CONDITION}')
 
-        ########
+        SELL_SIGNAL = (bool_sell_momentum and bool_sell_price) or bool_sell_profit_target
+                        # or (SELL_PRICE and CLOSING_TIME) # TODO:
+
+        ################################
 
         if np.isnan(mom_5m[i]):
             continue
@@ -469,18 +478,38 @@ for ticker in tickers:
 
                 # TODO: check clock and don't buy 30 min before market close
 
-                signal = [np_tl_5m[i-2], np_cl_5m[i-2], 'g^', f'BUY@ {np_cl_5m[i-2]} [{np_tl_5m[i]}]']  # Buy at price 2 bars prior
+                signal = [np_tl_5m[i], np_cl_5m[i], 'g^', f'BUY@ {np_cl_5m[i]} [{np_tl_5m[i]}]']  # Buy at price 2 bars prior
                 signals.append(signal)
-                position = True
                 BUY_PRICE[0] = int(np_cl_5m[i])
 
+                # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
+                sell_target_based_on_profit_percentage = BUY_PRICE[0] + (BUY_PRICE[0] * profit_percentage)
+
+                print(f'[{np_tl_5m[i]}] [{round(np_cl_5m[i], 2)}]     '
+                      f'[BUY]       {BUY_SIGNAL}            '
+                      f'MOMENTUM    {bool_buy_momentum}          '
+                      f'POSITION    {position}             '
+                      # f'CLOSING     {closing_time}          '
+                      f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}')
+
+                position = True
+
             elif position and SELL_SIGNAL:
-                signal = [np_tl_5m[i-2], np_cl_5m[i-2], 'rv', f'SELL@{np_cl_5m[i-2]} [{np_tl_5m[i]}]']   # Sell at price 2 bars prior
+                signal = [np_tl_5m[i], np_cl_5m[i], 'rv', f'SELL@{np_cl_5m[i]} [{np_tl_5m[i]}]']   # Sell at price 2 bars prior
                 signals.append(signal)
+
+                print(f'[{np_tl_5m[i]}] [{round(np_cl_5m[i], 2)}]     '
+                      f'[SELL]      {SELL_SIGNAL}            '
+                      f'MOMENTUM    {bool_sell_momentum}         '
+                      f'POSITION    {position}              '
+                      # f'CLOSING     {closing_time}          '
+                      f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  '
+                      f'PRICE       {bool_sell_price}')
+
                 position = False
 
     # plt.plot(np_tl_15m, mom_1m, label='MOM 1Min')
-    plt.plot(np_tl_5m, np_cl_5m, label='close', color='blue', linewidth=1, markersize=2, markerfacecolor='blue',
+    plt.plot(np_tl_5m, np_cl_5m, label='close', color='pink', linewidth=1, markersize=2, markerfacecolor='blue',
              marker='o') #, linestyle='dashed')
 
     for signal in signals:
@@ -494,7 +523,7 @@ for ticker in tickers:
     plt.style.use('dark_background')
     plt.show()
 
-    '''
+
     # 5 MIN BARS END
 
 
