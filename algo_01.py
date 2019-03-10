@@ -74,7 +74,7 @@ open_ts = datetime.strptime(today.strftime('%Y-%m-%d') + ' ' + cal[0]['open'], '
 close_ts = datetime.strptime(today.strftime('%Y-%m-%d') + ' ' + cal[0]['close'], '%Y-%m-%d %H:%M')
 
 
-closing_window = 30     # time in min left for market to close
+closing_window = 30     # in Mins - > time in min left for market to close
 
 about_to_close_ts = clock_ts - pd.Timedelta(f'{closing_window} Minutes')
 market_about_to_close = False   # default market is not closing in the next 30 min
@@ -122,7 +122,7 @@ base_uri_5m = f'https://data.alpaca.markets/v1/bars/{bar_interval["5MIN"]}'
 base_uri_15m = f'https://data.alpaca.markets/v1/bars/{bar_interval["15MIN"]}'
 # base_uri_1d = f'https://data.alpaca.markets/v1/bars/{bar_interval["1D"]}'
 
-tickers = ['AAPL']
+tickers = ['V']
 
 tl_1m = list()  # time
 ol_1m = list()  # open
@@ -156,7 +156,7 @@ ts_str = ''
 
 for ticker in tickers:
 
-    limit = 250
+    limit = 90
 
     payload_1m = {
         "symbols": ticker,
@@ -195,7 +195,22 @@ for ticker in tickers:
         # ts = bars_15m[ticker][i]['t']
 
         # CONVERT UNIX TS TO READABLE TS
-        # ts_str=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(ts)))
+
+        v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)        # Covert Unix TS to NYC NOT UTC!!
+        v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')                    # Convert to str with format
+
+        v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)
+        v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')
+
+        print('\n')
+        print(f"v5m['t']    {v5m['t']}")
+        print(f'v5m_ts_nyc  {v5m_ts_nyc}')
+        print(f'v5m_ts_tz   {v5m_ts}')
+        print('\n')
+
+        v15m_ts_nyc = datetime.fromtimestamp(v15m['t']).astimezone(nyc)
+        v15m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')
+
 
         # APPEND TO LIST
 
@@ -206,7 +221,9 @@ for ticker in tickers:
         cl_1m.append(v1m['c'])
         vl_1m.append(v1m['v'])
         # tl_1m.append(v1m['t'])
-        tl_1m.append(datetime.utcfromtimestamp(v1m['t']).strftime('%m%d%H%M'))
+        # tl_1m.append(datetime.utcfromtimestamp(v1m['t']).strftime('%m%d%H%M'))
+        # tl_1m.append(datetime.v1m['t'].astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S'))
+        tl_1m.append(v1m_ts)
 
         # append 5m bars to list
         ol_5m.append(v5m['o'])
@@ -215,7 +232,9 @@ for ticker in tickers:
         cl_5m.append(v5m['c'])
         vl_5m.append(v5m['v'])
         # tl_5m.append(v5m['t'])
-        tl_5m.append(datetime.utcfromtimestamp(v5m['t']).strftime('%m%d%H%M'))
+        # tl_5m.append(datetime.utcfromtimestamp(v5m['t']).strftime('%m%d%H%M'))
+        # tl_5m.append(datetime.v5m['t'].astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S'))
+        tl_5m.append(v5m_ts)
 
         # append 5m bars to list
         ol_15m.append(v15m['o'])
@@ -224,7 +243,9 @@ for ticker in tickers:
         cl_15m.append(v15m['c'])
         vl_15m.append(v15m['v'])
         # tl_15m.append(v15m['t'])
-        tl_15m.append(datetime.utcfromtimestamp(v15m['t']).strftime('%m%d%H%M'))    # TODO: CHECK IF TS is UTC?
+        # tl_15m.append(datetime.v15m['t'].astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S'))
+        # tl_15m.append(datetime.utcfromtimestamp(v15m['t']).strftime('%m%d%H%M'))    # TODO: CHECK IF TS is UTC?
+        tl_15m.append(v15m_ts)
 
         pass
 
@@ -260,7 +281,7 @@ for ticker in tickers:
     np_tl_15m = np.array(tl_15m)
 
     now = datetime.now().astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{now}] Completed loading OHLCV NP ARRARYS")
+    print(f"[{now}] Completed loading OHLCV NP ARRARYS \n")
 
 # MOMENTUM INDICATOR START
 
@@ -279,25 +300,30 @@ for ticker in tickers:
 
     signals = []
 
-    mom_positive = False
+
     position = False
     BUY_PRICE = np.array([0])
     # TODO: Add a var window_small = '1m'
 
-    # if
-
-
+    # 1 MIN BARS START
+    '''
     for i in range(len(np_cl_1m)):
 
         # STRATEGY 1: 3 BAR UP 3 DOWN CURRENT_PRICE > BUY
-        '''
-        BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i-2] > 0
-        SELL_SIGNAL = mom_1m[i] < 0 and mom_1m[i-1] < 0 and mom_1m[i-2] < 0 and int(np_cl_1m[i]) > int(BUY_PRICE[0])
-        '''
+        
+        # BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i-2] > 0
+        # SELL_SIGNAL = mom_1m[i] < 0 and mom_1m[i-1] < 0 and mom_1m[i-2] < 0 and int(np_cl_1m[i]) > int(BUY_PRICE[0])
+        
 
         # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
+
         BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i] > mom_1m[i-1] # and not market_about_to_close
         SELL_SIGNAL = mom_1m[i] < 0 and mom_1m[i-1] < 0 and int(np_cl_1m[i]) > int(BUY_PRICE[0])
+
+
+        # RE-WRITTEN STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
+        # BUY_SIGNAL = f'mom_{window}[i]' > 0 and f'mom_{window}[i-1]' > 0 and f'mom_{window}[i]' > f'mom_{window}[i-1]'  # and not market_about_to_close
+        # SELL_SIGNAL = f'mom_{window}[i]' < 0 and f'mom_{window}[i-1]' < 0 and int(f'np_cl_{window}[i]') > int(BUY_PRICE[0])
 
         # try:
         #     SELL_2 = int(np_cl_1m[i]) > int(BUY_PRICE[0])
@@ -312,30 +338,100 @@ for ticker in tickers:
 
                 # TODO: check clock and don't buy 30 min before market close
 
-                signal = [np_tl_1m[i], np_cl_1m[i-2], 'g^', f'BUY@ {np_cl_1m[i-2]} [{np_tl_1m[i]}]'] # Buy at price 2 bars prior
+                signal = [np_tl_1m[i], np_cl_1m[i-2], 'g^', f'BUY@ {np_cl_1m[i-2]} [{np_tl_1m[i]}]']  # Buy at price 2 bars prior
                 signals.append(signal)
                 position = True
                 BUY_PRICE[0] = int(np_cl_1m[i])
 
             elif position and SELL_SIGNAL:
-                signal = [np_tl_1m[i], np_cl_1m[i-2], 'rv', f'SELL@{np_cl_1m[i-2]} [{np_tl_1m[i]}]']    # Sell at price 2 bars prior
+                signal = [np_tl_1m[i], np_cl_1m[i-2], 'rv', f'SELL@{np_cl_1m[i-2]} [{np_tl_1m[i]}]']   # Sell at price 2 bars prior
                 signals.append(signal)
                 position = False
 
     # plt.plot(np_tl_15m, mom_1m, label='MOM 1Min')
     plt.plot(np_tl_1m, np_cl_1m, label='close', color='blue', linewidth=1, markersize=2, markerfacecolor='blue',
-             marker='o', linestyle='dashed')
+             marker='o') #, linestyle='dashed')
 
     for signal in signals:
         plt.plot(signal[0], signal[1], signal[2], label=signal[3])
 
-    plt.title(f"MOM Plot for {ticker}")
+    plt.title(f"1 Min MOM Plot for {ticker}")
     plt.xlabel("Time")
     plt.ylabel("$ Value")
     plt.legend()
     plt.xticks(rotation=90)
     plt.style.use('dark_background')
     plt.show()
+    '''
+    # 1 MIN BARS END
+
+    # 5 MIN BARS START
+
+    for i in range(len(np_cl_5m)):
+
+
+        # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
+
+        CLOSING_TIME_CONDITION = market_about_to_close
+
+        BUY_MOM_CONDITION = mom_5m[i] > 0 and mom_5m[i-1] > 0 and mom_5m[i] > mom_5m[i-1]
+        if BUY_MOM_CONDITION:
+            print(f'[{np_tl_5m[i]}] [BUY_MOM]   {BUY_MOM_CONDITION}   mom5m[{i}]: {mom_5m[i]}   mom5m[{i}-1]    {mom_5m[i-1]}')
+
+        ########
+        BUY_SIGNAL = BUY_MOM_CONDITION #and CLOSING_TIME_CONDITION
+        print(f'[{np_tl_5m[i]}] [BUY_SIGNAL]   {BUY_SIGNAL}   BUY_MOM   {BUY_MOM_CONDITION}   CLOSING {CLOSING_TIME_CONDITION}')
+        ########
+
+        SELL_MOM_CONDITION = mom_5m[i] < 0 and mom_5m[i-1] < 0
+        if SELL_MOM_CONDITION:
+            print(f'[{np_tl_5m[i]}] [SELL_MOM_CONDITION]    {SELL_MOM_CONDITION}    mom5m[{i}]  {mom_5m[i]} mom5m[{i-1}]    {mom_5m[i-1]}')
+
+        SELL_PRICE_CONDITION = int(np_cl_5m[i]) > int(BUY_PRICE[0])
+
+        if SELL_PRICE_CONDITION:
+            print(f'[{np_tl_5m[i]}] [SELL_PRICE_CONDITION]  {SELL_PRICE_CONDITION}  np_cl_5m[{i}]   {np_cl_5m[i]}    BUY_PRICE[0]  {BUY_PRICE[0]}')
+
+        ########
+        SELL_SIGNAL = (SELL_MOM_CONDITION and SELL_PRICE_CONDITION) or (SELL_PRICE_CONDITION and CLOSING_TIME_CONDITION)
+        print(f'[{np_tl_5m[i]}] [SELL_SIGNAL]   {SELL_SIGNAL}   SELL_MOM    {SELL_MOM_CONDITION}    SELL_PRICE  {SELL_PRICE_CONDITION}  CLOSING {CLOSING_TIME_CONDITION}')
+
+        ########
+
+        if np.isnan(mom_5m[i]):
+            continue
+        else:
+            if not position and BUY_SIGNAL:     # if no position exists and a buy sig is found
+
+                # TODO: check clock and don't buy 30 min before market close
+
+                signal = [np_tl_5m[i-2], np_cl_5m[i-2], 'g^', f'BUY@ {np_cl_5m[i-2]} [{np_tl_5m[i]}]']  # Buy at price 2 bars prior
+                signals.append(signal)
+                position = True
+                BUY_PRICE[0] = int(np_cl_5m[i])
+
+            elif position and SELL_SIGNAL:
+                signal = [np_tl_5m[i-2], np_cl_5m[i-2], 'rv', f'SELL@{np_cl_5m[i-2]} [{np_tl_5m[i]}]']   # Sell at price 2 bars prior
+                signals.append(signal)
+                position = False
+
+    # plt.plot(np_tl_15m, mom_1m, label='MOM 1Min')
+    plt.plot(np_tl_5m, np_cl_5m, label='close', color='blue', linewidth=1, markersize=2, markerfacecolor='blue',
+             marker='o') #, linestyle='dashed')
+
+    for signal in signals:
+        plt.plot(signal[0], signal[1], signal[2], label=signal[3])
+
+    plt.title(f"5 Min MOM Plot for {ticker}")
+    plt.xlabel("Time")
+    plt.ylabel("$ Value")
+    plt.legend()
+    plt.xticks(rotation=90)
+    plt.style.use('dark_background')
+    plt.show()
+
+    # 5 MIN BARS END
+
 
 # THREE MOM SUBPLOTS START
     '''
