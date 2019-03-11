@@ -74,7 +74,7 @@ open_ts = datetime.strptime(today.strftime('%Y-%m-%d') + ' ' + cal[0]['open'], '
 close_ts = datetime.strptime(today.strftime('%Y-%m-%d') + ' ' + cal[0]['close'], '%Y-%m-%d %H:%M')
 
 
-closing_window = 30     # in Mins - > time in min left for market to close
+closing_window = config.closing_window     # in Mins - > time in min left for market to close
 
 about_to_close_ts = clock_ts - pd.Timedelta(f'{closing_window} Minutes')
 market_about_to_close = False   # default market is not closing in the next 30 min
@@ -151,13 +151,13 @@ ts_str = ''
 
 # TODO: Add positionSizing = 0.25 for each stock
 
-tickers = ['V']
+tickers = config.tickers
 
 for ticker in tickers:
 
-    limit_1m = 350  # 78 * 5
-    limit_5m = 78   # 78 bars in a regular trading day 9.30 AM - 3:55 PM
-    limit_15m = 29  # 78 / 3
+    limit_1m = config.limit_1m # 78 * 5
+    limit_5m = config.limit_5m   # 78 bars in a regular trading day 9.30 AM - 3:55 PM
+    limit_15m = config.limit_15m  # 78 / 3
 
     payload_1m = {
         "symbols": ticker,
@@ -367,7 +367,7 @@ for ticker in tickers:
     signals = []
 
     position = False
-    BUY_PRICE = np.array([0])   # initialization
+    BUY_PRICE = np.array([0.000])   # initialization
     sell_target_based_on_profit_percentage = np.array([0])  # initialization
 
     ###########################
@@ -375,15 +375,15 @@ for ticker in tickers:
     # Profit percentage (price above buy price) 25% as 0.25, 10% as 0.1
     # used to set -> sell_target_based_on_profit_percentage
 
-    profit_percentage = 0.007    # 0.2 for 20%
+    profit_percentage = float(config.profit_percentage )   # 0.2 for 20%
 
     ###########################
 
 
     # TODO: Add a var window_small = '1m'
 
-    # 1 MIN BARS START
-
+    ###################     1 MIN BARS START    #######################
+    '''
     for i in range(len(np_cl_1m)):
 
         # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
@@ -393,20 +393,34 @@ for ticker in tickers:
 
         ################################
 
-        BUY_SIGNAL = bool_buy_momentum # and not CLOSING_TIME # TODO: [IMPORTANT] include closing time check in actual trades
+        BUY_SIGNAL = bool_buy_momentum # and not bool_closing_time
+
+        # TODO: [IMPORTANT] include closing time check in actual trades
 
         ################################
 
         bool_sell_momentum = mom_1m[i] < 0 and mom_1m[i-1] < 0                                          # current and prev momentum are positive
-        bool_sell_price = int(np_cl_1m[i]) > int(BUY_PRICE[0])                                          # current price is gt buy price
+        bool_sell_price = float(np_cl_1m[i]) > float(BUY_PRICE[0])                                      # current price is gt buy price
+        # print(f'bool_sell_price [{bool_sell_price}] = float(np_cl_1m[i]) [{float(np_cl_1m[i])}] > float(BUY_PRICE[0]) [{float(BUY_PRICE[0])}]')
+
         bool_sell_profit_target = float(np_cl_1m[i]) >= float(sell_target_based_on_profit_percentage)   # current price > sell target
+
         # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
         ################################
 
+        SELL_SIGNAL = (bool_sell_momentum and bool_sell_price) or \
+                      bool_sell_profit_target #or \
+                      #(bool_sell_price and position and bool_closing_time)  # TODO: Incorporate closing time
 
-        SELL_SIGNAL = (bool_sell_momentum and bool_sell_price) or bool_sell_profit_target
-                        # or (SELL_PRICE and CLOSING_TIME) # TODO:
+        # print(f'[{np_tl_1m[i]}] [{round(np_cl_1m[i], 2)}]     '
+        #       f'[SELL]      {SELL_SIGNAL}            '
+        #       f'MOMENTUM    {bool_sell_momentum}          '
+        #       f'POSITION    {position}              '
+        #       f'CLOSING     {bool_closing_time}          '
+        #       f'SELLPRICE     {bool_sell_price}          '
+        #       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  ')
+
 
         ################################
 
@@ -419,7 +433,7 @@ for ticker in tickers:
 
                 signal = [np_tl_1m[i], np_cl_1m[i], 'g^', f'BUY@ {np_cl_1m[i]} [{np_tl_1m[i]}]']  # Buy at price 2 bars prior
                 signals.append(signal)
-                BUY_PRICE[0] = int(np_cl_1m[i])
+                BUY_PRICE[0] = float(np_cl_1m[i])
 
                 # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
                 sell_target_based_on_profit_percentage = BUY_PRICE[0] + (BUY_PRICE[0] * profit_percentage)
@@ -428,7 +442,7 @@ for ticker in tickers:
                       f'[BUY]       {BUY_SIGNAL}            '
                       f'MOMENTUM    {bool_buy_momentum}          '
                       f'POSITION    {position}             '
-                      # f'CLOSING     {closing_time}          '
+                      f'CLOSING     {bool_closing_time}          '
                       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}]        ')
 
                 position = True
@@ -439,9 +453,9 @@ for ticker in tickers:
 
                 print(f'[{np_tl_1m[i]}] [{round(np_cl_1m[i], 2)}]     '
                       f'[SELL]      {SELL_SIGNAL}            '
-                      f'MOMENTUM    {bool_sell_momentum}          '
+                      f'MOMENTUM    {bool_sell_momentum}         '
                       f'POSITION    {position}              '
-                      # f'CLOSING     {closing_time}          '
+                      f'CLOSING     {bool_closing_time}          '
                       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  '
                       f'PRICE       {bool_sell_price}')
 
@@ -461,93 +475,49 @@ for ticker in tickers:
     plt.xticks(rotation=90)
     plt.style.use('dark_background')
     plt.show()
-
-    ''' OLD -> REMOVE LATER
-    
-    for i in range(len(np_cl_1m)):
-
-        # STRATEGY 1: 3 BAR UP 3 DOWN CURRENT_PRICE > BUY
-        
-        # BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i-2] > 0
-        # SELL_SIGNAL = mom_1m[i] < 0 and mom_1m[i-1] < 0 and mom_1m[i-2] < 0 and int(np_cl_1m[i]) > int(BUY_PRICE[0])
-        
-
-        # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
-
-        BUY_SIGNAL = mom_1m[i] > 0 and mom_1m[i-1] > 0 and mom_1m[i] > mom_1m[i-1] # and not market_about_to_close
-        SELL_SIGNAL = mom_1m[i] < 0 and mom_1m[i-1] < 0 and int(np_cl_1m[i]) > int(BUY_PRICE[0])
-
-
-        # RE-WRITTEN STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
-        # BUY_SIGNAL = f'mom_{window}[i]' > 0 and f'mom_{window}[i-1]' > 0 and f'mom_{window}[i]' > f'mom_{window}[i-1]'  # and not market_about_to_close
-        # SELL_SIGNAL = f'mom_{window}[i]' < 0 and f'mom_{window}[i-1]' < 0 and int(f'np_cl_{window}[i]') > int(BUY_PRICE[0])
-
-        # try:
-        #     SELL_2 = int(np_cl_1m[i]) > int(BUY_PRICE[0])
-        #     print(f'SELL_2: {SELL_2}')
-        # except Exception as e:
-        #     print(f'Error: {str(e)}')
-
-        if np.isnan(mom_1m[i]):
-            continue
-        else:
-            if not position and BUY_SIGNAL:     # if no position exists and a buy sig is found
-
-                # TODO: check clock and don't buy 30 min before market close
-
-                signal = [np_tl_1m[i-2], np_cl_1m[i-2], 'g^', f'BUY@ {np_cl_1m[i-2]} [{np_tl_1m[i]}]']  # Buy at price 2 bars prior
-                signals.append(signal)
-                position = True
-                BUY_PRICE[0] = int(np_cl_1m[i-2])
-
-            elif position and SELL_SIGNAL:
-                signal = [np_tl_1m[i-2], np_cl_1m[i-2], 'rv', f'SELL@{np_cl_1m[i-2]} [{np_tl_1m[i]}]']   # Sell at price 2 bars prior
-                signals.append(signal)
-                position = False
-
-    # plt.plot(np_tl_15m, mom_1m, label='MOM 1Min')
-    plt.plot(np_tl_1m, np_cl_1m, label='close', color='blue', linewidth=1, markersize=2, markerfacecolor='blue',
-             marker='o') #, linestyle='dashed')
-
-    for signal in signals:
-        plt.plot(signal[0], signal[1], signal[2], label=signal[3])
-
-    plt.title(f"1 Min MOM Plot for {ticker}")
-    plt.xlabel("Time")
-    plt.ylabel("$ Value")
-    plt.legend()
-    plt.xticks(rotation=90)
-    plt.style.use('dark_background')
-    plt.show()
-
     '''
-    # 1 MIN BARS END
+    ###################     1 MIN BARS END    #########################
 
-    # 5 MIN BARS START
-    '''
+
+    ###################     5 MIN BARS START    #######################
+
     for i in range(len(np_cl_5m)):
 
         # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
 
         bool_closing_time = market_about_to_close
-        bool_buy_momentum = (mom_5m[i] > 0 and mom_5m[i - 1] > 0) and (mom_5m[i] > mom_5m[i - 1])
+        bool_buy_momentum = (mom_5m[i] > 0 and mom_5m[i-1] > 0) and (mom_5m[i] > mom_5m[i-1])
 
         ################################
 
-        BUY_SIGNAL = bool_buy_momentum # and not CLOSING_TIME # TODO: [IMPORTANT] include closing time check in actual trades
+        BUY_SIGNAL = bool_buy_momentum # and not bool_closing_time
+
+        # TODO: [IMPORTANT] include closing time check in actual trades
 
         ################################
 
         bool_sell_momentum = mom_5m[i] < 0 and mom_5m[i-1] < 0                                          # current and prev momentum are positive
-        bool_sell_price = int(np_cl_5m[i]) > int(BUY_PRICE[0])                                          # current price is gt buy price
+        bool_sell_price = float(np_cl_5m[i]) > float(BUY_PRICE[0])                                      # current price is gt buy price
+        # print(f'bool_sell_price [{bool_sell_price}] = float(np_cl_5m[i]) [{float(np_cl_5m[i])}] > float(BUY_PRICE[0]) [{float(BUY_PRICE[0])}]')
+
         bool_sell_profit_target = float(np_cl_5m[i]) >= float(sell_target_based_on_profit_percentage)   # current price > sell target
+
         # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
         ################################
 
+        SELL_SIGNAL = (bool_sell_momentum and bool_sell_price) or \
+                      bool_sell_profit_target #or \
+                      #(bool_sell_price and position and bool_closing_time)  # TODO: Incorporate closing time
 
-        SELL_SIGNAL = (bool_sell_momentum and bool_sell_price) or bool_sell_profit_target
-                        # or (SELL_PRICE and CLOSING_TIME) # TODO:
+        # print(f'[{np_tl_5m[i]}] [{round(np_cl_5m[i], 2)}]     '
+        #       f'[SELL]      {SELL_SIGNAL}            '
+        #       f'MOMENTUM    {bool_sell_momentum}          '
+        #       f'POSITION    {position}              '
+        #       f'CLOSING     {bool_closing_time}          '
+        #       f'SELLPRICE     {bool_sell_price}          '
+        #       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  ')
+
 
         ################################
 
@@ -558,37 +528,42 @@ for ticker in tickers:
 
                 # TODO: check clock and don't buy 30 min before market close
 
-                signal = [np_tl_5m[i], np_cl_5m[i], 'g^', f'BUY@ {np_cl_5m[i]} [{np_tl_5m[i]}]']  # Buy at price 2 bars prior
+                BUY_PRICE[0] = float((np_cl_5m[i] + np_cl_5m[i - 1]) / 2)
+                buy_price = round(BUY_PRICE[0],3)
+
+                signal = [np_tl_5m[i], buy_price, 'g^', f'BUY@ {buy_price} [{np_tl_5m[i]}]']  # Buy at price 2 bars prior
                 signals.append(signal)
-                BUY_PRICE[0] = int(np_cl_5m[i])
+
 
                 # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
                 sell_target_based_on_profit_percentage = BUY_PRICE[0] + (BUY_PRICE[0] * profit_percentage)
 
-                print(f'[{np_tl_5m[i]}] [{round(np_cl_5m[i], 2)}]     '
+                print(f'[{np_tl_5m[i]}] [{buy_price}]     '
                       f'[BUY]       {BUY_SIGNAL}            '
                       f'MOMENTUM    {bool_buy_momentum}          '
                       f'POSITION    {position}             '
-                      # f'CLOSING     {closing_time}          '
+                      f'CLOSING     {bool_closing_time}          '
                       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}]        ')
 
                 position = True
 
             elif position and SELL_SIGNAL:
-                signal = [np_tl_5m[i], np_cl_5m[i], 'rv', f'SELL@{np_cl_5m[i]} [{np_tl_5m[i]}]']   # Sell at price 2 bars prior
+
+                sell_price = round(np_cl_5m[i-2], 3)  # set sell price to 2 bars prior val
+
+                signal = [np_tl_5m[i], sell_price, 'rv', f'SELL@{sell_price} [{np_tl_5m[i]}]']   # Sell at price 2 bars prior
                 signals.append(signal)
 
-                print(f'[{np_tl_5m[i]}] [{round(np_cl_5m[i], 2)}]     '
+                print(f'[{np_tl_5m[i]}] [{sell_price}]     '
                       f'[SELL]      {SELL_SIGNAL}            '
-                      f'MOMENTUM    {bool_sell_momentum}          '
+                      f'MOMENTUM    {bool_sell_momentum}         '
                       f'POSITION    {position}              '
-                      # f'CLOSING     {closing_time}          '
+                      f'CLOSING     {bool_closing_time}          '
                       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  '
                       f'PRICE       {bool_sell_price}')
 
                 position = False
 
-    # plt.plot(np_tl_15m, mom_1m, label='MOM 1Min')
     plt.plot(np_tl_5m, np_cl_5m, label='close', color='pink', linewidth=1, markersize=2, markerfacecolor='blue',
              marker='o') #, linestyle='dashed')
 
@@ -601,14 +576,14 @@ for ticker in tickers:
     plt.legend()
     plt.xticks(rotation=90)
     plt.style.use('dark_background')
+    plt.grid(True)
     plt.show()
-    
-    '''
-    # 5 MIN BARS END
+
+    ###################     5 MIN BARS END    #########################
 
 
 # THREE MOM SUBPLOTS START
-    '''
+'''
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharey=True)
 
     ax1.set_ylabel('$ value')
@@ -633,7 +608,7 @@ for ticker in tickers:
     plt.xticks(rotation=90)
     plt.legend()
     plt.show()
-    '''
+'''
 
 # MACD SIGNAL CROSS START #########
 '''
