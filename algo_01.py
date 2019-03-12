@@ -370,15 +370,26 @@ for ticker in tickers:
     BUY_PRICE = np.array([0.000])   # initialization
     sell_target_based_on_profit_percentage = np.array([0])  # initialization
 
+    buy_price = 0.000       # float
+    sell_price = 0.000      # float
+    list_trade_profit = list()  # list to hold profit amount
+    list_trade_pnl = list()      # dict to hold profit or loss for each trade
+    day_pnl = 0.000         # for the day (float)
+
+    trade_left_open = False     # to check if a trade was left open, initial False
+
+    units_to_trade = config.units_to_trade
+    # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
+    # TODO: handle partial fills
+
     ###########################
 
     # Profit percentage (price above buy price) 25% as 0.25, 10% as 0.1
     # used to set -> sell_target_based_on_profit_percentage
 
-    profit_percentage = float(config.profit_percentage )   # 0.2 for 20%
+    profit_percentage = float(config.profit_percentage)   # 0.2 for 20%
 
     ###########################
-
 
     # TODO: Add a var window_small = '1m'
 
@@ -501,6 +512,7 @@ for ticker in tickers:
         # print(f'bool_sell_price [{bool_sell_price}] = float(np_cl_5m[i]) [{float(np_cl_5m[i])}] > float(BUY_PRICE[0]) [{float(BUY_PRICE[0])}]')
 
         bool_sell_profit_target = float(np_cl_5m[i]) >= float(sell_target_based_on_profit_percentage)   # current price > sell target
+        # print(f'[{np_tl_5m[i]}] bool_sell_profit_target {bool_sell_profit_target} = float(np_cl_5m[i]) {float(np_cl_5m[i])} >= float(sell_target_based_on_profit_percentage) {float(sell_target_based_on_profit_percentage)}')
 
         # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
@@ -549,10 +561,14 @@ for ticker in tickers:
 
             elif position and SELL_SIGNAL:
 
-                sell_price = round(np_cl_5m[i-2], 3)  # set sell price to 2 bars prior val
+                sell_price = round(np_cl_5m[i-1], 3)  # set sell price to 1 to 2 bars prior val
 
                 signal = [np_tl_5m[i], sell_price, 'rv', f'SELL@{sell_price} [{np_tl_5m[i]}]']   # Sell at price 2 bars prior
                 signals.append(signal)
+
+                profit = float(sell_price - buy_price) * units_to_trade
+
+                list_trade_pnl.append(profit)            # append to trade pnl
 
                 print(f'[{np_tl_5m[i]}] [{sell_price}]     '
                       f'[SELL]      {SELL_SIGNAL}            '
@@ -562,7 +578,35 @@ for ticker in tickers:
                       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  '
                       f'PRICE       {bool_sell_price}')
 
-                position = False
+                position = False        # set position to false once a sale has completed
+
+    if position:
+        trade_left_open = True
+
+    day_pnl = round(sum(list_trade_pnl),2)
+    total_trades = len(list_trade_pnl)
+    wins = sum(n > 0 for n in list_trade_pnl)
+    loses = sum(n < 0 for n in list_trade_pnl)
+    largest_profit = round(max(list_trade_pnl),2)
+
+    try:
+        largest_loss = min([n for n in list_trade_pnl if n < 0])
+    except Exception as e:
+        largest_loss = 'NA'
+
+    # REF: https://stackoverflow.com/questions/27947941/retrieve-largest-negative-number-and-smallest-positive-number-from-list
+
+    print('\n')
+    print("*" * 48)
+    print(f"SUMMARY FOR [{today_str}] \n")
+    print(f"Total PnL for the day           {day_pnl}")
+    print(f'Total trades placed             {total_trades}')
+    print(f'Wins                            {wins}')
+    print(f'Losses                          {loses}')
+    print(f'Largest Profit                  {largest_profit}')
+    print(f'Largest Loss                    {largest_loss}')
+    print(f'Trade Left Open                 {trade_left_open}')
+    print("*" * 48)
 
     plt.plot(np_tl_5m, np_cl_5m, label='close', color='pink', linewidth=1, markersize=2, markerfacecolor='blue',
              marker='o') #, linestyle='dashed')
