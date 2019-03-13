@@ -1,3 +1,5 @@
+# TODO: Add Exception handling (Connection Error, etc)
+
 # import alpaca_trade_api as tradeapi
 import pandas as pd
 import time
@@ -583,11 +585,30 @@ for ticker in tickers:
     if position:
         trade_left_open = True
 
-    day_pnl = round(sum(list_trade_pnl),2)
-    total_trades = len(list_trade_pnl)
-    wins = sum(n > 0 for n in list_trade_pnl)
-    loses = sum(n < 0 for n in list_trade_pnl)
-    largest_profit = round(max(list_trade_pnl),2)
+    try:
+        day_pnl = round(sum(list_trade_pnl), 2)
+    except Exception as e:
+        largest_loss = 'NA'
+
+    try:
+        total_trades = len(list_trade_pnl)
+    except Exception as e:
+        largest_loss = 'NA'
+
+    try:
+        wins = sum(n > 0 for n in list_trade_pnl)
+    except Exception as e:
+        largest_loss = 'NA'
+
+    try:
+        losses = sum(n < 0 for n in list_trade_pnl)
+    except Exception as e:
+        losses = 'NA'
+
+    try:
+        largest_profit = round(max(list_trade_pnl),2)
+    except Exception as e:
+        largest_profit = 'NA'
 
     try:
         largest_loss = min([n for n in list_trade_pnl if n < 0])
@@ -602,7 +623,7 @@ for ticker in tickers:
     print(f"Total PnL for the day           {day_pnl}")
     print(f'Total trades placed             {total_trades}')
     print(f'Wins                            {wins}')
-    print(f'Losses                          {loses}')
+    print(f'Losses                          {losses}')
     print(f'Largest Profit                  {largest_profit}')
     print(f'Largest Loss                    {largest_loss}')
     print(f'Trade Left Open                 {trade_left_open}')
