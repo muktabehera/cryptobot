@@ -194,18 +194,18 @@ def fetch_bars(bar_interval):
     # TODO: pull bars async
 
     start_ts = ts['open_ts']            # market open ts
-    print(f'start_ts: {start_ts}')
+    print(f'start_ts:                   {start_ts}')
     end_ts = ts['clock_ts']             # current ts
-    print(f'end_ts: {end_ts}')
+    print(f'end_ts:                     {end_ts}')
     market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
-    print(f'market_close_ts: {market_close_ts}')
+    print(f'market_close_ts:            {market_close_ts}')
 
 
     # limit_5m = num_bars(start_ts=start_ts, end_ts=end_ts, market_close_ts=market_close_ts, num=5)
 
     limit_5m = 4
 
-    print(f'limit_5m: {limit_5m}')
+    print(f'limit_5m:                   {limit_5m}')
 
     bar_interval = "5Min"
     base_uri_5m = f'https://data.alpaca.markets/v1/bars/{bar_interval}'
@@ -260,8 +260,7 @@ def fetch_bars(bar_interval):
         np_vl_5m = np.array(vl_5m)
         np_tl_5m = np.array(tl_5m)
 
-    print(f'np_tl_5m    {len(np_tl_5m)}  np_cl_5m    {len(np_cl_5m)}')
-
+    # print(f'np_tl_5m    {len(np_tl_5m)}  np_cl_5m    {len(np_cl_5m)}')
 
     bars_response = {
         "np_cl_5m": np_cl_5m,
@@ -272,6 +271,8 @@ def fetch_bars(bar_interval):
 
 # TODO: Add ETAs at each step
 
+
+next_trade_ts = (datetime.now() - pd.Timedelta("720 Days")).astimezone(nyc)    # default initialization to an earlier date
 
 ticker = config.ticker
 
@@ -294,62 +295,62 @@ while x < 3:  # infinite
 
     ts = get_ts()
     market_is_open = ts['is_open']  # check if market is open for trading
-    print(f'market_is_open =    {market_is_open}')
+    print(f'market_is_open              {market_is_open}')
 
     current_ts = ts['clock_ts']  # dup of end_ts, to be used for limiting past trades
-    print(f'current_ts:         {current_ts}')
+    print(f'current_ts:                 {current_ts}')
+
+    # check if market just opened
+    open_ts = ts['open_ts']
+    print(f'open_ts:                    {open_ts}')
+
+    new_bar_available = False
+
+    if current_ts.strftime('%Y-%m-%d %H:%M') == open_ts.strftime('%Y-%m-%d %H:%M'):  # avoid comparing millisecs
+        next_trade_ts = current_ts  # set next_trade_ts to current_ts if market just opened
+        new_bar_available = True
+
+        print(f'next_trade_ts:          {next_trade_ts}')
+
+    if current_ts > next_trade_ts:
+        new_bar_available = True
+
+    print(f'new_bar_available:          {new_bar_available}')
+
+    print(f'next_trade_ts_before:       {next_trade_ts}')
 
     if not market_is_open:
 
-        # check if market just opened
-        open_ts = ts['open_ts']
-
-        next_trade_ts = current_ts + pd.Timedelta("5 Minutes")
-
-        if current_ts.strftime('%Y-%m-%d %H:%M') == open_ts.strftime('%Y-%m-%d %H:%M'): # avoid comparing millisecs
-            next_trade_ts = current_ts  # set next_trade_ts to current_ts if market just opened
-
-        print(f'next_trade_ts:      {next_trade_ts}')
-
-        if current_ts >= next_trade_ts:    # fetch the new price and time bar that's available
+        if new_bar_available:    # fetch the new price and time bar that's available
             # ready to trade
+
+            next_trade_ts = current_ts + pd.Timedelta("5 Minutes")
+            print(f'next_trade_ts_after:        {next_trade_ts}')
 
             # 0. Setup
             # Add positionSizing = 0.25 for each stock
             # cash_balance = get_cash_balance()
 
-            # 1. check if a position exists from the previous trade
+            # >_< check if a position exists from the previous trade
 
             positions = get_current_positions()
             # print(f'positions = {positions}')
 
             entry_price = positions['entry_price']  # avg price of buy for all units
-            print(f'entry_price = {entry_price}')
+            print(f'entry_price                 {entry_price}')
 
             num_stocks_unsold = positions['num_stocks_unsold']   # length of the position dict
-            print(f'num_stocks_unsold = {num_stocks_unsold}')
+            print(f'num_stocks_unsold           {num_stocks_unsold}')
 
             position = False    # default position to False
 
             if num_stocks_unsold > 0:
                 position = True    # TODO: replace with a function to check position
 
-            print(f'position: {position}')
+            print(f'position:                   {position}')
 
-            # 2. get all timestamps
+            # >_< fetch tickers based on current ts
 
-            current_ts = ts['clock_ts'] # dup of end_ts, to be used for limiting past trades
-            print(f'current_ts: {current_ts}')
-
-            next_trade_ts = current_ts  # first time as soon as market is open
-
-            # to determine when to fetch bars and trade
-
-            next_trade_ts = current_ts + pd.Timedelta("5 Minutes")
-            print(f'next_trade_ts: {next_trade_ts}')
-
-
-            # 3. fetch tickers based on current ts
             bar_interval = 5
 
             bars = fetch_bars(bar_interval=bar_interval)  # 1 for 1Min, 5 for 5Min, 15 for 15Min
@@ -357,8 +358,9 @@ while x < 3:  # infinite
             np_cl_5m = bars['np_cl_5m']
             np_tl_5m = bars['np_tl_5m']
 
-            print(f'np_cl_5m: {np_cl_5m}')
-            print(f'np_tl_5m: {np_tl_5m}')
+            # print(f'np_cl_5m: {np_cl_5m}')
+            # print(f'np_tl_5m: {np_tl_5m}')
+            # print('\n')
 
 
             # now = datetime.now().astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S')
@@ -366,7 +368,8 @@ while x < 3:  # infinite
 
             # GET MOMENTUM
             mom_5m = talib.MOM(np_cl_5m, timeperiod=1)
-            print(f'mom_5m: {mom_5m}')
+            # print(f'mom_5m: {mom_5m}')
+            # print('\n')
 
 
             # STRATEGY 1 :
