@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 
 # talib.get_functions()
 # talib.get_function_groups()
+import uuid
 
 
 def num_bars(start_ts, end_ts, market_close_ts, num):
@@ -69,19 +70,9 @@ clock_uri = 'https://paper-api.alpaca.markets/v1/clock'
 
 def get_current_positions():
 
-    positions_uri = f'https://paper-api.alpaca.markets/v1/positions/{ticker}'
-    positions_response = requests.get(url=positions_uri, headers=headers).json()
+    positions_uri = config.positions_uri
 
-    # {'asset_id': '4f5baf1e-0e9b-4d85-b88a-d874dc4a3c42',
-    # 'symbol': 'V', 'exchange': 'NYSE',
-    # 'asset_class': 'us_equity', 'qty': '10',
-    # 'avg_entry_price': '144.17', 'side': 'long',
-    # 'market_value': '1517.2', 'cost_basis': '1441.7',
-    # 'unrealized_pl': '75.5', 'unrealized_plpc': '0.0523687313588125',
-    # 'unrealized_intraday_pl': '10.5', 'unrealized_intraday_plpc': '0.0069688723700803',
-    # 'current_price': '151.72',
-    # 'lastday_price': '150.67',
-    # 'change_today': '0.0069688723700803'}
+    positions_response = requests.get(url=positions_uri, headers=headers).json()
 
     asset_id = positions_response['asset_id']
     num_stocks_unsold = float(positions_response['qty'])
@@ -98,8 +89,8 @@ def get_current_positions():
         "entry_price": entry_price,
         "bool_is_buy": bool_is_buy
     }
-    return positions
 
+    return positions
 
 def get_ts():
     '''
@@ -194,37 +185,41 @@ def fetch_bars(bar_interval):
     # TODO: pull bars async
 
     start_ts = ts['open_ts']            # market open ts
-    print(f'start_ts:                   {start_ts}')
+    # print(f'start_ts:                   {start_ts}')
     end_ts = ts['clock_ts']             # current ts
-    print(f'end_ts:                     {end_ts}')
+    # print(f'end_ts:                     {end_ts}')
     market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
-    print(f'market_close_ts:            {market_close_ts}')
+    print(f'market_close_ts:                    {market_close_ts}')
 
+    # paper_limit_5m = num_bars(start_ts=start_ts, end_ts=end_ts, market_close_ts=market_close_ts, num=5)
 
-    # limit_5m = num_bars(start_ts=start_ts, end_ts=end_ts, market_close_ts=market_close_ts, num=5)
+    paper_limit_5m = config.paper_limit_5m
+    paper_limit_1m = config.paper_limit_1m
 
-    limit_5m = 4
+    # print(f'paper_limit_5m:                   {paper_limit_5m}')
 
-    print(f'limit_5m:                   {limit_5m}')
-
+    # if int(bar_interval) == 5:
     bar_interval = "5Min"
     base_uri_5m = f'https://data.alpaca.markets/v1/bars/{bar_interval}'
-    # print(f'base_uri_5m = {base_uri_5m}')
-
     payload_5m = {
         "symbols": ticker,
-        "limit": limit_5m,
+        "limit": paper_limit_5m,
         "start": ts['log_start_5m'],
         "end": ts['log_end_time']
     }
-
-    # print(f'payload_5m = {payload_5m}')
-
     bars_5m = requests.get(url=base_uri_5m, params=payload_5m, headers=headers).json()
 
-    # print(f'bars_5m = {bars_5m}')
+    # elif int(bar_interval) == 1:
+    bar_interval = "1Min"
+    payload_1m = {
+        "symbols": ticker,
+        "limit": paper_limit_1m,
+        "start": ts['log_start_1m'],
+        "end": ts['log_end_time']
+    }
+    base_uri_1m = f'https://data.alpaca.markets/v1/bars/{bar_interval}'
+    bars_1m = requests.get(url=base_uri_1m, params=payload_1m, headers=headers).json()
 
-    # print(f'bars_5m[{ticker}] = {bars_5m[ticker]}')
 
     for i, v5m in enumerate(bars_5m[ticker]):
         # CONVERT UNIX TS TO READABLE TS
@@ -232,16 +227,6 @@ def fetch_bars(bar_interval):
         v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
 
         # APPEND TO LIST
-
-        ####    FOR DEBUGGING   ####
-
-        # print('#########')
-        # print(f"v5m['t']    {v5m['t']}")
-        # print(f'v5m_ts_nyc  {v5m_ts_nyc}')
-        # print(f'v5m_ts_tz   {v5m_ts}')
-        # print('#########')
-
-        ####    FOR DEBUGGING   ####
 
         # append 5m bars to list
         ol_5m.append(v5m['o'])
@@ -262,9 +247,37 @@ def fetch_bars(bar_interval):
 
     # print(f'np_tl_5m    {len(np_tl_5m)}  np_cl_5m    {len(np_cl_5m)}')
 
+    for i, v1m in enumerate(bars_1m[ticker]):
+        # CONVERT UNIX TS TO READABLE TS
+        v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+        v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+
+        # APPEND TO LIST
+
+        # append 5m bars to list
+        ol_1m.append(v1m['o'])
+        ll_1m.append(v1m['l'])
+        hl_1m.append(v1m['h'])
+        cl_1m.append(v1m['c'])
+        vl_1m.append(v1m['v'])
+
+        tl_1m.append(v1m_ts)
+
+        # convert to 5m np array
+        np_ol_1m = np.array(ol_1m)
+        np_hl_1m = np.array(hl_1m)
+        np_ll_1m = np.array(ll_1m)
+        np_cl_1m = np.array(cl_1m)
+        np_vl_1m = np.array(vl_1m)
+        np_tl_1m = np.array(tl_1m)
+
+    # print(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
+
     bars_response = {
         "np_cl_5m": np_cl_5m,
-        "np_tl_5m": np_tl_5m
+        "np_tl_5m": np_tl_5m,
+        "np_cl_1m": np_cl_1m,
+        "np_tl_1m": np_tl_1m
     }
 
     return bars_response
@@ -272,291 +285,649 @@ def fetch_bars(bar_interval):
 # TODO: Add ETAs at each step
 
 
-next_trade_ts = (datetime.now() - pd.Timedelta("720 Days")).astimezone(nyc)    # default initialization to an earlier date
+if __name__ == '__main__':
 
-ticker = config.ticker
+    next_trade_ts = (datetime.now() + pd.Timedelta("1 Minutes")).astimezone(nyc)  # default initialization to a future date
+    # TODO: determine use ts from api vs now
 
-x = 0
+    ticker = config.ticker
+    order_uri = config.order_uri
 
-while x < 3:  # infinite
+    x = 0
 
-    print('*'*80)
-    print('\n')
+    while True:  # infinite
 
-    # Reset the lists each run to null
-    tl_5m = list()
-    ol_5m = list()
-    hl_5m = list()
-    ll_5m = list()
-    cl_5m = list()
-    vl_5m = list()
+        print('*'*80)
+        print('\n')
 
-    # print(f'Entering x =        {x}')
+        # Reset the lists each run to null
+        tl_5m = list()
+        ol_5m = list()
+        hl_5m = list()
+        ll_5m = list()
+        cl_5m = list()
+        vl_5m = list()
 
-    ts = get_ts()
-    market_is_open = ts['is_open']  # check if market is open for trading
-    print(f'market_is_open              {market_is_open}')
+        tl_1m = list()
+        ol_1m = list()
+        hl_1m = list()
+        ll_1m = list()
+        cl_1m = list()
+        vl_1m = list()
 
-    current_ts = ts['clock_ts']  # dup of end_ts, to be used for limiting past trades
-    print(f'current_ts:                 {current_ts}')
+        # print(f'Entering x =        {x}')
 
-    # check if market just opened
-    open_ts = ts['open_ts']
-    print(f'open_ts:                    {open_ts}')
+        ts = get_ts()
 
-    new_bar_available = False
+        market_is_open = ts['is_open']  # check if market is open for trading
 
-    if current_ts.strftime('%Y-%m-%d %H:%M') == open_ts.strftime('%Y-%m-%d %H:%M'):  # avoid comparing millisecs
-        next_trade_ts = current_ts  # set next_trade_ts to current_ts if market just opened
-        new_bar_available = True
+        ######### FOR AFTER HOUR TESTS ONLY #########
 
-        print(f'next_trade_ts:          {next_trade_ts}')
+        # market_is_open = True
 
-    if current_ts > next_trade_ts:
-        new_bar_available = True
+        #############################################
 
-    print(f'new_bar_available:          {new_bar_available}')
+        print(f'market_is_open                      {market_is_open}')
 
-    print(f'next_trade_ts_before:       {next_trade_ts}')
+        current_ts = ts['clock_ts']  # dup of end_ts, to be used for limiting past trades
+        print(f'current_ts:                         {current_ts}')
 
-    if not market_is_open:
+        # check if market just opened
+        open_ts = ts['open_ts']
+        print(f'open_ts:                            {open_ts}')
 
-        if new_bar_available:    # fetch the new price and time bar that's available
-            # ready to trade
+        new_bar_available = False
 
-            next_trade_ts = current_ts + pd.Timedelta("5 Minutes")
-            print(f'next_trade_ts_after:        {next_trade_ts}')
+        if current_ts.strftime('%Y-%m-%d %H:%M') == open_ts.strftime('%Y-%m-%d %H:%M'):  # avoid comparing millisecs
+            next_trade_ts = current_ts  # set next_trade_ts to current_ts if market just opened
+            new_bar_available = True
 
-            # 0. Setup
-            # Add positionSizing = 0.25 for each stock
-            # cash_balance = get_cash_balance()
+        if current_ts > next_trade_ts:
+            new_bar_available = True
 
-            # >_< check if a position exists from the previous trade
+        print(f'new_bar_available:                  {new_bar_available}')
 
-            positions = get_current_positions()
-            # print(f'positions = {positions}')
+        print(f'next_trade_ts_before_new_bar:       {next_trade_ts}')
 
-            entry_price = positions['entry_price']  # avg price of buy for all units
-            print(f'entry_price                 {entry_price}')
+        if market_is_open:
 
-            num_stocks_unsold = positions['num_stocks_unsold']   # length of the position dict
-            print(f'num_stocks_unsold           {num_stocks_unsold}')
+            if new_bar_available:    # fetch the new price and time bar that's available
+                # ready to trade
 
-            position = False    # default position to False
+                next_trade_ts = current_ts + pd.Timedelta("1 Minutes")  # mostly when current_ts > next_trade_ts
 
-            if num_stocks_unsold > 0:
-                position = True    # TODO: replace with a function to check position
+                print(f'next_trade_ts_after_new_bar:        {next_trade_ts}')
 
-            print(f'position:                   {position}')
+                # 0. Setup
+                # Add positionSizing = 0.25 for each stock
+                # cash_balance = get_cash_balance()
 
-            # >_< fetch tickers based on current ts
+                # >_< CHECK IF A POSITION EXISTS FROM THE PREVIOUS TRADE
 
-            bar_interval = 5
+                positions_uri = config.positions_uri
 
-            bars = fetch_bars(bar_interval=bar_interval)  # 1 for 1Min, 5 for 5Min, 15 for 15Min
+                positions_response = requests.get(url=positions_uri, headers=headers).json()
 
-            np_cl_5m = bars['np_cl_5m']
-            np_tl_5m = bars['np_tl_5m']
+                position = False  # default position to False
 
-            # print(f'np_cl_5m: {np_cl_5m}')
-            # print(f'np_tl_5m: {np_tl_5m}')
-            # print('\n')
+                if int(positions_response['code']) == 40410000:
+                    position = False
+                    num_stocks_unsold = 0
 
-
-            # now = datetime.now().astimezone(nyc).strftime('%Y-%m-%d %H:%M:%S')
-            # print(f"[{now}] Completed loading OHLCV LISTS")
-
-            # GET MOMENTUM
-            mom_5m = talib.MOM(np_cl_5m, timeperiod=1)
-            # print(f'mom_5m: {mom_5m}')
-            # print('\n')
-
-
-            # STRATEGY 1 :
-
-            # TODO: Cancel order if not executed in 5 mins??
-
-            signals = []
-
-            BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
-
-            sell_target_based_on_profit_percentage = np.array([0])  # initialization
-
-            buy_price = 0.000   # float
-            sell_price = 0.000  # float
-            list_trade_profit = list()  # list to hold profit amount
-            list_trade_pnl = list()  # dict to hold profit or loss for each trade
-            day_pnl = 0.000  # for the day (float)
-
-            trade_left_open = False  # to check if a trade was left open, initial False
-
-            units_to_trade = config.units_to_trade
-            # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
-            # TODO: handle partial fills
-
-            ###########################
-
-            # Profit percentage (price above buy price) 25% as 0.25, 10% as 0.1
-            # used to set -> sell_target_based_on_profit_percentage
-
-            profit_percentage = float(config.profit_percentage)  # 0.2 for 20%
-
-            ###################     5 MIN BARS START    #######################
-
-            for i in range(len(np_cl_5m)):
-
-                # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
-
-                bool_closing_time = ts['market_about_to_close']
-                bool_buy_momentum = (mom_5m[i] > 0 and mom_5m[i - 1] > 0) and (mom_5m[i] > mom_5m[i - 1])
-
-                ################################
-
-                BUY_SIGNAL = bool_buy_momentum  # and not bool_closing_time
-
-                # TODO: [IMPORTANT] include closing time check in actual trades
-
-                ################################
-
-                bool_sell_momentum = mom_5m[i] < 0 and mom_5m[i - 1] < 0  # current and prev momentum are positive
-
-                bool_sell_price = float(np_cl_5m[i]) > float(BUY_PRICE[0])  # current price is gt buy price
-                # print(f'bool_sell_price [{bool_sell_price}] = float(np_cl_5m[i]) [{float(np_cl_5m[i])}] > float(BUY_PRICE[0]) [{float(BUY_PRICE[0])}]')
-
-                bool_sell_profit_target = float(np_cl_5m[i]) >= float(
-                    sell_target_based_on_profit_percentage)  # current price > sell target
-                # print(f'[{np_tl_5m[i]}] bool_sell_profit_target {bool_sell_profit_target} = float(np_cl_5m[i]) {float(np_cl_5m[i])} >= float(sell_target_based_on_profit_percentage) {float(sell_target_based_on_profit_percentage)}')
-
-                # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
-
-                ################################
-
-                SELL_SIGNAL = (bool_sell_momentum and bool_sell_price) or \
-                              bool_sell_profit_target  # or \
-                # (bool_sell_price and position and bool_closing_time)  # TODO: Incorporate closing time
-
-                # print(f'[{np_tl_5m[i]}] [{round(np_cl_5m[i], 2)}]     '
-                #       f'[SELL]      {SELL_SIGNAL}            '
-                #       f'MOMENTUM    {bool_sell_momentum}          '
-                #       f'POSITION    {position}              '
-                #       f'CLOSING     {bool_closing_time}          '
-                #       f'SELLPRICE     {bool_sell_price}          '
-                #       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  ')
-
-                ################################
-
-                if np.isnan(mom_5m[i]):
-                    continue
                 else:
-                    if not position and BUY_SIGNAL:  # if no position exists and a buy sig is found
+                    asset_id = positions_response['asset_id']
+                    num_stocks_unsold = float(positions_response['qty'])
 
-                        # TODO: check clock and don't buy 30 min before market close
+                    positions = {
+                        "asset_id": asset_id,
+                        "num_stocks_unsold": num_stocks_unsold,
+                    }
 
-                        BUY_PRICE[0] = float((np_cl_5m[i] + np_cl_5m[i - 1]) / 2)
-                        buy_price = round(BUY_PRICE[0], 3)
+                if num_stocks_unsold > 0:
+                    position = True
 
-                        signal = [np_tl_5m[i], buy_price, 'g^',
-                                  f'BUY@ {buy_price} [{np_tl_5m[i]}]']  # Buy at price 2 bars prior
-                        signals.append(signal)
+                print(f'position:                           {position}')
 
-                        # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
-                        sell_target_based_on_profit_percentage = BUY_PRICE[0] + (BUY_PRICE[0] * profit_percentage)
+                # >_< FETCH TICKERS BASED ON CURRENT TS
 
-                        print(f'[{np_tl_5m[i]}] [{buy_price}]     '
-                              f'[BUY]       {BUY_SIGNAL}            '
-                              f'MOMENTUM    {bool_buy_momentum}          '
-                              f'POSITION    {position}             '
-                              f'CLOSING     {bool_closing_time}          '
-                              f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}]        ')
+                bar_interval = config.bar_interval
 
-                        position = True
+                ############### 5 MIN ###############
 
-                    elif position and SELL_SIGNAL:
+                if bar_interval == 5:    # for 5 Min
 
-                        sell_price = round(np_cl_5m[i - 1], 3)  # set sell price to 1 to 2 bars prior val
+                    print(f'RUNNING 5 MIN BARS')
 
-                        signal = [np_tl_5m[i], sell_price, 'rv',
-                                  f'SELL@{sell_price} [{np_tl_5m[i]}]']  # Sell at price 2 bars prior
-                        signals.append(signal)
+                    bars = fetch_bars(bar_interval=bar_interval)  # 1 for 1Min, 5 for 5Min, 15 for 15Min
 
-                        profit = float(sell_price - buy_price) * units_to_trade
+                    np_cl_5m = bars['np_cl_5m']
+                    np_tl_5m = bars['np_tl_5m']
 
-                        list_trade_pnl.append(profit)  # append to trade pnl
+                    # print(f'np_cl_5m:               {np_cl_5m}')
+                    # print(f'np_tl_5m:               {np_tl_5m}')
 
-                        print(f'[{np_tl_5m[i]}] [{sell_price}]     '
-                              f'[SELL]      {SELL_SIGNAL}            '
-                              f'MOMENTUM    {bool_sell_momentum}         '
-                              f'POSITION    {position}              '
-                              f'CLOSING     {bool_closing_time}          '
-                              f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  '
-                              f'PRICE       {bool_sell_price}')
+                    # GET MOMENTUM
+                    mom_5m = talib.MOM(np_cl_5m, timeperiod=1)
 
-                        position = False  # set position to false once a sale has completed
-        else:
-            print('Waiting for the next bar')
-    x = x+1
-    # print(f'Exiting x=      {x}')
-    print('\n')
+                    # print(f'mom_5m:               {mom_5m}')
+
+                    # TODO: Cancel order if not executed in 5 min (optional)
+
+                    signals = []
+
+                    BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
+
+                    sell_target_based_on_profit_percentage = np.array([0])  # initialization
+
+                    buy_price = 0.000   # float
+                    sell_price = 0.000  # float
+                    list_trade_profit = list()  # list to hold profit amount
+                    list_trade_pnl = list()  # dict to hold profit or loss for each trade
+                    day_pnl = 0.000  # for the day (float)
+
+                    trade_left_open = False  # to check if a trade was left open, initial False
+
+                    units_to_trade = config.units_to_trade
+                    # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
+                    # TODO: handle partial fills (optional)
+
+                    ###########################
+
+                    # Profit percentage (price above buy price) 25% as 0.25, 10% as 0.1
+                    # used to set -> sell_target_based_on_profit_percentage
+
+                    profit_percentage = float(config.profit_percentage)  # 0.2 for 20%
+
+                    print(f'profit percentage                   {profit_percentage}')
+
+                    ###################     5 MIN BARS START    #######################
+
+                    # for i in range(len(np_cl_5m)):
+
+                    # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
+
+                    bool_closing_time = ts['market_about_to_close']
+                    bool_buy_momentum = (mom_5m[0] > 0 and mom_5m[-1] > 0) and (mom_5m[0] > mom_5m[-1])
+
+                    ################################
+
+                    BUY_SIGNAL = bool_buy_momentum  # and not bool_closing_time
+
+                    print(f'[{np_cl_5m[0]}] BUY_SIGNAL                  {BUY_SIGNAL}')
+
+                    # TODO: [IMPORTANT] include closing time check in actual trades
+
+                    ################################
+
+                    bool_sell_momentum = mom_5m[0] < 0 and mom_5m[-1] < 0  # current and prev momentum are positive
+
+                    bool_sell_price = float(np_cl_5m[0]) > float(BUY_PRICE[0])  # current price is gt buy price
+                    # print(f'bool_sell_price [{bool_sell_price}] = float(np_cl_5m[i]) [{float(np_cl_5m[i])}] > float(BUY_PRICE[0]) [{float(BUY_PRICE[0])}]')
+
+                    bool_sell_profit_target = float(np_cl_5m[0]) >= float(
+                        sell_target_based_on_profit_percentage)  # current price > sell target
+                    # print(f'[{np_tl_5m[i]}] bool_sell_profit_target {bool_sell_profit_target} = float(np_cl_5m[i]) {float(np_cl_5m[i])} >= float(sell_target_based_on_profit_percentage) {float(sell_target_based_on_profit_percentage)}')
+
+                    # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
+
+                    ################################
+
+                    SELL_SIGNAL = (bool_sell_momentum and bool_sell_price) or \
+                                  bool_sell_profit_target  # or \
+                    # (bool_sell_price and position and bool_closing_time)  # TODO: Incorporate closing time
+
+                    print(f'[{np_cl_5m[0]}] SELL_SIGNAL                  {SELL_SIGNAL}')
+
+                    # print(f'[{np_tl_5m[i]}] [{round(np_cl_5m[i], 2)}]     '
+                    #       f'[SELL]      {SELL_SIGNAL}            '
+                    #       f'MOMENTUM    {bool_sell_momentum}          '
+                    #       f'POSITION    {position}              '
+                    #       f'CLOSING     {bool_closing_time}          '
+                    #       f'SELLPRICE     {bool_sell_price}          '
+                    #       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  ')
+
+                    ################################
+
+                    if np.isnan(mom_5m[0]):
+                        continue
+                    else:
+
+                        ################### BUY ##################
+
+                        if not position and BUY_SIGNAL:  # if no position exists and a buy sig is found
+
+                            # TODO: check clock and don't buy 30 min before market close
+
+                            BUY_PRICE[0] = float((np_cl_5m[0] + np_cl_5m[-1]) / 2)   # for limit price only
+                            buy_price = round(BUY_PRICE[0], 3)                          # for limit price only
+
+                            # limit_price = BUY_PRICE[0]
+
+                            # https://docs.alpaca.markets/api-documentation/web-api/orders/
+
+                            buy_order_data = {
+                                'symbol': ticker,
+                                'qty': config.units_to_trade,
+                                'side': 'buy',
+                                'type': 'market',
+                                # 'limit_price': limit_price,
+                                'time_in_force': 'day'
+                                # 'client_order_id': uuid.uuid4().hex    # generate order_id e.g. '9fe2c4e93f654fdbb24c02b15259716c'
+                            }
+                            buy_order_data = json.dumps(buy_order_data)
+
+                            print(f'BUY ORDER DATA:    {buy_order_data}')
+
+                            buy_order_sent = False
+
+                            try:
+                                buy_order_placed = requests.post(url=order_uri, headers=headers, data=buy_order_data).json()
+                                buy_order_sent = True
+                                order_id = buy_order_placed['order_id']
+                            except Exception as e:
+                                print(f'Error placing order: {str(e)}')
+
+                            buy_order_executed = False
+
+                            print(f"Order Placed Status Code:           {buy_order_placed['status_code']} ")
+
+                            if buy_order_placed['status_code'] == 200:
+
+                                while not buy_order_executed:
+
+                                    # keep checking until order is filled
+                                    buy_order_details_data = {'order_id': order_id}
+                                    buy_order_details = requests.get(url=order_uri, headers=headers, params=buy_order_details_data).json()
+
+                                    print(f'[WAITING TO EXECUTE] [{buy_order_details.submitted_at}] '
+                                          f'[{buy_order_details.status}] {buy_order_details.side} '
+                                          f'order for {buy_order_details.qty} shares of {buy_order_details.symbol}')
+
+                                    if buy_order_details.status == 'filled':    # or order_details.status == 'partially_filled':
+                                        buy_order_executed = True
+
+                                ###############
+                                buy_price = float(buy_order_details.filled_avg_price)   # ACTUAL
+                                ###############
+
+                                filled_at = buy_order_details.filled_at
+
+                                print(f'[EXECUTED] [{buy_order_details.filled_at}] {buy_order_details.side} Order was executed @ {buy_price}')
+
+                                signal = [filled_at, buy_price, 'g^',
+                                      f'BUY@ {buy_price} [{filled_at}]']  # Buy at price 2 bars prior
+
+                                signals.append(signal)
+
+                                # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
+
+                                sell_target_based_on_profit_percentage = buy_price + (buy_price * profit_percentage)
+
+                                print(f'[{np_cl_5m[0]}] [{buy_price}] [{filled_at}]     '
+                                      f'[BUY]       {BUY_SIGNAL}            '
+                                      f'MOMENTUM    {bool_buy_momentum}          '
+                                      f'POSITION    {position}             '
+                                      f'CLOSING     {bool_closing_time}          '
+                                      f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}]        ')
+
+                                position = True
+                            else:
+                                print(f'[ERROR] [{buy_order_details.filled_at}] {buy_order_details.side} Order was NOT placed')
+
+                        ################### SELL ##################
+
+                        elif position and SELL_SIGNAL:
+
+                            sell_price = round(np_cl_5m[-1], 3)  # set sell price to 1 to 2 bars prior val
+                            # for limit price, set sell_price
+
+                            # https://docs.alpaca.markets/api-documentation/web-api/orders/
+
+                            sell_order_data = {
+                                'symbol': ticker,
+                                'qty': config.units_to_trade,
+                                'side': 'sell',
+                                'type': 'market',
+                                # 'limit_price': limit_price,
+                                'time_in_force': 'day'
+                                # 'client_order_id': uuid.uuid4().hex    # generate order_id e.g. '9fe2c4e93f654fdbb24c02b15259716c'
+                            }
+                            sell_order_data = json.dumps(sell_order_data)
+
+                            print(f'SELL ORDER DATA:    {sell_order_data}')
 
 
-        # if position:
-        #     trade_left_open = True
-        #
-        # try:
-        #     day_pnl = round(sum(list_trade_pnl), 2)
-        # except Exception as e:
-        #     largest_loss = 'NA'
-        #
-        # try:
-        #     total_trades = len(list_trade_pnl)
-        # except Exception as e:
-        #     largest_loss = 'NA'
-        #
-        # try:
-        #     wins = sum(n > 0 for n in list_trade_pnl)
-        # except Exception as e:
-        #     largest_loss = 'NA'
-        #
-        # try:
-        #     losses = sum(n < 0 for n in list_trade_pnl)
-        # except Exception as e:
-        #     losses = 'NA'
-        #
-        # try:
-        #     largest_profit = round(max(list_trade_pnl), 2)
-        # except Exception as e:
-        #     largest_profit = 'NA'
-        #
-        # try:
-        #     largest_loss = min([n for n in list_trade_pnl if n < 0])
-        # except Exception as e:
-        #     largest_loss = 'NA'
-        #
-        # REF: https://stackoverflow.com/questions/27947941/retrieve-largest-negative-number-and-smallest-positive-number-from-list
-        #
-        # print('\n')
-        # print("*" * 48)
-        # print(f"SUMMARY FOR [{today_str}] \n")
-        # print(f"Total PnL for the day           {day_pnl}")
-        # print(f'Total trades placed             {total_trades}')
-        # print(f'Wins                            {wins}')
-        # print(f'Losses                          {losses}')
-        # print(f'Largest Profit                  {largest_profit}')
-        # print(f'Largest Loss                    {largest_loss}')
-        # print(f'Trade Left Open                 {trade_left_open}')
-        # print("*" * 48)
+                            sell_order_sent = False
 
-        # plt.plot(np_tl_5m, np_cl_5m, label='close', color='pink', linewidth=1, markersize=2, markerfacecolor='blue',
-        #          marker='o')  # , linestyle='dashed')
-        #
-        # for signal in signals:
-        #     plt.plot(signal[0], signal[1], signal[2], label=signal[3])
-        #
-        # plt.title(f"5 Min MOM Plot for {ticker}")
-        # plt.xlabel("Time")
-        # plt.ylabel("$ Value")
-        # plt.legend()
-        # plt.xticks(rotation=90)
-        # plt.style.use('dark_background')
-        # plt.grid(True)
-        # plt.show()
+                            try:
+                                sell_order_placed = requests.post(url=order_uri, headers=headers, data=sell_order_data).json()
+                                sell_order_sent = True
+                                order_id = sell_order_placed['order_id']
+                            except Exception as e:
+                                print(f'Error placing order: {str(e)}')
+
+                            sell_order_executed = False
+
+                            print(f"SELL Order Placed Status Code:           {sell_order_placed['status_code']} ")
+
+                            if sell_order_placed['status_code'] == 200:
+
+                                while not sell_order_executed:
+
+                                    # keep checking until order is filled
+                                    sell_order_details_data = {'order_id': order_id}
+                                    sell_order_details = requests.get(url=order_uri, headers=headers, params=sell_order_details_data).json()
+
+                                    print(f'[WAITING TO EXECUTE] [{sell_order_details.submitted_at}] '
+                                          f'[{sell_order_details.status}] {sell_order_details.side} '
+                                          f'order for {sell_order_details.qty} shares of {sell_order_details.symbol}')
+
+                                    if sell_order_details.status == 'filled':    # or order_details.status == 'partially_filled':
+                                        sell_order_executed = True
+
+                                ###############
+                                sell_price = float(buy_order_details.filled_avg_price)
+                                ###############
+
+                                filled_at = sell_order_details.filled_at
+
+                                print(f'[EXECUTED] [{sell_order_details.filled_at}] {sell_order_details.side} Order was executed @ {sell_price}')
+
+                                signal = [np_tl_5m[0], sell_price, 'rv',
+                                      f'SELL@{sell_price} [{np_tl_5m[0]}]']  # Sell at price 2 bars prior
+
+                            signals.append(signal)
+
+                            profit = float(sell_price - buy_price) * units_to_trade
+
+                            list_trade_pnl.append(profit)  # append to trade pnl
+
+                            print(f'[{np_tl_5m[0]}] [{sell_price}]     '
+                                  f'[SELL]      {SELL_SIGNAL}            '
+                                  f'MOMENTUM    {bool_sell_momentum}         '
+                                  f'POSITION    {position}              '
+                                  f'CLOSING     {bool_closing_time}          '
+                                  f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  '
+                                  f'PRICE       {bool_sell_price}')
+
+                            position = False  # set position to false once a sale has completed
+
+                        ############### 5 MIN ###############
+
+                        ############### 1 MIN ###############
+
+                elif bar_interval == 1:
+
+                    print(f'RUNNING 1 MIN BARS')
+
+                    bars = fetch_bars(bar_interval=bar_interval)  # 1 for 1Min, 5 for 5Min, 15 for 15Min
+
+                    np_cl_1m = bars['np_cl_1m']
+                    np_tl_1m = bars['np_tl_1m']
+
+                    print(f'np_cl_1m:               {np_cl_1m}')
+                    print(f'np_tl_1m:               {np_tl_1m}')
+
+                    # GET MOMENTUM
+                    mom_1m = talib.MOM(np_cl_1m, timeperiod=1)
+
+                    print(f'mom_1m:               {mom_1m}')
+
+                    # TODO: Cancel order if not executed in 5 min (optional)
+
+                    signals = []
+
+                    BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
+
+                    sell_target_based_on_profit_percentage = np.array([0])  # initialization
+
+                    buy_price = 0.000  # float
+                    sell_price = 0.000  # float
+                    list_trade_profit = list()  # list to hold profit amount
+                    list_trade_pnl = list()  # dict to hold profit or loss for each trade
+                    day_pnl = 0.000  # for the day (float)
+
+                    trade_left_open = False  # to check if a trade was left open, initial False
+
+                    units_to_trade = config.units_to_trade
+                    # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
+                    # TODO: handle partial fills (optional)
+
+                    ###########################
+
+                    # Profit percentage (price above buy price) 25% as 0.25, 10% as 0.1
+                    # used to set -> sell_target_based_on_profit_percentage
+
+                    profit_percentage = float(config.profit_percentage)  # 0.2 for 20%
+
+                    print(f'profit percentage                   {profit_percentage}')
+
+                    ###################     1 MIN BARS START    #######################
+
+                    # for i in range(len(np_cl_5m)):
+
+                    # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
+
+                    bool_closing_time = ts['market_about_to_close']
+                    bool_buy_momentum = (mom_1m[0] > 0 and mom_1m[-1] > 0) and (mom_1m[0] > mom_1m[-1])
+
+                    ################################
+
+                    BUY_SIGNAL = bool_buy_momentum  # and not bool_closing_time
+
+                    print(f'[{np_cl_1m[0]}] BUY_SIGNAL                  {BUY_SIGNAL}')
+
+                    # TODO: [IMPORTANT] include closing time check in actual trades
+
+                    ################################
+
+                    bool_sell_momentum = mom_1m[0] < 0 and mom_1m[-1] < 0  # current and prev momentum are positive
+
+                    bool_sell_price = float(np_cl_1m[0]) > float(BUY_PRICE[0])  # current price is gt buy price
+                    # print(f'bool_sell_price [{bool_sell_price}] = float(np_cl_5m[i]) [{float(np_cl_5m[i])}] > float(BUY_PRICE[0]) [{float(BUY_PRICE[0])}]')
+
+                    bool_sell_profit_target = float(np_cl_1m[0]) >= float(
+                        sell_target_based_on_profit_percentage)  # current price > sell target
+                    # print(f'[{np_tl_5m[i]}] bool_sell_profit_target {bool_sell_profit_target} = float(np_cl_5m[i]) {float(np_cl_5m[i])} >= float(sell_target_based_on_profit_percentage) {float(sell_target_based_on_profit_percentage)}')
+
+                    # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
+
+                    ################################
+
+                    SELL_SIGNAL = (bool_sell_momentum and bool_sell_price) or \
+                                  bool_sell_profit_target  # or \
+                    # (bool_sell_price and position and bool_closing_time)  # TODO: Incorporate closing time
+
+                    print(f'[{np_cl_1m[0]}] SELL_SIGNAL                  {SELL_SIGNAL}')
+
+                    # print(f'[{np_tl_5m[i]}] [{round(np_cl_5m[i], 2)}]     '
+                    #       f'[SELL]      {SELL_SIGNAL}            '
+                    #       f'MOMENTUM    {bool_sell_momentum}          '
+                    #       f'POSITION    {position}              '
+                    #       f'CLOSING     {bool_closing_time}          '
+                    #       f'SELLPRICE     {bool_sell_price}          '
+                    #       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  ')
+
+                    ################################
+
+                    if np.isnan(mom_1m[0]):
+                        continue
+                    else:
+
+                        ################### BUY ##################
+
+                        if not position and BUY_SIGNAL:  # if no position exists and a buy sig is found
+
+                            # TODO: check clock and don't buy 30 min before market close
+
+                            BUY_PRICE[0] = float((np_cl_1m[0] + np_cl_1m[-1]) / 2)  # for limit price only
+                            buy_price = round(BUY_PRICE[0], 3)  # for limit price only
+
+                            # limit_price = BUY_PRICE[0]
+
+                            # https://docs.alpaca.markets/api-documentation/web-api/orders/
+
+                            buy_order_data = {
+                                'symbol': ticker,
+                                'qty': config.units_to_trade,
+                                'side': 'buy',
+                                'type': 'market',
+                                # 'limit_price': limit_price,
+                                'time_in_force': 'day'
+                                # 'client_order_id': uuid.uuid4().hex    # generate order_id e.g. '9fe2c4e93f654fdbb24c02b15259716c'
+                            }
+                            buy_order_data = json.dumps(buy_order_data)
+
+                            print(f'BUY ORDER DATA:    {buy_order_data}')
+
+                            buy_order_sent = False
+
+                            try:
+                                buy_order_placed = requests.post(url=order_uri, headers=headers,
+                                                                 data=buy_order_data).json()
+                                buy_order_sent = True
+                                order_id = buy_order_placed['order_id']
+                            except Exception as e:
+                                print(f'Error placing order: {str(e)}')
+
+                            buy_order_executed = False
+
+                            print(f"Order Placed Status Code:           {buy_order_placed['status_code']} ")
+
+                            if buy_order_placed['status_code'] == 200:
+
+                                while not buy_order_executed:
+
+                                    # keep checking until order is filled
+                                    buy_order_details_data = {'order_id': order_id}
+                                    buy_order_details = requests.get(url=order_uri, headers=headers,
+                                                                     params=buy_order_details_data).json()
+
+                                    print(f'[WAITING TO EXECUTE] [{buy_order_details.submitted_at}] '
+                                          f'[{buy_order_details.status}] {buy_order_details.side} '
+                                          f'order for {buy_order_details.qty} shares of {buy_order_details.symbol}')
+
+                                    if buy_order_details.status == 'filled':  # or order_details.status == 'partially_filled':
+                                        buy_order_executed = True
+
+                                ###############
+                                buy_price = float(buy_order_details.filled_avg_price)  # ACTUAL
+                                ###############
+
+                                filled_at = buy_order_details.filled_at
+
+                                print(
+                                    f'[EXECUTED] [{buy_order_details.filled_at}] {buy_order_details.side} Order was executed @ {buy_price}')
+
+                                signal = [filled_at, buy_price, 'g^',
+                                          f'BUY@ {buy_price} [{filled_at}]']  # Buy at price 2 bars prior
+
+                                signals.append(signal)
+
+                                # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
+
+                                sell_target_based_on_profit_percentage = buy_price + (
+                                            buy_price * profit_percentage)
+
+                                print(f'[{np_cl_1m[0]}] [{buy_price}] [{filled_at}]     '
+                                      f'[BUY]       {BUY_SIGNAL}            '
+                                      f'MOMENTUM    {bool_buy_momentum}          '
+                                      f'POSITION    {position}             '
+                                      f'CLOSING     {bool_closing_time}          '
+                                      f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}]        ')
+
+                                position = True
+                            else:
+                                print(
+                                    f'[ERROR] [{buy_order_details.filled_at}] {buy_order_details.side} Order was NOT placed')
+
+                        ################### SELL ##################
+
+                        elif position and SELL_SIGNAL:
+
+                            sell_price = round(np_cl_1m[-1], 3)  # set sell price to 1 to 2 bars prior val
+                            # for limit price, set sell_price
+
+                            # https://docs.alpaca.markets/api-documentation/web-api/orders/
+
+                            sell_order_data = {
+                                'symbol': ticker,
+                                'qty': config.units_to_trade,
+                                'side': 'sell',
+                                'type': 'market',
+                                # 'limit_price': limit_price,
+                                'time_in_force': 'day'
+                                # 'client_order_id': uuid.uuid4().hex    # generate order_id e.g. '9fe2c4e93f654fdbb24c02b15259716c'
+                            }
+                            sell_order_data = json.dumps(sell_order_data)
+
+                            print(f'SELL ORDER DATA:    {sell_order_data}')
+
+                            sell_order_sent = False
+
+                            try:
+                                sell_order_placed = requests.post(url=order_uri, headers=headers,
+                                                                  data=sell_order_data).json()
+                                sell_order_sent = True
+                                order_id = sell_order_placed['order_id']
+                            except Exception as e:
+                                print(f'Error placing order: {str(e)}')
+
+                            sell_order_executed = False
+
+                            print(
+                                f"SELL Order Placed Status Code:           {sell_order_placed['status_code']} ")
+
+                            if sell_order_placed['status_code'] == 200:
+
+                                while not sell_order_executed:
+
+                                    # keep checking until order is filled
+                                    sell_order_details_data = {'order_id': order_id}
+                                    sell_order_details = requests.get(url=order_uri, headers=headers,
+                                                                      params=sell_order_details_data).json()
+
+                                    print(f'[WAITING TO EXECUTE] [{sell_order_details.submitted_at}] '
+                                          f'[{sell_order_details.status}] {sell_order_details.side} '
+                                          f'order for {sell_order_details.qty} shares of {sell_order_details.symbol}')
+
+                                    if sell_order_details.status == 'filled':  # or order_details.status == 'partially_filled':
+                                        sell_order_executed = True
+
+                                ###############
+                                sell_price = float(buy_order_details.filled_avg_price)
+                                ###############
+
+                                filled_at = sell_order_details.filled_at
+
+                                print(
+                                    f'[EXECUTED] [{sell_order_details.filled_at}] {sell_order_details.side} Order was executed @ {sell_price}')
+
+                                signal = [np_tl_1m[0], sell_price, 'rv',
+                                          f'SELL@{sell_price} [{np_tl_1m[0]}]']  # Sell at price 2 bars prior
+
+                            signals.append(signal)
+
+                            profit = float(sell_price - buy_price) * units_to_trade
+
+                            list_trade_pnl.append(profit)  # append to trade pnl
+
+                            print(f'[{np_tl_1m[0]}] [{sell_price}]     '
+                                  f'[SELL]      {SELL_SIGNAL}            '
+                                  f'MOMENTUM    {bool_sell_momentum}         '
+                                  f'POSITION    {position}              '
+                                  f'CLOSING     {bool_closing_time}          '
+                                  f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  '
+                                  f'PRICE       {bool_sell_price}')
+
+                            position = False  # set position to false once a sale has completed
+
+                            ############### 1 MIN ###############
+            else:
+                print('\n')
+                print(f'[{current_ts}]  Waiting for the next bar')
+        x = x+1
+        # print(f'Exiting x=      {x}')
+        print('\n')
+
+        time.sleep(30)  # sleep 30 s
