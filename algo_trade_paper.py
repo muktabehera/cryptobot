@@ -30,23 +30,6 @@ import talib  # https://mrjbq7.github.io/ta-lib/
 # import uuid
 
 
-# def num_bars(start_ts, end_ts, market_close_ts, num):
-#
-#   if end_ts >= market_close_ts:
-#       end_ts = market_close_ts      # to not get more bars after market has closed
-#
-#   if num == 1:
-#     diff_ts = round((end_ts - start_ts).total_seconds() / 60)
-#   elif num == 5:
-#     diff_ts = round(((end_ts - start_ts).total_seconds() / 60)/5)
-#   elif num == 15:
-#     diff_ts = round(((end_ts - start_ts).total_seconds() / 60)/15)
-#   else:
-#       print(f'interval not supported')
-#
-#   return diff_ts
-
-
 # SET LOGGING LEVEL
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -72,24 +55,30 @@ slack_headers = {
 
 
 def slackit(channel, msg):
+
     '''
 
     :param channel: chanel name, used in if condition below
     :param msg: text to be posted
     :return: response.text (ok)
     '''
+
     slack_headers = {
         "Content-Type": "application/json"
     }
+
     data = {"text": msg}
     # POST BUY TO SLACK NOTIFI APCA-PAPER CHANNEL
 
-    if str(channel) == 'apca_paper':
-        slack_url = config.notifi_apca_paper_uri
+    if channel == 'apca-paper':
+        slack_url = config.apca_paper
+    elif channel == 'apca-live':
+        slack_url = config.apca_live
 
     response = requests.post(url=slack_url, headers=slack_headers,
                                     data=str(data))
     return response.text
+
 
 clock_uri = config.clock_uri
 
@@ -694,10 +683,7 @@ if __name__ == '__main__':
         sleeping_time = f'[{current_ts}] SLEEPING {secs_to_sleep} SECONDS'
         print(sleeping_time)
 
-        # data = {"text": sleeping_time}
-        # notifi_response = requests.post(url=config.notifi_apca_paper_uri,
-        #                                 headers=slack_headers,
-        #                                 data=str(data))
+        slackit(channel='apca-paper', msg=sleeping_time)
 
         # print('\n')
         print('*'*80)
