@@ -15,36 +15,36 @@ import dateutil.parser
 
 import numpy as np
 import talib  # https://mrjbq7.github.io/ta-lib/
-import matplotlib
+# import matplotlib
 
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 
 # backend to use, valid strings are ['GTK3Agg', 'GTK3Cairo', 'MacOSX', 'nbAgg', 'Qt4Agg',
 # 'Qt4Cairo', 'Qt5Agg', 'Qt5Cairo', 'TkAgg', 'TkCairo', 'WebAgg', 'WX', 'WXAgg', 'WXCairo',
 # 'agg', 'cairo', 'pdf', 'pgf', 'ps', 'svg', 'template']
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 # talib.get_functions()
 # talib.get_function_groups()
-import uuid
+# import uuid
 
 
-def num_bars(start_ts, end_ts, market_close_ts, num):
-
-  if end_ts >= market_close_ts:
-      end_ts = market_close_ts      # to not get more bars after market has closed
-
-  if num == 1:
-    diff_ts = round((end_ts - start_ts).total_seconds() / 60)
-  elif num == 5:
-    diff_ts = round(((end_ts - start_ts).total_seconds() / 60)/5)
-  elif num == 15:
-    diff_ts = round(((end_ts - start_ts).total_seconds() / 60)/15)
-  else:
-      print(f'interval not supported')
-
-  return diff_ts
+# def num_bars(start_ts, end_ts, market_close_ts, num):
+#
+#   if end_ts >= market_close_ts:
+#       end_ts = market_close_ts      # to not get more bars after market has closed
+#
+#   if num == 1:
+#     diff_ts = round((end_ts - start_ts).total_seconds() / 60)
+#   elif num == 5:
+#     diff_ts = round(((end_ts - start_ts).total_seconds() / 60)/5)
+#   elif num == 15:
+#     diff_ts = round(((end_ts - start_ts).total_seconds() / 60)/15)
+#   else:
+#       print(f'interval not supported')
+#
+#   return diff_ts
 
 
 # SET LOGGING LEVEL
@@ -65,32 +65,36 @@ headers = {
     "Content-Type": "application/json"
 }
 
+slack_headers = {
+    "Content-Type": "application/json"
+}
+
 clock_uri = config.clock_uri
 
-
-def get_current_positions():
-
-    positions_uri = config.positions_uri
-
-    positions_response = requests.get(url=positions_uri, headers=headers).json()
-
-    asset_id = positions_response['asset_id']
-    num_stocks_unsold = float(positions_response['qty'])
-    entry_price = float(positions_response['avg_entry_price'])     # target price should be based on the avg entry price
-
-    if positions_response['side'] == 'long':
-        bool_is_buy = True
-    else:
-        bool_is_buy = False
-
-    positions = {
-        "asset_id": asset_id,
-        "num_stocks_unsold": num_stocks_unsold,
-        "entry_price": entry_price,
-        "bool_is_buy": bool_is_buy
-    }
-
-    return positions
+#
+# def get_current_positions():
+#
+#     positions_uri = config.positions_uri
+#
+#     positions_response = requests.get(url=positions_uri, headers=headers).json()
+#
+#     asset_id = positions_response['asset_id']
+#     num_stocks_unsold = float(positions_response['qty'])
+#     entry_price = float(positions_response['avg_entry_price'])     # target price should be based on the avg entry price
+#
+#     if positions_response['side'] == 'long':
+#         bool_is_buy = True
+#     else:
+#         bool_is_buy = False
+#
+#     positions = {
+#         "asset_id": asset_id,
+#         "num_stocks_unsold": num_stocks_unsold,
+#         "entry_price": entry_price,
+#         "bool_is_buy": bool_is_buy
+#     }
+#
+#     return positions
 
 def get_ts():
     '''
@@ -220,7 +224,6 @@ def fetch_bars(bar_interval):
     base_uri_1m = f'https://data.alpaca.markets/v1/bars/{bar_interval}'
     bars_1m = requests.get(url=base_uri_1m, params=payload_1m, headers=headers).json()
 
-
     for i, v5m in enumerate(bars_5m[ticker]):
         # CONVERT UNIX TS TO READABLE TS
         v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
@@ -298,7 +301,7 @@ if __name__ == '__main__':
 
     while True:  # infinite
 
-        print('*'*80)
+        # print('*'*80)
         print('\n')
 
         # Reset the lists each run to null
@@ -322,6 +325,7 @@ if __name__ == '__main__':
 
         market_is_open = ts['is_open']  # check if market is open for trading
 
+
         ######### FOR AFTER HOUR TESTS ONLY #########
 
         # market_is_open = True
@@ -335,13 +339,16 @@ if __name__ == '__main__':
 
         # check if market just opened
         open_ts = ts['open_ts']
-        print(f'open_ts:                            {open_ts}')
+        # print(f'open_ts:                            {open_ts}')
+        close_ts = ts['close_ts']
+
 
         new_bar_available = True
 
         if market_is_open:
 
             # ready to trade
+            # TODO: Post Market Open and Close to SLACK
 
             # 0. Setup
             # Add positionSizing = 0.25 for each stock
@@ -536,8 +543,15 @@ if __name__ == '__main__':
                             filled_at = buy_order_details['filled_at']
                             filled_qty = buy_order_details['filled_qty']
 
+                            buy_order_text = f"[BOUGHT] [{filled_at}] {buy_order_details['side']} Order of {filled_qty} was executed @ {buy_price}"
+                            print(buy_order_text)
 
-                            print(f"[EXECUTED] [{filled_at}] {buy_order_details['side']} Order of {filled_qty} was executed @ {buy_price}")
+                            data = {"text": buy_order_text}
+
+                            # POST BUY TO SLACK NOTIFI APCA-PAPER CHANNEL
+
+                            notifi_response = requests.post(url=config.notifi_apca_paper_uri, headers=slack_headers,
+                                                            data=str(data))
 
                             signal = [filled_at, buy_price, 'g^',
                                   f'BUY@ {buy_price} [{filled_at}]']  # Buy at price 2 bars prior
@@ -581,7 +595,6 @@ if __name__ == '__main__':
 
                         print(f'SELL ORDER DATA:    {sell_order_data}')
 
-
                         sell_order_sent = False
 
                         try:
@@ -616,7 +629,16 @@ if __name__ == '__main__':
 
                             filled_at = sell_order_details.filled_at
 
-                            print(f'[EXECUTED] [{sell_order_details.filled_at}] {sell_order_details.side} Order was executed @ {sell_price}')
+                            sell_order_text = f"[SOLD] [{sell_order_details.filled_at}] {sell_order_details.side} Order was executed @ {sell_price}"
+                            print(sell_order_text)
+
+                            data = {"text": sell_order_text}
+
+                            # POST SELL TO SLACK NOTIFI APCA-PAPER CHANNEL
+
+                            notifi_response = requests.post(url=config.notifi_apca_paper_uri,
+                                                            headers=slack_headers,
+                                                            data=str(data))
 
                             signal = [np_tl_5m[-1], sell_price, 'rv',
                                   f'SELL@{sell_price} [{np_tl_5m[-1]}]']  # Sell at price 2 bars prior
@@ -806,9 +828,17 @@ if __name__ == '__main__':
                             ###############
 
                             filled_at = buy_order_details['filled_at']
+                            filled_qty = buy_order_details['filled_qty']
 
-                            print(f"[EXECUTED] [{filled_at}] {buy_order_details['side']} Order was executed @ {buy_price}")
+                            buy_order_text = f"[BOUGHT] [{filled_at}] {buy_order_details['side']} Order of {filled_qty} was executed @ {buy_price}"
+                            print(buy_order_text)
 
+                            data = {"text": buy_order_text}
+
+                            # POST BUY TO SLACK NOTIFI APCA-PAPER CHANNEL
+
+                            notifi_response = requests.post(url=config.notifi_apca_paper_uri, headers=slack_headers,
+                                                            data=str(data))
                             signal = [filled_at, buy_price, 'g^',
                                       f'BUY@ {buy_price} [{filled_at}]']  # Buy at price 2 bars prior
 
@@ -891,8 +921,17 @@ if __name__ == '__main__':
 
                             filled_at = sell_order_details['filled_at']
                             side = sell_order_details['side']
-                            print(
-                                f'[EXECUTED] [{filled_at}] {side} Order was executed @ {sell_price}')
+
+                            sell_order_text = f'[EXECUTED] [{filled_at}] {side} Order was executed @ {sell_price}'
+                            print(sell_order_text)
+
+                            data = {"text": sell_order_text}
+
+                            # POST SELL TO SLACK NOTIFI APCA-PAPER CHANNEL
+
+                            notifi_response = requests.post(url=config.notifi_apca_paper_uri,
+                                                            headers=slack_headers,
+                                                            data=str(data))
 
                             signal = [np_tl_1m[-1], sell_price, 'rv',
                                       f'SELL@{sell_price} [{np_tl_1m[-1]}]']  # Sell at price 2 bars prior
@@ -922,11 +961,10 @@ if __name__ == '__main__':
         elif int(bar_interval) == 5:
             secs_to_sleep = 300
 
-        print('\n')
-        print(f'WAITING {secs_to_sleep} SECONDS FOR THE NEXT BAR')
-        print('\n')
+        # print('\n')
+        print(f'SLEEPING {secs_to_sleep} SECONDS')
+        # print('\n')
         print('*'*80)
-        print('\n')
         time.sleep(int(secs_to_sleep))
 
 
