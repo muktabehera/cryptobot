@@ -59,6 +59,7 @@ nyc = pytz.timezone('America/New_York')
 #     base_url=config.APCA_PAPER_BASE_URL
 # )
 
+
 headers = {
     "APCA-API-KEY-ID": config.APCA_API_KEY_ID,
     "APCA-API-SECRET-KEY": config.APCA_API_SECRET_KEY,
@@ -68,6 +69,27 @@ headers = {
 slack_headers = {
     "Content-Type": "application/json"
 }
+
+
+def slackit(channel, msg):
+    '''
+
+    :param channel: chanel name, used in if condition below
+    :param msg: text to be posted
+    :return: response.text (ok)
+    '''
+    slack_headers = {
+        "Content-Type": "application/json"
+    }
+    data = {"text": msg}
+    # POST BUY TO SLACK NOTIFI APCA-PAPER CHANNEL
+
+    if str(channel) == 'apca_paper':
+        slack_url = config.notifi_apca_paper_uri
+
+    response = requests.post(url=slack_url, headers=slack_headers,
+                                    data=str(data))
+    return response.text
 
 clock_uri = config.clock_uri
 
@@ -288,16 +310,18 @@ def fetch_bars(bar_interval):
 # TODO: Add ETAs at each step
 
 
+buy_order_placed = dict()       # INITIALIZATION
+buy_order_details = dict()
+
+sell_order_placed = dict()
+sell_order_details = dict()
+
+ticker = config.ticker
+bar_interval = config.bar_interval
+order_uri = config.order_uri
+
+
 if __name__ == '__main__':
-
-    # next_trade_ts = (datetime.now() + pd.Timedelta("1 Minutes")).astimezone(nyc)  # default initialization to a future date
-    # TODO: determine use ts from api vs now
-
-    ticker = config.ticker
-    bar_interval = config.bar_interval
-    order_uri = config.order_uri
-
-    # x = 0
 
     while True:  # infinite
 
@@ -335,7 +359,7 @@ if __name__ == '__main__':
         print(f'market_is_open                      {market_is_open}')
 
         current_ts = ts['clock_ts']  # dup of end_ts, to be used for limiting past trades
-        print(f'current_ts:                         {current_ts}')
+        # print(f'current_ts:                         {current_ts}')
 
         # check if market just opened
         open_ts = ts['open_ts']
@@ -382,291 +406,9 @@ if __name__ == '__main__':
 
             bar_interval = config.bar_interval
 
-            ############### 5 MIN ###############
+            ############### 1 MIN ###############
 
-            if bar_interval == 5:    # for 5 Min
-
-                print(f'RUNNING 5 MIN BARS')
-
-                bars = fetch_bars(bar_interval=bar_interval)  # 1 for 1Min, 5 for 5Min, 15 for 15Min
-
-                np_cl_5m = bars['np_cl_5m']
-                np_tl_5m = bars['np_tl_5m']
-
-                # print(f'np_cl_5m:               {np_cl_5m}')
-                # print(f'np_tl_5m:               {np_tl_5m}')
-
-                # GET MOMENTUM
-                mom_5m = talib.MOM(np_cl_5m, timeperiod=1)
-
-                # print(f'mom_5m:               {mom_5m}')
-
-                # TODO: Cancel order if not executed in 5 min (optional)
-
-                signals = []
-
-                BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
-
-                sell_target_based_on_profit_percentage = np.array([0])  # initialization
-
-                buy_price = 0.000   # float
-                sell_price = 0.000  # float
-                list_trade_profit = list()  # list to hold profit amount
-                list_trade_pnl = list()  # dict to hold profit or loss for each trade
-                day_pnl = 0.000  # for the day (float)
-
-                trade_left_open = False  # to check if a trade was left open, initial False
-
-                units_to_trade = config.units_to_trade
-                # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
-                # TODO: handle partial fills (optional)
-
-                ###########################
-
-                # Profit percentage (price above buy price) 25% as 0.25, 10% as 0.1
-                # used to set -> sell_target_based_on_profit_percentage
-
-                profit_percentage = float(config.profit_percentage)  # 0.2 for 20%
-
-                print(f'profit percentage                   {profit_percentage}')
-
-                ###################     5 MIN BARS START    #######################
-
-                # for i in range(len(np_cl_5m)):
-
-                # STRATEGY 2: BUY if mom 2 > mom 1, SELL mom1, mom2 < 0 and current price > buy
-
-                bool_closing_time = ts['market_about_to_close']
-                bool_buy_momentum = (mom_5m[-1] > 0 and mom_5m[-2] > 0) and (mom_5m[1] > mom_5m[-2])
-
-                ################################
-
-                BUY_SIGNAL = bool_buy_momentum  # and not bool_closing_time
-
-                print(f'[{np_cl_5m[-1]}] BUY_SIGNAL                 {BUY_SIGNAL}')
-
-                # TODO: [IMPORTANT] include closing time check in actual trades
-
-                ################################
-
-                bool_sell_momentum = mom_5m[-1] < 0 and mom_5m[-2] < 0  # current and prev momentum are positive
-
-                bool_sell_price = float(np_cl_5m[-1]) > float(BUY_PRICE[-1])  # current price is gt buy price
-                # print(f'bool_sell_price [{bool_sell_price}] = float(np_cl_5m[i]) [{float(np_cl_5m[i])}] > float(BUY_PRICE[0]) [{float(BUY_PRICE[0])}]')
-
-                bool_sell_profit_target = float(np_cl_5m[-1]) >= float(
-                    sell_target_based_on_profit_percentage)  # current price > sell target
-                # print(f'[{np_tl_5m[i]}] bool_sell_profit_target {bool_sell_profit_target} = float(np_cl_5m[i]) {float(np_cl_5m[i])} >= float(sell_target_based_on_profit_percentage) {float(sell_target_based_on_profit_percentage)}')
-
-                # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
-
-                ################################
-
-                SELL_SIGNAL = (bool_sell_momentum and bool_sell_price) or \
-                              bool_sell_profit_target  # or \
-                # (bool_sell_price and position and bool_closing_time)  # TODO: Incorporate closing time
-
-                print(f'[{np_cl_5m[-1]}] SELL_SIGNAL                {SELL_SIGNAL}')
-
-                # print(f'[{np_tl_5m[i]}] [{round(np_cl_5m[i], 2)}]     '
-                #       f'[SELL]      {SELL_SIGNAL}            '
-                #       f'MOMENTUM    {bool_sell_momentum}          '
-                #       f'POSITION    {position}              '
-                #       f'CLOSING     {bool_closing_time}          '
-                #       f'SELLPRICE     {bool_sell_price}          '
-                #       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  ')
-
-                ################################
-
-                if np.isnan(mom_5m[-1]):
-                    continue
-                else:
-
-                    ################### BUY ##################
-
-                    if not position and BUY_SIGNAL:  # if no position exists and a buy sig is found
-
-                        # TODO: check clock and don't buy 30 min before market close
-
-                        BUY_PRICE[0] = float((np_cl_5m[-1] + np_cl_5m[-2]) / 2)   # for limit price only
-                        buy_price = round(BUY_PRICE[0], 3)                          # for limit price only
-
-                        # limit_price = BUY_PRICE[0]
-
-                        # https://docs.alpaca.markets/api-documentation/web-api/orders/
-
-                        buy_order_data = {
-                            'symbol': ticker,
-                            'qty': config.units_to_trade,
-                            'side': 'buy',
-                            'type': 'market',
-                            # 'limit_price': limit_price,
-                            'time_in_force': 'day'
-                            # 'client_order_id': uuid.uuid4().hex    # generate order_id e.g. '9fe2c4e93f654fdbb24c02b15259716c'
-                        }
-                        buy_order_data = json.dumps(buy_order_data)
-
-                        print(f'BUY ORDER DATA:    {buy_order_data}')
-
-                        buy_order_sent = False
-
-                        try:
-                            buy_order_placed = requests.post(url=order_uri, headers=headers, data=buy_order_data).json()
-                            buy_order_sent = True
-                            order_id = buy_order_placed['id']   # order_id
-                        except Exception as e:
-                            print(f'Error placing order: {str(e)}')
-
-                        buy_order_executed = False
-
-                        print(f"Order Placed Status Code:           {buy_order_placed['status_code']} ")
-
-                        if buy_order_placed['status_code'] == 200:
-
-                            while not buy_order_executed:
-
-                                # keep checking until order is filled
-                                buy_order_details_data = {'order_id': order_id}
-                                buy_order_details = requests.get(url=order_uri, headers=headers, params=buy_order_details_data).json()
-
-                                print(f"[WAITING TO EXECUTE] [{buy_order_details['submitted_at']}] "
-                                      f"[{buy_order_details['status']}] {buy_order_details['side']} "
-                                      f"order for {buy_order_details['qty']} shares of {buy_order_details['symbol']}")
-
-                                if buy_order_details.status == 'filled':    # or order_details.status == 'partially_filled':
-                                    buy_order_executed = True
-
-                            ###############
-                            buy_price = float(buy_order_details['filled_avg_price'])   # ACTUAL
-                            ###############
-
-                            filled_at = buy_order_details['filled_at']
-                            filled_qty = buy_order_details['filled_qty']
-
-                            buy_order_text = f"[BOUGHT] [{filled_at}] {buy_order_details['side']} Order of {filled_qty} was executed @ {buy_price}"
-                            print(buy_order_text)
-
-                            data = {"text": buy_order_text}
-
-                            # POST BUY TO SLACK NOTIFI APCA-PAPER CHANNEL
-
-                            notifi_response = requests.post(url=config.notifi_apca_paper_uri, headers=slack_headers,
-                                                            data=str(data))
-
-                            signal = [filled_at, buy_price, 'g^',
-                                  f'BUY@ {buy_price} [{filled_at}]']  # Buy at price 2 bars prior
-
-                            signals.append(signal)
-
-                            # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
-
-                            sell_target_based_on_profit_percentage = buy_price + (buy_price * profit_percentage)
-
-                            print(f'[{np_cl_5m[-1]}] [{buy_price}] [{filled_at}]     '
-                                  f'[BUY]       {BUY_SIGNAL}            '
-                                  f'MOMENTUM    {bool_buy_momentum}          '
-                                  f'POSITION    {position}             '
-                                  f'CLOSING     {bool_closing_time}          '
-                                  f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}]        ')
-
-                            position = True
-                        else:
-                            print(f"[ERROR] [{buy_order_details['filled_at']}] {buy_order_details['side']} Order was NOT placed")
-
-                    ################### SELL ##################
-
-                    elif position and SELL_SIGNAL:
-
-                        sell_price = round(np_cl_5m[-2], 3)  # set sell price to 1 to 2 bars prior val
-                        # for limit price, set sell_price
-
-                        # https://docs.alpaca.markets/api-documentation/web-api/orders/
-
-                        sell_order_data = {
-                            'symbol': ticker,
-                            'qty': config.units_to_trade,
-                            'side': 'sell',
-                            'type': 'market',
-                            # 'limit_price': limit_price,
-                            'time_in_force': 'day'
-                            # 'client_order_id': uuid.uuid4().hex    # generate order_id e.g. '9fe2c4e93f654fdbb24c02b15259716c'
-                        }
-                        sell_order_data = json.dumps(sell_order_data)
-
-                        print(f'SELL ORDER DATA:    {sell_order_data}')
-
-                        sell_order_sent = False
-
-                        try:
-                            sell_order_placed = requests.post(url=order_uri, headers=headers, data=sell_order_data).json()
-                            sell_order_sent = True
-                            order_id = sell_order_placed['order_id']
-                        except Exception as e:
-                            print(f'Error placing order: {str(e)}')
-
-                        sell_order_executed = False
-
-                        print(f"SELL Order Placed Status Code:           {sell_order_placed['status_code']} ")
-
-                        if sell_order_placed['status_code'] == 200:
-
-                            while not sell_order_executed:
-
-                                # keep checking until order is filled
-                                sell_order_details_data = {'order_id': order_id}
-                                sell_order_details = requests.get(url=order_uri, headers=headers, params=sell_order_details_data).json()
-
-                                print(f'[WAITING TO EXECUTE] [{sell_order_details.submitted_at}] '
-                                      f'[{sell_order_details.status}] {sell_order_details.side} '
-                                      f'order for {sell_order_details.qty} shares of {sell_order_details.symbol}')
-
-                                if sell_order_details.status == 'filled':    # or order_details.status == 'partially_filled':
-                                    sell_order_executed = True
-
-                            ###############
-                            sell_price = float(buy_order_details.filled_avg_price)
-                            ###############
-
-                            filled_at = sell_order_details.filled_at
-
-                            sell_order_text = f"[SOLD] [{sell_order_details.filled_at}] {sell_order_details.side} Order was executed @ {sell_price}"
-                            print(sell_order_text)
-
-                            data = {"text": sell_order_text}
-
-                            # POST SELL TO SLACK NOTIFI APCA-PAPER CHANNEL
-
-                            notifi_response = requests.post(url=config.notifi_apca_paper_uri,
-                                                            headers=slack_headers,
-                                                            data=str(data))
-
-                            signal = [np_tl_5m[-1], sell_price, 'rv',
-                                  f'SELL@{sell_price} [{np_tl_5m[-1]}]']  # Sell at price 2 bars prior
-
-                        signals.append(signal)
-
-                        profit = float(sell_price - buy_price) * units_to_trade
-
-                        list_trade_pnl.append(profit)  # append to trade pnl
-
-                        print(f'[{np_tl_5m[-1]}] [{sell_price}]     '
-                              f'[SELL]      {SELL_SIGNAL}            '
-                              f'MOMENTUM    {bool_sell_momentum}         '
-                              f'POSITION    {position}              '
-                              f'CLOSING     {bool_closing_time}          '
-                              f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  '
-                              f'PRICE       {bool_sell_price}')
-
-                        position = False  # set position to false once a sale has completed
-
-
-                    # time.sleep(300)     # TODO: Double check if you need to sleep less or more
-
-                    ############### 5 MIN ###############
-
-                    ############### 1 MIN ###############
-
-            elif bar_interval == 1:
+            if bar_interval == 1:
 
                 print(f'RUNNING 1 MIN BARS')
 
@@ -830,24 +572,19 @@ if __name__ == '__main__':
                             filled_at = buy_order_details['filled_at']
                             filled_qty = buy_order_details['filled_qty']
 
-                            buy_order_text = f"[BOUGHT] [{filled_at}] {buy_order_details['side']} Order of {filled_qty} was executed @ {buy_price}"
-                            print(buy_order_text)
-
-                            data = {"text": buy_order_text}
-
-                            # POST BUY TO SLACK NOTIFI APCA-PAPER CHANNEL
-
-                            notifi_response = requests.post(url=config.notifi_apca_paper_uri, headers=slack_headers,
-                                                            data=str(data))
-                            signal = [filled_at, buy_price, 'g^',
-                                      f'BUY@ {buy_price} [{filled_at}]']  # Buy at price 2 bars prior
-
-                            signals.append(signal)
 
                             # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
 
                             sell_target_based_on_profit_percentage = buy_price + (
                                         buy_price * profit_percentage)
+
+                            buy_order_text = f"[BOUGHT] [{filled_at}] {buy_order_details['side']} Order of {filled_qty} was executed @ {buy_price}" \
+                                f" Profit Target = ${sell_target_based_on_profit_percentage}"
+
+                            print(buy_order_text)
+
+                            slackit(channel='apca_paper', msg=buy_order_text)  # post to slack
+
 
                             print(f'[{np_cl_1m[-1]}] [{buy_price}] [{filled_at}]     '
                                   f'[BUY]       {BUY_SIGNAL}            '
@@ -920,27 +657,22 @@ if __name__ == '__main__':
                             ###############
 
                             filled_at = sell_order_details['filled_at']
+
                             side = sell_order_details['side']
 
+                            profit = float(sell_price - buy_price) * units_to_trade
+
                             sell_order_text = f'[EXECUTED] [{filled_at}] {side} Order was executed @ {sell_price}'
+
                             print(sell_order_text)
 
-                            data = {"text": sell_order_text}
+                            slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
 
-                            # POST SELL TO SLACK NOTIFI APCA-PAPER CHANNEL
+                            trade_profit_text = f'[TRADE] BUY {units_to_trade} of {ticker} @ {buy_price} AND SELL {ticker} @ {sell_price} \n PnL   ${profit}'
 
-                            notifi_response = requests.post(url=config.notifi_apca_paper_uri,
-                                                            headers=slack_headers,
-                                                            data=str(data))
+                            slackit(channel='apca_paper', msg=trade_profit_text)    # post to slack
 
-                            signal = [np_tl_1m[-1], sell_price, 'rv',
-                                      f'SELL@{sell_price} [{np_tl_1m[-1]}]']  # Sell at price 2 bars prior
-
-                        signals.append(signal)
-
-                        profit = float(sell_price - buy_price) * units_to_trade
-
-                        list_trade_pnl.append(profit)  # append to trade pnl
+                        # signals.append(signal)
 
                         print(f'[{np_tl_1m[-1]}] [{sell_price}]     '
                               f'[SELL]      {SELL_SIGNAL}            '
@@ -956,13 +688,17 @@ if __name__ == '__main__':
 
                     # time.sleep(60)  # TODO: Double check if you need to sleep less or more
 
-        if int(bar_interval) == 1:
-            secs_to_sleep = 60
-        elif int(bar_interval) == 5:
-            secs_to_sleep = 300
+        secs_to_sleep = 60
 
         # print('\n')
-        print(f'SLEEPING {secs_to_sleep} SECONDS')
+        sleeping_time = f'[{current_ts}] SLEEPING {secs_to_sleep} SECONDS'
+        print(sleeping_time)
+
+        # data = {"text": sleeping_time}
+        # notifi_response = requests.post(url=config.notifi_apca_paper_uri,
+        #                                 headers=slack_headers,
+        #                                 data=str(data))
+
         # print('\n')
         print('*'*80)
         time.sleep(int(secs_to_sleep))
