@@ -7,6 +7,7 @@ import logging
 import config
 import requests
 import json
+import argparse
 
 from datetime import datetime
 import pytz  # for timezones
@@ -301,24 +302,33 @@ def fetch_bars(bar_interval):
 # TODO: Add ETAs at each step
 
 
-buy_order_placed = dict()       # INITIALIZATION
-buy_order_details = dict()
-
-sell_order_placed = dict()
-sell_order_details = dict()
-
-ticker = config.ticker
-
-bar_interval = config.bar_interval
-order_uri = config.order_uri
-
-buy_price = 0.000  # float
-sell_price = 0.000  # float
-
-BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
-sell_target_based_on_profit_percentage = np.array([0])  # initialization
-
 if __name__ == '__main__':
+
+    buy_order_placed = dict()  # INITIALIZATION
+    buy_order_details = dict()
+
+    sell_order_placed = dict()
+    sell_order_details = dict()
+
+    bar_interval = config.bar_interval
+    order_uri = config.order_uri
+
+    buy_price = 0.000  # float
+    sell_price = 0.000  # float
+
+    BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
+    sell_target_based_on_profit_percentage = np.array([0])  # initialization
+
+    parser = argparse.ArgumentParser(description="apca auto trader")
+
+    parser.add_argument('-s', action="store", dest='symbol',
+                        help="ticker symbol from config")
+
+    arg_val = parser.parse_args()
+
+    symbol = str(arg_val.symbol)
+
+    ticker = config.ticker[f"{symbol}"]
 
     while True:  # infinite
 
@@ -415,15 +425,6 @@ if __name__ == '__main__':
                 # print(f'mom_1m:               {mom_1m}')
 
                 # TODO: Cancel order if not executed in 5 min (optional)
-
-                signals = []
-
-                # BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
-                #
-                # sell_target_based_on_profit_percentage = np.array([0])  # initialization
-
-                # buy_price = 0.000  # float
-                # sell_price = 0.000  # float
 
                 trade_left_open = False  # to check if a trade was left open, initial False
 
@@ -629,9 +630,13 @@ if __name__ == '__main__':
 
                                 sell_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 
-                                print(f"[WAITING TO EXECUTE SELL] [{sell_order_details['submitted_at']}] "
-                                      f"[{sell_order_details['status']}] {sell_order_details['side']} "
-                                      f"order for {sell_order_details['qty']} shares of {sell_order_details['symbol']}")
+                                waiting_to_sell = f"[WAITING TO EXECUTE SELL] [{sell_order_details['submitted_at']}] " \
+                                    f"[{sell_order_details['status']}] {sell_order_details['side']} " \
+                                    f"order for {sell_order_details['qty']} shares of {sell_order_details['symbol']}"
+
+                                print(waiting_to_sell)
+
+                                # slackit(channel='apca-paper', msg=waiting_to_sell)
 
                                 if sell_order_details['status'] == 'filled':  # or order_details.status == 'partially_filled':
                                     sell_order_executed = True
@@ -654,10 +659,9 @@ if __name__ == '__main__':
 
                             # slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
 
-                            trade_profit_text = f'[TRADE][{ticker}] BUY {units_to_trade} @ {buy_price}, ' \
-                                f'SELL @ {sell_price} \n PNL ${profit}'
+                            trade_text = f'[{current_ts}] [{ticker}] BUY {units_to_trade} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
 
-                            slackit(channel='apca_paper', msg=trade_profit_text)    # post to slack
+                            slackit(channel='apca_paper', msg=trade_text)    # post to slack
 
                         # signals.append(signal)
 
