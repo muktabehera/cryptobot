@@ -322,11 +322,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="apca auto trader")
 
     parser.add_argument('-s', action="store", dest='symbol',
-                        help="ticker symbol from config")
+                        help="ticker symbol from config")   # symbol
 
     arg_val = parser.parse_args()
 
-    symbol = str(arg_val.symbol)
+    symbol = str(arg_val.symbol)        # passed to the -s switch e.g. -s V or -s MSFT or -s GOOG
 
     ticker = config.ticker[f"{symbol}"]
 
@@ -373,7 +373,6 @@ if __name__ == '__main__':
         # print(f'open_ts:                            {open_ts}')
         close_ts = ts['close_ts']
 
-
         new_bar_available = True
 
         if market_is_open:
@@ -387,7 +386,7 @@ if __name__ == '__main__':
 
             # >_< CHECK IF A POSITION EXISTS FROM THE PREVIOUS TRADE
 
-            positions_uri = config.positions_uri
+            positions_uri = f'https://paper-api.alpaca.markets/v1/positions/{ticker}'
 
             positions_response = requests.get(url=positions_uri, headers=headers).json()
 
