@@ -312,6 +312,11 @@ ticker = config.ticker
 bar_interval = config.bar_interval
 order_uri = config.order_uri
 
+buy_price = 0.000  # float
+sell_price = 0.000  # float
+
+BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
+sell_target_based_on_profit_percentage = np.array([0])  # initialization
 
 if __name__ == '__main__':
 
@@ -413,15 +418,12 @@ if __name__ == '__main__':
 
                 signals = []
 
-                BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
+                # BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
+                #
+                # sell_target_based_on_profit_percentage = np.array([0])  # initialization
 
-                sell_target_based_on_profit_percentage = np.array([0])  # initialization
-
-                buy_price = 0.000  # float
-                sell_price = 0.000  # float
-                list_trade_profit = list()  # list to hold profit amount
-                list_trade_pnl = list()  # dict to hold profit or loss for each trade
-                day_pnl = 0.000  # for the day (float)
+                # buy_price = 0.000  # float
+                # sell_price = 0.000  # float
 
                 trade_left_open = False  # to check if a trade was left open, initial False
 
@@ -567,7 +569,7 @@ if __name__ == '__main__':
 
                             print(buy_order_text)
 
-                            slackit(channel='apca_paper', msg=buy_order_text)  # post to slack
+                            # slackit(channel='apca_paper', msg=buy_order_text)  # post to slack
 
 
                             print(f'[{np_cl_1m[-1]}] [{buy_price}] [{filled_at}]     '
@@ -644,15 +646,16 @@ if __name__ == '__main__':
 
                             side = sell_order_details['side']
 
-                            profit = float(sell_price - buy_price) * units_to_trade
+                            profit = round((float(sell_price - buy_price) * units_to_trade),2)
 
                             sell_order_text = f'[EXECUTED] [{filled_at}] {side} Order was executed @ {sell_price}'
 
                             print(sell_order_text)
 
-                            slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
+                            # slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
 
-                            trade_profit_text = f'[TRADE][{ticker}] BUY {units_to_trade} @ {buy_price} AND SELL {ticker} @ {sell_price} \n PNL ${profit}'
+                            trade_profit_text = f'[TRADE][{ticker}] BUY {units_to_trade} @ {buy_price}, ' \
+                                f'SELL @ {sell_price} \n PNL ${profit}'
 
                             slackit(channel='apca_paper', msg=trade_profit_text)    # post to slack
 
