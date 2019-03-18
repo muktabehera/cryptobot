@@ -85,30 +85,6 @@ def slackit(channel, msg):
 
 clock_uri = config.clock_uri
 
-#
-# def get_current_positions():
-#
-#     positions_uri = config.positions_uri
-#
-#     positions_response = requests.get(url=positions_uri, headers=headers).json()
-#
-#     asset_id = positions_response['asset_id']
-#     num_stocks_unsold = float(positions_response['qty'])
-#     entry_price = float(positions_response['avg_entry_price'])     # target price should be based on the avg entry price
-#
-#     if positions_response['side'] == 'long':
-#         bool_is_buy = True
-#     else:
-#         bool_is_buy = False
-#
-#     positions = {
-#         "asset_id": asset_id,
-#         "num_stocks_unsold": num_stocks_unsold,
-#         "entry_price": entry_price,
-#         "bool_is_buy": bool_is_buy
-#     }
-#
-#     return positions
 
 def get_ts():
     '''
@@ -330,6 +306,8 @@ if __name__ == '__main__':
 
     ticker = config.ticker[f"{symbol}"]
 
+    position_qty = 0  # default
+
     while True:  # infinite
 
         # print('*'*80)
@@ -382,7 +360,12 @@ if __name__ == '__main__':
 
             # 0. Setup
             # Add positionSizing = 0.25 for each stock
-            # cash_balance = get_cash_balance()
+            account_uri = config.account_uri
+
+            account = requests.get(url=account_uri, headers=headers).json()
+            buying_power = float(account['buying_power'])
+
+            print(f'buying_power:                           [${buying_power}] [{ticker}]')
 
             # >_< CHECK IF A POSITION EXISTS FROM THE PREVIOUS TRADE
 
@@ -390,8 +373,8 @@ if __name__ == '__main__':
 
             positions_response = requests.get(url=positions_uri, headers=headers).json()
 
-            position = False  # default position to False
-            position_qty = config.units_to_trade    # default
+            position = False    # default position to False
+
 
             # check if key exists in dict, code indicates error or no position
             if 'code' not in positions_response:
@@ -427,7 +410,8 @@ if __name__ == '__main__':
 
                 trade_left_open = False  # to check if a trade was left open, initial False
 
-                units_to_trade = config.units_to_trade
+                units_to_buy = int(buying_power / config.position_size)
+
                 # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
                 # TODO: handle partial fills (optional)
 
@@ -507,7 +491,7 @@ if __name__ == '__main__':
 
                         buy_order_data = {
                             'symbol': ticker,
-                            'qty': config.units_to_trade,
+                            'qty': units_to_buy,
                             'side': 'buy',
                             'type': 'market',
                             # 'limit_price': limit_price,
@@ -650,7 +634,7 @@ if __name__ == '__main__':
 
                             side = sell_order_details['side']
 
-                            profit = round((float(sell_price - buy_price) * units_to_trade),2)
+                            profit = round((float(sell_price - buy_price) * units_to_buy),2)
 
                             sell_order_text = f'[EXECUTED] [{filled_at}] {side} Order was executed @ {sell_price}'
 
@@ -658,7 +642,7 @@ if __name__ == '__main__':
 
                             # slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
 
-                            trade_text = f'[{current_ts}] [{ticker}] BUY {units_to_trade} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
+                            trade_text = f'[{current_ts}] [{ticker}] BUY {units_to_buy} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
 
                             slackit(channel='apca_paper', msg=trade_text)    # post to slack
 
