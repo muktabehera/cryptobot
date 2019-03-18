@@ -63,6 +63,8 @@ def slackit(channel, msg):
     :return: response.text (ok)
     '''
 
+    slack_url=config.apca_paper     # default
+
     slack_headers = {
         "Content-Type": "application/json"
     }
@@ -683,7 +685,7 @@ if __name__ == '__main__':
         sleeping_time = f'[{current_ts}] SLEEPING {secs_to_sleep} SECONDS'
         print(sleeping_time)
 
-        slackit(channel='apca-paper', msg=sleeping_time)
+        # slackit(channel='apca-paper', msg=sleeping_time)
 
         # print('\n')
         print('*'*80)
