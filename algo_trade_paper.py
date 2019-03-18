@@ -308,6 +308,7 @@ sell_order_placed = dict()
 sell_order_details = dict()
 
 ticker = config.ticker
+
 bar_interval = config.bar_interval
 order_uri = config.order_uri
 
@@ -376,22 +377,14 @@ if __name__ == '__main__':
             positions_response = requests.get(url=positions_uri, headers=headers).json()
 
             position = False  # default position to False
+            position_qty = config.units_to_trade    # default
 
-            if 'code' in positions_response:        # check if key exists in dict
+            # check if key exists in dict, code indicates error or no position
+            if 'code' not in positions_response:
+                position = True
+                position_qty = positions_response['qty']
 
-                if int(positions_response['code']) == 40410000:
-                    position = False
-                    num_stocks_unsold = 0
-                else:
-                    asset_id = positions_response['asset_id']
-                    num_stocks_unsold = float(positions_response['qty'])
-
-                    positions = {
-                        "asset_id": asset_id,
-                        "num_stocks_unsold": num_stocks_unsold,
-                    }
-
-            print(f'position:                           {position}')
+            print(f'position:                           {position}[{ticker}][{position_qty}]')
 
             # >_< FETCH TICKERS BASED ON CURRENT TS
 
@@ -569,8 +562,8 @@ if __name__ == '__main__':
                             sell_target_based_on_profit_percentage = buy_price + (
                                         buy_price * profit_percentage)
 
-                            buy_order_text = f"[BOUGHT] [{filled_at}] {buy_order_details['side']} Order of {filled_qty} was executed @ {buy_price}" \
-                                f" Profit Target = ${sell_target_based_on_profit_percentage}"
+                            buy_order_text = f"[{filled_at}] {str(buy_order_details['side']).upper()} Order of {filled_qty} [{ticker}] executed @ {buy_price}" \
+                                f" Target ${sell_target_based_on_profit_percentage}"
 
                             print(buy_order_text)
 
@@ -599,7 +592,7 @@ if __name__ == '__main__':
 
                         sell_order_data = {
                             'symbol': ticker,
-                            'qty': config.units_to_trade,
+                            'qty': position_qty,    # sell entire position
                             'side': 'sell',
                             'type': 'market',
                             # 'limit_price': limit_price,
@@ -644,7 +637,7 @@ if __name__ == '__main__':
                                 print(f"Sell order status:           {sell_order_placed['status']} ")
 
                             ###############
-                            sell_price = float(buy_order_details['filled_avg_price'])
+                            sell_price = float(sell_order_details['filled_avg_price'])
                             ###############
 
                             filled_at = sell_order_details['filled_at']
@@ -659,7 +652,7 @@ if __name__ == '__main__':
 
                             slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
 
-                            trade_profit_text = f'[TRADE] BUY {units_to_trade} of {ticker} @ {buy_price} AND SELL {ticker} @ {sell_price} \n PnL   ${profit}'
+                            trade_profit_text = f'[TRADE][{ticker}] BUY {units_to_trade} @ {buy_price} AND SELL {ticker} @ {sell_price} \n PNL ${profit}'
 
                             slackit(channel='apca_paper', msg=trade_profit_text)    # post to slack
 
