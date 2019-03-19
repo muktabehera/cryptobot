@@ -77,6 +77,8 @@ def slackit(channel, msg):
         slack_url = config.apca_paper
     elif channel == 'apca-live':
         slack_url = config.apca_live
+    elif channel == 'health-check':
+        slack_url = config.health_check
 
     response = requests.post(url=slack_url, headers=slack_headers,
                                     data=str(data))
@@ -666,8 +668,8 @@ if __name__ == '__main__':
         # HEALTH COUNTER START - send a message to slack every 60 min
 
         if health_check_alert_counter == 1:
-            msg = f'[{current_ts}] [{ticker}] algo running normally.'
-            slackit(channel='apca-paper', msg=msg)
+            msg = f'[PAPER] [{current_ts}] [{ticker}] algo running normally.'
+            slackit(channel='health-check', msg=msg)                    # Post to health-check slack channel
         elif health_check_alert_counter > 59:
             health_check_alert_counter = 0
 
