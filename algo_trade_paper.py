@@ -308,6 +308,8 @@ if __name__ == '__main__':
 
     position_qty = 0  # default
 
+    health_check_alert_counter = 0
+
     while True:  # infinite
 
         # print('*'*80)
@@ -333,7 +335,6 @@ if __name__ == '__main__':
         ts = get_ts()
 
         market_is_open = ts['is_open']  # check if market is open for trading
-
 
         ######### FOR AFTER HOUR TESTS ONLY #########
 
@@ -662,6 +663,18 @@ if __name__ == '__main__':
 
                     # time.sleep(60)  # TODO: Double check if you need to sleep less or more
 
+        # HEALTH COUNTER START - send a message to slack every 60 min
+
+        if health_check_alert_counter == 1:
+            msg = f'[{current_ts}] [{ticker}] algo running normally.'
+            slackit(channel='apca-paper', msg=msg)
+        elif health_check_alert_counter > 59:
+            health_check_alert_counter = 0
+
+        health_check_alert_counter += 1
+
+        # HEALTH COUNTER END
+
         secs_to_sleep = 60
 
         # print('\n')
@@ -673,5 +686,7 @@ if __name__ == '__main__':
         # print('\n')
         print('*'*80)
         time.sleep(int(secs_to_sleep))
+
+
 
 
