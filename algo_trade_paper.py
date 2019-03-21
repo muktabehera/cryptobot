@@ -204,7 +204,7 @@ def fetch_bars(bar_interval):
 
         # APPEND TO LIST
 
-        # append 5m bars to list
+        # append 1m bars to list
         # ol_1m.append(v1m['o'])
         # ll_1m.append(v1m['l'])
         # hl_1m.append(v1m['h'])
@@ -212,7 +212,7 @@ def fetch_bars(bar_interval):
         # vl_1m.append(v1m['v'])
         tl_1m.append(v1m_ts)
 
-        # convert to 5m np array
+        # convert to 1m np array
         # np_ol_1m = np.array(ol_1m)
         # np_hl_1m = np.array(hl_1m)
         # np_ll_1m = np.array(ll_1m)
@@ -282,11 +282,11 @@ if __name__ == '__main__':
                             datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/{ticker}_{log_file_date}.log")
 
         # Reset the lists each run to null
-        tl_5m = list()
+        # tl_5m = list()
         # ol_5m = list()
         # hl_5m = list()
         # ll_5m = list()
-        cl_5m = list()
+        # cl_5m = list()
         # vl_5m = list()
 
         tl_1m = list()
