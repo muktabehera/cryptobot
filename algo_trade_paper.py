@@ -205,20 +205,19 @@ def fetch_bars(bar_interval):
         # APPEND TO LIST
 
         # append 5m bars to list
-        ol_1m.append(v1m['o'])
-        ll_1m.append(v1m['l'])
-        hl_1m.append(v1m['h'])
+        # ol_1m.append(v1m['o'])
+        # ll_1m.append(v1m['l'])
+        # hl_1m.append(v1m['h'])
         cl_1m.append(v1m['c'])
-        vl_1m.append(v1m['v'])
-
+        # vl_1m.append(v1m['v'])
         tl_1m.append(v1m_ts)
 
         # convert to 5m np array
-        np_ol_1m = np.array(ol_1m)
-        np_hl_1m = np.array(hl_1m)
-        np_ll_1m = np.array(ll_1m)
+        # np_ol_1m = np.array(ol_1m)
+        # np_hl_1m = np.array(hl_1m)
+        # np_ll_1m = np.array(ll_1m)
         np_cl_1m = np.array(cl_1m)
-        np_vl_1m = np.array(vl_1m)
+        # np_vl_1m = np.array(vl_1m)
         np_tl_1m = np.array(tl_1m)
 
     # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
@@ -269,35 +268,35 @@ if __name__ == '__main__':
     health_check_alert_counter = 0
 
 
-    # SET LOGGING LEVEL
-    log_file_date = datetime.now().strftime("%Y%m%d")
-    logger = logging.getLogger(__name__)
-
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/{ticker}_{log_file_date}.log")
-
-    logging.info(f"[START][{ticker}]")
+    # logging.info(f"[START][{ticker}]")
 
     x = 0
 
     while True:  # infinite
 
+        # SET LOGGING LEVEL
+        log_file_date = datetime.now().strftime("%Y%m%d")
+        logger = logging.getLogger(__name__)
+
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/{ticker}_{log_file_date}.log")
+
         # Reset the lists each run to null
         tl_5m = list()
-        ol_5m = list()
-        hl_5m = list()
-        ll_5m = list()
+        # ol_5m = list()
+        # hl_5m = list()
+        # ll_5m = list()
         cl_5m = list()
-        vl_5m = list()
+        # vl_5m = list()
 
         tl_1m = list()
-        ol_1m = list()
-        hl_1m = list()
-        ll_1m = list()
+        # ol_1m = list()
+        # hl_1m = list()
+        # ll_1m = list()
         cl_1m = list()
-        vl_1m = list()
+        # vl_1m = list()
 
-        logging.info(f'Entering x = {x}')
+        # logging.info(f'Entering x = {x}')
 
         ts = get_ts()
 
@@ -307,7 +306,13 @@ if __name__ == '__main__':
         current_ts = ts['clock_ts']  # dup of end_ts, to be used for limiting past trades
         open_ts = ts['open_ts']
         close_ts = ts['close_ts']
-        logging.info(f'MARKET_IS_OPEN: {market_is_open} OPEN_TS:   {open_ts}  CLOSE_TS:   {close_ts}')
+
+        if market_is_open:
+            trading_time_left = round((close_ts - current_ts).seconds/60)
+        else:
+            trading_time_left = 0
+
+        logging.info(f'[{x}] MARKET_IS_OPEN: {market_is_open} TIME_LEFT:  {trading_time_left} Mins')
 
         # new_bar_available = True
 
@@ -340,8 +345,10 @@ if __name__ == '__main__':
                 position_qty = positions_response['qty']
                 buy_price = round(float(positions_response['avg_entry_price']),2)
 
-            logging.info(f'[{ticker}] POSITION: [{position_qty}]')
+
+            logging.info(f'[{ticker}] CURRENT_POSITION: [{position_qty}]')
             logging.info(f'[{ticker}] BUY_PRICE:    ${buy_price}')
+
 
             # >_< FETCH TICKERS BASED ON CURRENT TS
 
@@ -349,15 +356,15 @@ if __name__ == '__main__':
 
             if bar_interval == 1:
 
-                logging.info(f'BAR INTERVAL:    {bar_interval} Min')
+                logging.info(f'[{ticker}] BAR INTERVAL:    {bar_interval} Min')
 
                 bars = fetch_bars(bar_interval=bar_interval)  # 1 for 1Min, 5 for 5Min, 15 for 15Min
 
                 np_cl_1m = bars['np_cl_1m']
                 np_tl_1m = bars['np_tl_1m']
 
-                logging.info(f'NP_CL_1M:    {np_cl_1m}')
-                logging.info(f'NP_TL_1M:    {np_tl_1m}')
+                logging.info(f'[{ticker}] NP_CL_1M:    {np_cl_1m}')
+                logging.info(f'[{ticker}] NP_TL_1M:    {np_tl_1m}')
 
                 # GET MOMENTUM
                 mom_1m = talib.MOM(np_cl_1m, timeperiod=1)
@@ -370,7 +377,7 @@ if __name__ == '__main__':
 
                 units_to_buy = int(buying_power_limit / np_cl_1m[-1])
 
-                logging.info(f'UNITS_TO_BUY:    {units_to_buy}')
+                logging.info(f'[{ticker}] UNITS_TO_BUY:    {units_to_buy}')
 
                 # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
                 # TODO: handle partial fills (optional)
@@ -382,7 +389,7 @@ if __name__ == '__main__':
 
                 profit_percentage = float(config.profit_percentage)  # 0.2 for 20%
 
-                logging.info(f'PROFIT_PERCENTAGE:   {profit_percentage}')
+                logging.info(f'[{ticker}] PROFIT_PERCENTAGE:   {profit_percentage}')
 
                 ###################     1 MIN BARS START    #######################
 
@@ -392,17 +399,17 @@ if __name__ == '__main__':
 
                 bool_closing_time = ts['market_about_to_close']
 
-                logging.debug(f"BOOL_CLOSING_TIME:  {bool_closing_time}")
+                logging.debug(f"[{ticker}] BOOL_CLOSING_TIME:  {bool_closing_time}")
 
                 bool_buy_momentum = (mom_1m[-1] > 0 and mom_1m[-2] > 0) and (mom_1m[-1] > mom_1m[-2])
 
-                logging.debug(f"BOOL_BUY_MOMENTUM:  {bool_buy_momentum}")
+                logging.debug(f"[{ticker}] BOOL_BUY_MOMENTUM:  {bool_buy_momentum}")
 
                 ################################
 
                 BUY_SIGNAL = bool_buy_momentum # and not bool_closing_time
 
-                logging.info(f'BUY_SIGNAL:  {BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+                logging.info(f'[{ticker}] BUY_SIGNAL:  {BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
                 # TODO: [IMPORTANT] include closing time check in actual trades
 
@@ -410,17 +417,20 @@ if __name__ == '__main__':
 
                 bool_sell_momentum = mom_1m[-1] < 0 and mom_1m[-2] < 0  # current and prev momentum are positive
 
-                logging.info(f"BOOL_SELL_MOMENTUM:  {bool_sell_momentum}")
+                logging.info(f"[{ticker}] BOOL_SELL_MOMENTUM:  {bool_sell_momentum} [{mom_1m[-1]} < 0 AND {mom_1m[-2]} < 0]")
 
                 bool_sell_price = float(np_cl_1m[-1]) > buy_price  # current price is gt buy price
 
-                logging.info(f"BOOL_SELL_PRICE:  {bool_sell_price}")
+                logging.info(f"[{ticker}] BOOL_SELL_PRICE:  {bool_sell_price} [{np_cl_1m[-1]} > {buy_price}]")
 
-                logging.debug(f'BOOL_SELL_PRICE: [{bool_sell_price}] = FLOAT(NP_CL_1M[-1]) [{float(np_cl_1m[-1])}] > BUY_PRICE) [{buy_price}]')
+                logging.debug(f'[{ticker}] BOOL_SELL_PRICE: [{bool_sell_price}] = FLOAT(NP_CL_1M[-1]) [{float(np_cl_1m[-1])}] > BUY_PRICE) [{buy_price}]')
 
                 bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)  # current price > sell target
 
-                logging.info(f'[{np_tl_1m[-1]}] BOOL_SELL_PROFIT_TARGET {bool_sell_profit_target} = FLOAT(NP_CL_1M[-1]) {float(np_cl_1m[-1])} >= FLOAT(SELL_TARGET_BASED_ON_PROFIT_PERCENTAGE) {float(sell_target_based_on_profit_percentage)}')
+                logging.info(f"[{ticker}] BOOL_SELL_PROFIT_TARGET:  {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
+
+                logging.debug(f'[{ticker}] [{np_tl_1m[-1]}] BOOL_SELL_PROFIT_TARGET {bool_sell_profit_target} = FLOAT(NP_CL_1M[-1]) {float(np_cl_1m[-1])} >= FLOAT(SELL_TARGET_BASED_ON_PROFIT_PERCENTAGE) {float(sell_target_based_on_profit_percentage)}')
+
 
                 # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
@@ -430,7 +440,7 @@ if __name__ == '__main__':
                               bool_sell_profit_target  # or \
                               # (bool_sell_price and position and bool_closing_time)  # TODO: Incorporate closing time
 
-                logging.info(f'[{np_cl_1m[-1]}][{ticker}] SELL_SIGNAL:   {SELL_SIGNAL}')
+                logging.info(f'[{ticker}] SELL_SIGNAL:   {SELL_SIGNAL} [{np_cl_1m[-1]}]')
 
                 if np.isnan(mom_1m[-1]):
                     continue
@@ -460,7 +470,7 @@ if __name__ == '__main__':
                         }
                         buy_order_data = json.dumps(buy_order_data)
 
-                        logging.debug(f'BUY_ORDER_DATA: {buy_order_data}')
+                        logging.debug(f'[{ticker}] BUY_ORDER_DATA: {buy_order_data}')
 
                         buy_order_sent = False
 
@@ -470,10 +480,10 @@ if __name__ == '__main__':
                             buy_order_sent = True
                             order_id = buy_order_placed['id']
 
-                            logging.info(f"[{ticker}][BUY] [{order_id}] ")
+                            logging.info(f"[{ticker}] [BUY_ORDER_ID] {order_id}")
 
                         except Exception as e:
-                            logging.info(f'Error placing order: {str(e)}')
+                            logging.info(f'[{ticker}] Error placing order: {str(e)}')
 
                         buy_order_executed = False
 
@@ -489,14 +499,14 @@ if __name__ == '__main__':
 
                                 buy_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 
-                                logging.info(f"[BUY][WAITING_TO_EXECUTE] [{buy_order_details['submitted_at']}] "
+                                logging.info(f"[{ticker}] [BUY] [WAITING_TO_EXECUTE] [{buy_order_details['submitted_at']}] "
                                       f"[{buy_order_details['status']}] {buy_order_details['side']} "
                                       f"order for {buy_order_details['qty']} shares of {buy_order_details['symbol']}")
 
                                 if buy_order_details['status'] == 'filled':  # or order_details.status == 'partially_filled':
                                     buy_order_executed = True
 
-                                logging.info(f"BUY_ORDER_STATUS:    {buy_order_placed['status']} ")
+                                logging.info(f"[{ticker}] BUY_ORDER_STATUS:    {buy_order_placed['status']} ")
 
                             ###############
                             buy_price = float(buy_order_details['filled_avg_price'])  # ACTUAL FROM BUY ORDER
@@ -511,14 +521,14 @@ if __name__ == '__main__':
                             sell_target_based_on_profit_percentage = buy_price + (
                                         buy_price * profit_percentage)
 
-                            buy_order_text = f"[{filled_at}] {str(buy_order_details['side']).upper()} ORDER OF {filled_qty} [{ticker}] EXECUTED @ {buy_price}" \
+                            buy_order_text = f"[[{ticker}] {filled_at}] {str(buy_order_details['side']).upper()} ORDER OF {filled_qty} [{ticker}] EXECUTED @ {buy_price}" \
                                 f" TARGET ${sell_target_based_on_profit_percentage}"
 
                             logging.info(buy_order_text)
 
                             # slackit(channel='apca_paper', msg=buy_order_text)  # post to slack
 
-                            logging.info(f'[{np_cl_1m[-1]}] [{buy_price}] [{filled_at}]     '
+                            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] [{buy_price}] [{filled_at}]     '
                                   f'[BUY]       {BUY_SIGNAL}            '
                                   f'MOMENTUM    {bool_buy_momentum}          '
                                   f'POSITION    {position}             '
@@ -549,7 +559,7 @@ if __name__ == '__main__':
                         }
                         sell_order_data = json.dumps(sell_order_data)
 
-                        logging.info(f'SELL_ORDER_DATA:    {sell_order_data}')
+                        logging.info(f'[{ticker}] SELL_ORDER_DATA:    {sell_order_data}')
 
                         sell_order_sent = False
 
@@ -559,10 +569,10 @@ if __name__ == '__main__':
                             sell_order_sent = True
                             order_id = sell_order_placed['id']
 
-                            logging.info(f"[{ticker}][SELL] [{order_id}] ")
+                            logging.info(f"[{ticker}][SELL_ORDER_ID] [{order_id}] ")
 
                         except Exception as e:
-                            logging.info(f'ERROR PLACING ORDER: {str(e)}')
+                            logging.info(f'[{ticker}] ERROR PLACING ORDER: {str(e)}')
 
                         sell_order_executed = False
 
@@ -578,7 +588,7 @@ if __name__ == '__main__':
 
                                 sell_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 
-                                waiting_to_sell = f"[SELL][WAITING_TO_EXECUTE] [{sell_order_details['submitted_at']}] " \
+                                waiting_to_sell = f"[{ticker}] [SELL] [WAITING_TO_EXECUTE] [{sell_order_details['submitted_at']}] " \
                                     f"[{sell_order_details['status']}] {sell_order_details['side']} " \
                                     f"order for {sell_order_details['qty']} shares of {sell_order_details['symbol']}"
 
@@ -589,7 +599,7 @@ if __name__ == '__main__':
                                 if sell_order_details['status'] == 'filled':  # or order_details.status == 'partially_filled':
                                     sell_order_executed = True
 
-                                logging.info(f"SELL ORDER STATUS:   {sell_order_placed['status']} ")
+                                logging.info(f"[{ticker}] SELL ORDER STATUS:   {sell_order_placed['status']} ")
 
                             ###############
                             sell_price = round(float(sell_order_details['filled_avg_price']), 2)
@@ -601,19 +611,19 @@ if __name__ == '__main__':
 
                             profit = round((float(sell_price - buy_price) * units_to_buy), 2)
 
-                            sell_order_text = f'[{filled_at}] [EXECUTED] {side} ORDER WAS EXECUTED @ {sell_price}'
+                            sell_order_text = f'[{ticker}] [{filled_at}] [EXECUTED] {side} ORDER WAS EXECUTED @ {sell_price}'
 
                             logging.info(sell_order_text)
 
                             # slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
 
-                            trade_text = f'[{current_ts}] [{ticker}] BUY {units_to_buy} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
+                            trade_text = f'[{ticker}] [{current_ts}] BUY {units_to_buy} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
 
                             slackit(channel='apca_paper', msg=trade_text)    # post to slack
 
                         # signals.append(signal)
 
-                        logging.info(f'[{np_tl_1m[-1]}] [{sell_price}]     '
+                        logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{sell_price}]     '
                               f'[SELL]      {SELL_SIGNAL}            '
                               f'MOMENTUM    {bool_sell_momentum}         '
                               f'POSITION    {position}              '
@@ -642,8 +652,8 @@ if __name__ == '__main__':
         secs_to_sleep = 60
 
         # logging.info('\n')
-        sleeping_time = f'[{current_ts}] SLEEPING {secs_to_sleep} SECONDS'
-        logging.info(sleeping_time)
+        # sleeping_time = f'[{ticker}] [{current_ts}] SLEEPING {secs_to_sleep} SECONDS'
+        # logging.info(sleeping_time)
 
         # slackit(channel='apca-paper', msg=sleeping_time)
 
