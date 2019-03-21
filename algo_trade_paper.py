@@ -236,6 +236,8 @@ def fetch_bars(bar_interval):
 
 if __name__ == '__main__':
 
+    day_trade_minimum = 25000.00        # Min balance to avoid pattern day trader flag
+
     buy_order_placed = dict()  # INITIALIZATION
     buy_order_details = dict()
 
@@ -326,10 +328,14 @@ if __name__ == '__main__':
             account_uri = config.account_uri
 
             account = requests.get(url=account_uri, headers=headers).json()
-            buying_power = float(account['buying_power'])
+
+            # buying_power = float(account['buying_power'])
+
+            buying_power = float(account['buying_power']) - day_trade_minimum   # TODO: MAKE THIS 0
+
             buying_power_limit = buying_power * config.position_size
 
-            logging.info(f'[{ticker}] BUYING_POWER:    [${buying_power_limit}] OF [${buying_power}]')
+            logging.info(f'[{ticker}] BUYING_POWER: [${buying_power_limit}] OF [${buying_power}] DAY_TRADE_MINIMUM: [${day_trade_minimum}]')
 
             # >_< CHECK IF A POSITION EXISTS FROM THE PREVIOUS TRADE
 
