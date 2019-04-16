@@ -1,6 +1,6 @@
 
-APCA_API_KEY_ID='PKB7VCGWWK0PA8ZXU0IU'
-APCA_API_SECRET_KEY='jrAFkgKqRed/9eTGehiA4e7tSBY4AgKvf5KOVH0F'
+APCA_API_KEY_ID='PKE22M0NNY8M9ODO2R2T'
+APCA_API_SECRET_KEY='uENB0q0q07XLDqhj/ICGjHC5ZWooijWBoxXg4FH5'
 APCA_PAPER_BASE_URL='https://paper-api.alpaca.markets'
 APCA_LIVE_BASE_URL='https://api.alpaca.markets'
 
@@ -43,16 +43,13 @@ clock_uri = 'https://paper-api.alpaca.markets/v1/clock'
 
 units_to_trade = 10
 
-cash_limit = 10000
-
-
 
 paper_limit_5m = 10
-paper_limit_1m = 10
+paper_limit_1m = 1000    # CHANGED TEMPORARILY, max allowed 1000
 # time left for market to close
 closing_window = 30
 # profit taking percentage - used in a sell signal
-profit_percentage = 0.1  # 10%
+profit_percentage = 0.02  # 10%
 
 
 ############ BACKTEST ONLY ##################

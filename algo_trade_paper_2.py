@@ -18,6 +18,8 @@ import numpy as np
 import talib  # https://mrjbq7.github.io/ta-lib/
 # import matplotlib
 
+from scipy.signal import savgol_filter
+
 # matplotlib.use('TkAgg')
 
 # backend to use, valid strings are ['GTK3Agg', 'GTK3Cairo', 'MacOSX', 'nbAgg', 'Qt4Agg',
@@ -79,6 +81,87 @@ def slackit(channel, msg):
     response = requests.post(url=slack_url, headers=slack_headers,
                                     data=str(data))
     return response.text
+
+
+def supres(low, high, min_touches=2, stat_likeness_percent=1.5, bounce_percent=1):
+
+    """Support and Resistance Testing
+
+    Identifies support and resistance levels of provided price action data.
+
+    Args:
+        low(pandas.Series): A pandas Series of lows from price action data.
+        high(pandas.Series): A pandas Series of highs from price action data.
+        min_touches(int): Minimum # of touches for established S&R.
+        stat_likeness_percent(int/float): Acceptable margin of error for level.
+        bounce_percent(int/float): Percent of price action for established bounce.
+
+    ** Note **
+        If you want to calculate support and resistance without regard for
+        candle shadows, pass close values for both low and high.
+
+    Returns:
+        sup(float): Established level of support or None (if no level)
+        res(float): Established level of resistance or None (if no level)
+    """
+
+    # REF - https://www.candlestick.ninja/2019/02/support-and-resistance.html
+
+    # [SATYA] convert lists to np array
+
+    # low = pd.DataFrame(low)
+    # low.reset_index(drop=True)
+
+    # high = pd.DataFrame(high)
+    # high.reset_index(drop=True)
+
+    low = np.array(low)
+    high = np.array(high)
+
+
+    # Setting default values for support and resistance to None
+    sup = None
+    res = None
+
+
+    # Identifying local high and local low
+    maxima = high.max()
+    minima = low.min()
+
+    # Calculating distance between max and min (total price movement)
+    move_range = maxima - minima
+
+    # Calculating bounce distance and allowable margin of error for likeness
+    move_allowance = move_range * (stat_likeness_percent / 100)
+    bounce_distance = move_range * (bounce_percent / 100)
+
+
+    # Test resistance by iterating through data to check for touches delimited by bounces
+    touchdown = 0
+    awaiting_bounce = False
+    for x in range(0, len(high)):
+        if abs(maxima - high[x]) < move_allowance and not awaiting_bounce:
+            touchdown = touchdown + 1
+            awaiting_bounce = True
+        elif abs(maxima - high[x]) > bounce_distance:
+            awaiting_bounce = False
+    if touchdown >= min_touches:
+        res = maxima
+
+    # Test support by iterating through data to check for touches delimited by bounces
+    touchdown = 0
+    awaiting_bounce = False
+    for x in range(0, len(low)):
+        if abs(low[x] - minima) < move_allowance and not awaiting_bounce:
+            touchdown = touchdown + 1
+            awaiting_bounce = True
+        elif abs(low[x] - minima) > bounce_distance:
+            awaiting_bounce = False
+    if touchdown >= min_touches:
+        sup = minima
+    return sup, res
+
+
 
 
 def get_ts():
@@ -171,7 +254,7 @@ def get_ts():
     return ts_dict
 
 
-def fetch_bars(bar_interval):
+def fetch_bars():
 
     # TODO: pull bars async
 
@@ -184,10 +267,11 @@ def fetch_bars(bar_interval):
 
     # paper_limit_5m = num_bars(start_ts=start_ts, end_ts=end_ts, market_close_ts=market_close_ts, num=5)
 
-    paper_limit_1m = config.paper_limit_1m
+    paper_limit_1m = 200  # config.paper_limit_1m
 
     # elif int(bar_interval) == 1:
     bar_interval = "1Min"
+
     payload_1m = {
         "symbols": ticker,
         "limit": paper_limit_1m,
@@ -318,7 +402,7 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if market_is_open:
+        if not market_is_open:
 
             # ready to trade
             # TODO: Post Market Open and Close to SLACK
@@ -362,7 +446,7 @@ if __name__ == '__main__':
 
             logging.info(f'[{ticker}] BAR INTERVAL:    {bar_interval} Min')
 
-            bars = fetch_bars(bar_interval=bar_interval)  # 1 for 1Min, 5 for 5Min, 15 for 15Min
+            bars = fetch_bars()  # for 1Min
 
             np_cl_1m = bars['np_cl_1m']
             np_tl_1m = bars['np_tl_1m']
@@ -370,8 +454,37 @@ if __name__ == '__main__':
             # logging.info(f'[{ticker}] NP_CL_1M:    {np_cl_1m}')
             # logging.info(f'[{ticker}] NP_TL_1M:    {np_tl_1m}')
 
-            # GET MOMENTUM
-            mom_1m = talib.MOM(np_cl_1m, timeperiod=1)
+            ############# INDICATORS / CALCULATIONS ###########################
+
+            mom_1m = talib.MOM(np_cl_1m, timeperiod=1)          # MOMENTUM
+            ema200_1m = talib.EMA(np_cl_1m, timeperiod=200)     # TREND
+            ema50_1m = talib.EMA(np_cl_1m, timeperiod=50)       # TREND
+            ema20_1m = talib.EMA(np_cl_1m, timeperiod=20)       # TREND
+
+            ema4_1m = talib.EMA(np_cl_1m, timeperiod=4)         # FAST EMA
+            ema8_1m = talib.EMA(np_cl_1m, timeperiod=8)         # SLOW EMA
+
+            ema4 = ema4_1m[-1]  # latest value from the ema4 list
+            ema8 = ema8_1m[-1]  # latest value from the ema8 list
+
+            # zero lag ema  - REF: https://www.tradingview.com/script/LTqZz3l9-Indicator-Zero-Lag-EMA-a-simple-trading-strategy/
+
+            '''
+            In general, when the zero_lag ema is above the EMA the instrument is in a bull mode and 
+            when the zero_lag ema is below the EMA the stock is bearish . 
+
+            '''
+
+            ema10_1m = talib.EMA(np_cl_1m, 10)
+            ema2_1m = talib.EMA(ema10_1m, 10)
+            d = ema10_1m - ema2_1m
+            zlema_1m = ema10_1m + d
+
+            zlema = zlema_1m[-1]
+            ema10 = ema10_1m[-1]
+
+
+            ####################################################################
 
             logging.info(f'[{ticker}] MOM_1M:  {mom_1m}')
 
@@ -398,37 +511,37 @@ if __name__ == '__main__':
             logging.info(f'[{ticker}] PROFIT_PERCENTAGE:   {profit_percentage}')
             logging.info(f'[{ticker}] SELL_TARGET_BASED_ON_PROFIT_PERCENTAGE:   {sell_target_based_on_profit_percentage}')
 
+            ########################### TREND INDICATORS ###########################
+
+            if ema20_1m[-1] > ema50_1m[-1] > ema200_1m[-1]:
+                UPTREND = True
+            else:
+                UPTREND = False
+
+            logging.info(f'[{ticker}] UPTREND   {UPTREND}   EMA200 {ema200_1m[-1]} EMA50  {ema50_1m[-1]}  EMA20   {ema20_1m[-1]}')
 
             ########################### BUY INDICATORS ###########################
 
             bool_closing_time = ts['market_about_to_close']
+            bool_buy_momentum = (mom_1m[-1] > 0 and mom_1m[-2] > 0) and (mom_1m[-1] > mom_1m[-2])
+            bool_buy_zlema = zlema > ema10
 
             logging.info(f"[{ticker}] BOOL_CLOSING_TIME:  {bool_closing_time}")
-
-            bool_buy_momentum = (mom_1m[-1] > 0 and mom_1m[-2] > 0) and (mom_1m[-1] > mom_1m[-2])
-
             logging.info(f"[{ticker}] BOOL_BUY_MOMENTUM:  {bool_buy_momentum}")
-
+            logging.info(f"[{ticker}] BOOL_BUY_ZERO-LAG-EMA:  {bool_buy_zlema}")
 
 
             ################################ SELL INDICATORS #####################
 
             bool_sell_momentum = mom_1m[-1] < 0 and mom_1m[-2] < 0  # current and prev momentum are positive
+            bool_sell_price = float(np_cl_1m[-1]) > buy_price  # current price is gt buy price
+            bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)  # current price > sell target
+            bool_sell_zlema = zlema < ema10
 
             logging.info(f"[{ticker}] BOOL_SELL_MOMENTUM:  {bool_sell_momentum} [{mom_1m[-1]} < 0 AND {mom_1m[-2]} < 0]")
-
-
-            # TODO: sell at market ends up in loss, need to add buffer or a tight profit target
-
-            bool_sell_price = float(np_cl_1m[-1]) > buy_price  # current price is gt buy price
-
             logging.info(f"[{ticker}] BOOL_SELL_PRICE:  {bool_sell_price} [{np_cl_1m[-1]} > {buy_price}]")
-
-
-            bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)  # current price > sell target
-
             logging.info(f"[{ticker}] BOOL_SELL_PROFIT_TARGET:  {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
-
+            logging.info(f"[{ticker}] BOOL_SELL_ZERO-LAG-EMA:  {bool_sell_zlema}")
 
             # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
@@ -436,7 +549,8 @@ if __name__ == '__main__':
 
             ################################ BUY SIGNAL ###########################
 
-            BUY_SIGNAL = bool_buy_momentum # and not bool_closing_time
+            BUY_SIGNAL = bool_buy_zlema
+                        # bool_buy_momentum # and not bool_closing_time
 
             logging.info(f'[{ticker}] BUY_SIGNAL:  {BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
@@ -444,16 +558,15 @@ if __name__ == '__main__':
 
             ################################ SELL SIGNAL ###########################
 
-            SELL_SIGNAL = bool_sell_profit_target
+            SELL_SIGNAL = bool_sell_zlema or bool_sell_price
+                          # or bool_sell_profit_target
                           # or (bool_sell_momentum and bool_sell_price)
-                            # or \
-                          # (bool_sell_price and position and bool_closing_time)  # TODO: Incorporate closing time
+                          #   or \
+                          # (bool_sell_price and position and bool_closing_time)
 
             logging.info(f'[{ticker}] SELL_SIGNAL:   {SELL_SIGNAL} [{np_cl_1m[-1]}]')
 
             ################################
-
-
 
 
             # TRADING ACTIONS
@@ -656,8 +769,6 @@ if __name__ == '__main__':
 
 
 
-
-
         # HEALTH COUNTER START - send a message to slack every 60 min
 
         if health_check_alert_counter == 1:
@@ -681,7 +792,7 @@ if __name__ == '__main__':
         x += 1
 
         # logging.info('\n')
-        logging.info('-*-'*20)
+        logging.info('--'*20)
         time.sleep(int(secs_to_sleep))
 
 
