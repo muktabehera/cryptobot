@@ -658,7 +658,7 @@ if __name__ == '__main__':
                     logging.info(f'[{ticker}] [{np_cl_1m[-1]}] [{buy_price}] [{filled_at}]     '
                           f'[BUY]       {BUY_SIGNAL}            '
                           f'MOMENTUM    {bool_buy_momentum}          '
-                          f'POSITION    {position}             '
+                          f'POSITION    {position}[{position_qty}]             '
                           f'CLOSING     {bool_closing_time}          '
                           f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}]        ')
 
@@ -739,7 +739,7 @@ if __name__ == '__main__':
 
                     side = str(sell_order_details['side']).upper()
 
-                    profit = round((float(sell_price - buy_price) * units_to_buy), 2)
+                    profit = round((float(sell_price - buy_price) * position_qty), 2)
 
                     sell_order_text = f'[{ticker}] [{filled_at}] [EXECUTED] {side} ORDER WAS EXECUTED @ {sell_price}'
 
@@ -747,7 +747,7 @@ if __name__ == '__main__':
 
                     # slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
 
-                    trade_text = f'[{ticker}] [{current_ts}] BUY {units_to_buy} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
+                    trade_text = f'[{ticker}] [{current_ts}] BUY {position_qty} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
 
                     slackit(channel='apca_paper', msg=trade_text)    # post to slack
 
