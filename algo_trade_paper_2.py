@@ -558,7 +558,7 @@ if __name__ == '__main__':
 
             ################################ SELL SIGNAL ###########################
 
-            SELL_SIGNAL = bool_sell_zlema or bool_sell_price
+            SELL_SIGNAL = bool_sell_zlema and bool_sell_price
                           # or bool_sell_profit_target
                           # or (bool_sell_momentum and bool_sell_price)
                           #   or \
