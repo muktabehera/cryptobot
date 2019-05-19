@@ -16,30 +16,8 @@ import dateutil.parser
 
 import numpy as np
 import talib  # https://mrjbq7.github.io/ta-lib/
-# import matplotlib
-
-from scipy.signal import savgol_filter
-
-# matplotlib.use('TkAgg')
-
-# backend to use, valid strings are ['GTK3Agg', 'GTK3Cairo', 'MacOSX', 'nbAgg', 'Qt4Agg',
-# 'Qt4Cairo', 'Qt5Agg', 'Qt5Cairo', 'TkAgg', 'TkCairo', 'WebAgg', 'WX', 'WXAgg', 'WXCairo',
-# 'agg', 'cairo', 'pdf', 'pgf', 'ps', 'svg', 'template']
-
-# import matplotlib.pyplot as plt
-
-# talib.get_functions()
-# talib.get_function_groups()
-# import uuid
-
 
 nyc = pytz.timezone('America/New_York')
-
-# api = tradeapi.REST(
-#     key_id=config.APCA_API_KEY_ID,
-#     secret_key=config.APCA_API_SECRET_KEY,
-#     base_url=config.APCA_PAPER_BASE_URL
-# )
 
 
 headers = {
@@ -83,87 +61,6 @@ def slackit(channel, msg):
     return response.text
 
 
-def supres(low, high, min_touches=2, stat_likeness_percent=1.5, bounce_percent=1):
-
-    """Support and Resistance Testing
-
-    Identifies support and resistance levels of provided price action data.
-
-    Args:
-        low(pandas.Series): A pandas Series of lows from price action data.
-        high(pandas.Series): A pandas Series of highs from price action data.
-        min_touches(int): Minimum # of touches for established S&R.
-        stat_likeness_percent(int/float): Acceptable margin of error for level.
-        bounce_percent(int/float): Percent of price action for established bounce.
-
-    ** Note **
-        If you want to calculate support and resistance without regard for
-        candle shadows, pass close values for both low and high.
-
-    Returns:
-        sup(float): Established level of support or None (if no level)
-        res(float): Established level of resistance or None (if no level)
-    """
-
-    # REF - https://www.candlestick.ninja/2019/02/support-and-resistance.html
-
-    # [SATYA] convert lists to np array
-
-    # low = pd.DataFrame(low)
-    # low.reset_index(drop=True)
-
-    # high = pd.DataFrame(high)
-    # high.reset_index(drop=True)
-
-    low = np.array(low)
-    high = np.array(high)
-
-
-    # Setting default values for support and resistance to None
-    sup = None
-    res = None
-
-
-    # Identifying local high and local low
-    maxima = high.max()
-    minima = low.min()
-
-    # Calculating distance between max and min (total price movement)
-    move_range = maxima - minima
-
-    # Calculating bounce distance and allowable margin of error for likeness
-    move_allowance = move_range * (stat_likeness_percent / 100)
-    bounce_distance = move_range * (bounce_percent / 100)
-
-
-    # Test resistance by iterating through data to check for touches delimited by bounces
-    touchdown = 0
-    awaiting_bounce = False
-    for x in range(0, len(high)):
-        if abs(maxima - high[x]) < move_allowance and not awaiting_bounce:
-            touchdown = touchdown + 1
-            awaiting_bounce = True
-        elif abs(maxima - high[x]) > bounce_distance:
-            awaiting_bounce = False
-    if touchdown >= min_touches:
-        res = maxima
-
-    # Test support by iterating through data to check for touches delimited by bounces
-    touchdown = 0
-    awaiting_bounce = False
-    for x in range(0, len(low)):
-        if abs(low[x] - minima) < move_allowance and not awaiting_bounce:
-            touchdown = touchdown + 1
-            awaiting_bounce = True
-        elif abs(low[x] - minima) > bounce_distance:
-            awaiting_bounce = False
-    if touchdown >= min_touches:
-        sup = minima
-    return sup, res
-
-
-
-
 def get_ts():
     '''
     Get all timestamps to be used in the algo
@@ -191,7 +88,7 @@ def get_ts():
 
     # https://pandas.pydata.org/pandas-docs/stable/user_guide/timedeltas.html
 
-    cal_uri = f"https://paper-api.alpaca.markets/v1/calendar?start={today_ts.strftime('%Y-%m-%d')}&end={today_ts.strftime('%Y-%m-%d')}"
+    cal_uri = f"https://paper-api.alpaca.markets/{config.api_version}/calendar?start={today_ts.strftime('%Y-%m-%d')}&end={today_ts.strftime('%Y-%m-%d')}"
     cal = requests.get(cal_uri, headers=headers).json()
 
     open_ts_pst = dateutil.parser.parse(today_ts.strftime('%Y-%m-%d') + ' ' + cal[0]['open']) - pd.Timedelta("180 Minutes")
@@ -257,6 +154,7 @@ def get_ts():
 def fetch_bars():
 
     # TODO: pull bars async
+    # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
 
     start_ts = ts['open_ts']            # market open ts
     # logging.info(f'start_ts:                   {start_ts}')
@@ -265,11 +163,12 @@ def fetch_bars():
     market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
     # logging.info(f'market_close_ts:                    {market_close_ts}')
 
-    # paper_limit_5m = num_bars(start_ts=start_ts, end_ts=end_ts, market_close_ts=market_close_ts, num=5)
+    paper_limit_1m = config.paper_limit_1m
+    paper_limit_5m = config.paper_limit_5m
+    paper_limit_15m = config.paper_limit_15m
 
-    paper_limit_1m = 200  # config.paper_limit_1m
+    ################################# GET 1 MIN BARS #################################
 
-    # elif int(bar_interval) == 1:
     bar_interval = "1Min"
 
     payload_1m = {
@@ -278,7 +177,7 @@ def fetch_bars():
         "start": ts['log_start_1m'],
         "end": ts['log_end_time']
     }
-    base_uri_1m = f'https://data.alpaca.markets/v1/bars/{bar_interval}'
+    base_uri_1m = f'https://data.alpaca.markets/{config.data_api_version}/bars/{bar_interval}'
     bars_1m = requests.get(url=base_uri_1m, params=payload_1m, headers=headers).json()
 
     for i, v1m in enumerate(bars_1m[ticker]):
@@ -289,26 +188,76 @@ def fetch_bars():
         # APPEND TO LIST
 
         # append 1m bars to list
-        # ol_1m.append(v1m['o'])
-        # ll_1m.append(v1m['l'])
-        # hl_1m.append(v1m['h'])
+        ol_1m.append(v1m['o'])
+        ll_1m.append(v1m['l'])
+        hl_1m.append(v1m['h'])
         cl_1m.append(v1m['c'])
-        # vl_1m.append(v1m['v'])
+        vl_1m.append(v1m['v'])
         tl_1m.append(v1m_ts)
 
         # convert to 1m np array
-        # np_ol_1m = np.array(ol_1m)
-        # np_hl_1m = np.array(hl_1m)
-        # np_ll_1m = np.array(ll_1m)
+        np_ol_1m = np.array(ol_1m)
+        np_hl_1m = np.array(hl_1m)
+        np_ll_1m = np.array(ll_1m)
         np_cl_1m = np.array(cl_1m)
-        # np_vl_1m = np.array(vl_1m)
+        np_vl_1m = np.array(vl_1m)
         np_tl_1m = np.array(tl_1m)
 
     # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
+    ################################# GET 5 MIN BARS #################################
+
+    bar_interval = "5Min"
+
+    payload_5m = {
+        "symbols": ticker,
+        "limit": paper_limit_5m,
+        "start": ts['log_start_5m'],
+        "end": ts['log_end_time']
+    }
+    base_uri_5m = f'https://data.alpaca.markets/{config.data_api_version}/bars/{bar_interval}'
+    bars_5m = requests.get(url=base_uri_5m, params=payload_5m, headers=headers).json()
+
+    for i, v5m in enumerate(bars_5m[ticker]):
+        # CONVERT UNIX TS TO READABLE TS
+        v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+        v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+
+        # APPEND TO LIST
+
+        # append 1m bars to list
+        ol_5m.append(v1m['o'])
+        ll_5m.append(v1m['l'])
+        hl_5m.append(v1m['h'])
+        cl_5m.append(v1m['c'])
+        vl_5m.append(v1m['v'])
+        tl_5m.append(v1m_ts)
+
+        # convert to 1m np array
+        np_ol_5m = np.array(ol_5m)
+        np_hl_5m = np.array(hl_5m)
+        np_ll_5m = np.array(ll_5m)
+        np_cl_5m = np.array(cl_5m)
+        np_vl_5m = np.array(vl_5m)
+        np_tl_5m = np.array(tl_5m)
+
+    # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
+
     bars_response = {
+
+        "np_ol_1m": np_ol_1m,
+        "np_hl_1m": np_hl_1m,
+        "np_ll_1m": np_ll_1m,
         "np_cl_1m": np_cl_1m,
-        "np_tl_1m": np_tl_1m
+        "np_vl_1m": np_vl_1m,
+        "np_tl_1m": np_tl_1m,
+
+        "np_ol_5m": np_ol_5m,
+        "np_hl_5m": np_hl_5m,
+        "np_ll_5m": np_ll_5m,
+        "np_cl_5m": np_cl_5m,
+        "np_vl_5m": np_vl_5m,
+        "np_tl_5m": np_tl_5m
     }
 
     logging.debug(f"bars_response : {bars_response}")
@@ -320,7 +269,7 @@ def fetch_bars():
 
 if __name__ == '__main__':
 
-    day_trade_minimum = 25000.00        # Min balance to avoid pattern day trader flag
+    day_trade_minimum = 25000.00        # TODO: SET day_trade_minimum TO 0 LATER
 
     buy_order_placed = dict()  # INITIALIZATION
     buy_order_details = dict()
@@ -328,7 +277,8 @@ if __name__ == '__main__':
     sell_order_placed = dict()
     sell_order_details = dict()
 
-    bar_interval = config.bar_interval
+    # bar_interval = config.bar_interval
+
     order_uri = config.order_uri
     clock_uri = config.clock_uri
 
@@ -338,7 +288,7 @@ if __name__ == '__main__':
     BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
     sell_target_based_on_profit_percentage = np.array([0])  # initialization
 
-    parser = argparse.ArgumentParser(description="apca auto trader")
+    parser = argparse.ArgumentParser(description="apca paper - auto trader")
 
     parser.add_argument('-s', action="store", dest='symbol',
                         help="ticker symbol from config")   # symbol
@@ -367,20 +317,26 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/{ticker}_{log_file_date}.log")
 
+        if config.live_trade:
+            logging.info(f'[{ticker}] !!! LIVE TRADE !!!')
+        else:
+            logging.info(f'[{ticker}] ### PAPER TRADE ###')
+
         # Reset the lists each run to null
-        # tl_5m = list()
-        # ol_5m = list()
-        # hl_5m = list()
-        # ll_5m = list()
-        # cl_5m = list()
-        # vl_5m = list()
+
+        tl_5m = list()
+        ol_5m = list()
+        hl_5m = list()
+        ll_5m = list()
+        cl_5m = list()
+        vl_5m = list()
 
         tl_1m = list()
-        # ol_1m = list()
-        # hl_1m = list()
-        # ll_1m = list()
+        ol_1m = list()
+        hl_1m = list()
+        ll_1m = list()
         cl_1m = list()
-        # vl_1m = list()
+        vl_1m = list()
 
         # logging.info(f'Entering x = {x}')
 
@@ -388,7 +344,8 @@ if __name__ == '__main__':
 
         market_is_open = ts['is_open']  # check if market is open for trading
 
-        # check if market just opened
+        # check if market just opened from ts response
+
         current_ts = ts['clock_ts']  # dup of end_ts, to be used for limiting past trades
         open_ts = ts['open_ts']
         close_ts = ts['close_ts']
@@ -398,7 +355,7 @@ if __name__ == '__main__':
         else:
             trading_time_left = 0
 
-        logging.info(f'[{x}] MARKET_IS_OPEN: {market_is_open} TIME_LEFT:  {trading_time_left} Mins')
+        logging.info(f'[{x}] MARKET_IS_OPEN: {market_is_open.upper()} TIME_LEFT:  {trading_time_left} Mins')
 
         # new_bar_available = True
 
@@ -407,23 +364,28 @@ if __name__ == '__main__':
             # ready to trade
             # TODO: Post Market Open and Close to SLACK
 
-            # 0. Setup
-            # Add positionSizing = 0.25 for each stock
+            ############ 0. Setup ############
+
+            ############# GET ACCOUNT INFO
+
             account_uri = config.account_uri
 
             account = requests.get(url=account_uri, headers=headers).json()
 
-            # buying_power = float(account['buying_power'])
+            # LIMIT TOTAL TRADABLE AMOUNT
+            buying_power = float(account['buying_power']) - day_trade_minimum   # Total Tradable Amount
 
-            buying_power = float(account['buying_power']) - day_trade_minimum   # TODO: MAKE THIS 0
+            # LIMIT BUYING POWER FOR EACH ALGO. ALGO: STOCK is 1:1
 
-            buying_power_limit = buying_power * config.position_size
+            buying_power_limit = buying_power * config.position_size    # E.G 1 (100%) if trading one stock only
 
             logging.info(f'[{ticker}] BUYING_POWER: [${int(buying_power_limit)}] OF [${int(buying_power)}] DAY_TRADE_MINIMUM: [${day_trade_minimum}]')
 
-            # >_< CHECK IF A POSITION EXISTS FROM THE PREVIOUS TRADE
+            ############# GET POSITION INFO
 
-            positions_uri = f'https://paper-api.alpaca.markets/v1/positions/{ticker}'
+            ############  >_< CHECK IF A POSITION EXISTS FROM THE PREVIOUS TRADE ############
+
+            positions_uri = f'https://paper-api.alpaca.markets/{config.api_version}/positions/{ticker}'
 
             positions_response = requests.get(url=positions_uri, headers=headers).json()
 
@@ -432,7 +394,7 @@ if __name__ == '__main__':
             # check if key exists in dict, code indicates error or no position
             if 'code' not in positions_response:
                 position = True
-                position_qty = positions_response['qty']
+                position_qty = int(positions_response['qty'])
                 buy_price = round(float(positions_response['avg_entry_price']),2)
 
 
@@ -440,19 +402,45 @@ if __name__ == '__main__':
             logging.info(f'[{ticker}] BUY_PRICE:    ${buy_price}')
 
 
-            # >_< FETCH TICKERS BASED ON CURRENT TS
 
-            ############### 1 MIN ###############
+            ############ >_< FETCH TICKERS BASED ON CURRENT TS ############
 
-            logging.info(f'[{ticker}] BAR INTERVAL:    {bar_interval} Min')
+            # logging.info(f'[{ticker}] BAR INTERVAL:    {bar_interval} Min')
 
             bars = fetch_bars()  # for 1Min
 
+            ############### 1 MIN ###############
+            np_ol_1m = bars['np_ol_1m']
+            np_hl_1m = bars['np_hl_1m']
+            np_ll_1m = bars['np_ll_1m']
             np_cl_1m = bars['np_cl_1m']
+            np_vl_1m = bars['np_vl_1m']
             np_tl_1m = bars['np_tl_1m']
 
-            # logging.info(f'[{ticker}] NP_CL_1M:    {np_cl_1m}')
-            # logging.info(f'[{ticker}] NP_TL_1M:    {np_tl_1m}')
+            ############### 5 MIN ###############
+            np_ol_5m = bars['np_ol_5m']
+            np_hl_5m = bars['np_hl_5m']
+            np_ll_5m = bars['np_ll_5m']
+            np_cl_5m = bars['np_cl_5m']
+            np_vl_5m = bars['np_vl_5m']
+            np_tl_5m = bars['np_tl_5m']
+
+
+            logging.debug(f'[{ticker}] NP_OL_1M:    {np_ol_1m}')
+            logging.debug(f'[{ticker}] NP_HL_1M:    {np_hl_1m}')
+            logging.debug(f'[{ticker}] NP_LL_1M:    {np_ll_1m}')
+            logging.debug(f'[{ticker}] NP_CL_1M:    {np_cl_1m}')
+            logging.debug(f'[{ticker}] NP_VL_1M:    {np_vl_1m}')
+            logging.debug(f'[{ticker}] NP_TL_1M:    {np_tl_1m}')
+
+            logging.debug(f'[{ticker}] NP_OL_5M:    {np_ol_5m}')
+            logging.debug(f'[{ticker}] NP_HL_5M:    {np_hl_5m}')
+            logging.debug(f'[{ticker}] NP_LL_5M:    {np_ll_5m}')
+            logging.debug(f'[{ticker}] NP_CL_5M:    {np_cl_5m}')
+            logging.debug(f'[{ticker}] NP_VL_5M:    {np_vl_5m}')
+            logging.debug(f'[{ticker}] NP_TL_5M:    {np_tl_5m}')
+
+
 
             ############# INDICATORS / CALCULATIONS ###########################
 
@@ -620,7 +608,7 @@ if __name__ == '__main__':
                         # buy_order_details_data = {'order_id': order_id}
                         # buy_order_details_data = json.dumps(buy_order_details_data)
 
-                        get_order_details_uri = f'https://paper-api.alpaca.markets/v1/orders/{order_id}'
+                        get_order_details_uri = f'https://paper-api.alpaca.markets/{config.api_version}/orders/{order_id}'
 
                         buy_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 
@@ -712,7 +700,7 @@ if __name__ == '__main__':
 
                         # keep checking until order is filled
 
-                        get_order_details_uri = f'https://paper-api.alpaca.markets/v1/orders/{order_id}'
+                        get_order_details_uri = f'https://paper-api.alpaca.markets/{config.api_version}/orders/{order_id}'
 
                         sell_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 

@@ -1,20 +1,25 @@
 
-APCA_API_KEY_ID='PKE22M0NNY8M9ODO2R2T'
-APCA_API_SECRET_KEY='uENB0q0q07XLDqhj/ICGjHC5ZWooijWBoxXg4FH5'
-APCA_PAPER_BASE_URL='https://paper-api.alpaca.markets'
-APCA_LIVE_BASE_URL='https://api.alpaca.markets'
+live_trade = False  # SET TO TRUE WHEN TRADING LIVE!!!
 
+api_version = 'v2'
+data_api_version = 'v1'
 
+if live_trade: # LIVE!!!
 
-#QUANDL https://www.quandl.com/account/profile
-QUANDL_API_KEY='MnmET18nhTk3CNMA2WbM'
+    APCA_LIVE_BASE_URL = 'https://api.alpaca.markets'
+    APCA_API_KEY_ID = " "
+    APCA_API_SECRET_KEY = " "
+    base_url = f'{APCA_LIVE_BASE_URL}/{api_version}'
 
+else:   # PAPER TRADE
 
-## SLACK WEBOOOK
+    APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
+    APCA_API_KEY_ID = 'PKOJ8CKFRJRJ50NC9WR2'
+    APCA_API_SECRET_KEY = 'sEuO/rj/PDAhq60lLO69hai5sJxaxSNSrwkbWqwD'
 
-apca_paper = 'https://hooks.slack.com/services/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'
-health_check = 'https://hooks.slack.com/services/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'
-apca_live = ''  # FILL LATER
+    base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
+
+# TODO: CHANGE BASE URL TO POINT TO PROD WHEN READY FOR LIVE TRADE
 
 
 # PAPER ALGO PARAMETERS
@@ -32,24 +37,26 @@ ticker = {
 
 # ticker = "MSFT"
 
-bar_interval = 1    # trade every 1 min or 5
+# bar_interval = 1    # trade every 1 min or 5
 
 position_size = 0.25
 
 
-account_uri = 'https://paper-api.alpaca.markets/v1/account'
-order_uri = 'https://paper-api.alpaca.markets/v1/orders'
-clock_uri = 'https://paper-api.alpaca.markets/v1/clock'
-
-units_to_trade = 10
+account_uri = f'{base_url}/account'
+order_uri = f'{base_url}/orders'
+clock_uri = f'{base_url}/clock'
 
 
+paper_limit_1m = 10
 paper_limit_5m = 10
-paper_limit_1m = 1000    # CHANGED TEMPORARILY, max allowed 1000
+paper_limit_15m = 10
+
+
 # time left for market to close
-closing_window = 30
+closing_window = 30     # in Minutes
+
 # profit taking percentage - used in a sell signal
-profit_percentage = 0.02  # 10%
+profit_percentage = 0.1  # 10%
 
 
 ############ BACKTEST ONLY ##################
@@ -58,4 +65,10 @@ tickers = ['V'] # for backtest algo_01.py
 limit_1m = 350
 limit_5m = 78
 limit_15m = 29
+
+########## SLACK WEBOOOK
+
+apca_paper = 'https://hooks.slack.com/services/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'
+health_check = 'https://hooks.slack.com/services/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'
+apca_live = ''  # FILL LATER
 
