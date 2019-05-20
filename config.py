@@ -47,9 +47,9 @@ order_uri = f'{base_url}/orders'
 clock_uri = f'{base_url}/clock'
 
 
-paper_limit_1m = 10
-paper_limit_5m = 10
-paper_limit_15m = 10
+paper_limit_1m = 100
+paper_limit_5m = 100
+paper_limit_15m = 100
 
 
 # time left for market to close

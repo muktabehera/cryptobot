@@ -196,12 +196,13 @@ def fetch_bars():
         tl_1m.append(v1m_ts)
 
         # convert to 1m np array
-        np_ol_1m = np.array(ol_1m)
-        np_hl_1m = np.array(hl_1m)
-        np_ll_1m = np.array(ll_1m)
-        np_cl_1m = np.array(cl_1m)
-        np_vl_1m = np.array(vl_1m)
-        np_tl_1m = np.array(tl_1m)
+        # added datatype float to avoid real is not double error during MOM cacl
+        np_ol_1m = np.array(ol_1m, dtype=float)
+        np_hl_1m = np.array(hl_1m, dtype=float)
+        np_ll_1m = np.array(ll_1m, dtype=float)
+        np_cl_1m = np.array(cl_1m, dtype=float)
+        np_vl_1m = np.array(vl_1m, dtype=float)
+        np_tl_1m = np.array(tl_1m, dtype=float)
 
     # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
@@ -226,20 +227,21 @@ def fetch_bars():
         # APPEND TO LIST
 
         # append 1m bars to list
-        ol_5m.append(v1m['o'])
-        ll_5m.append(v1m['l'])
-        hl_5m.append(v1m['h'])
-        cl_5m.append(v1m['c'])
-        vl_5m.append(v1m['v'])
-        tl_5m.append(v1m_ts)
+        ol_5m.append(v5m['o'])
+        ll_5m.append(v5m['l'])
+        hl_5m.append(v5m['h'])
+        cl_5m.append(v5m['c'])
+        vl_5m.append(v5m['v'])
+        tl_5m.append(v5m_ts)
 
         # convert to 1m np array
-        np_ol_5m = np.array(ol_5m)
-        np_hl_5m = np.array(hl_5m)
-        np_ll_5m = np.array(ll_5m)
-        np_cl_5m = np.array(cl_5m)
-        np_vl_5m = np.array(vl_5m)
-        np_tl_5m = np.array(tl_5m)
+        # added datatype float to avoid real is not double error during MOM cacl
+        np_ol_5m = np.array(ol_5m, dtype=float)
+        np_hl_5m = np.array(hl_5m, dtype=float)
+        np_ll_5m = np.array(ll_5m, dtype=float)
+        np_cl_5m = np.array(cl_5m, dtype=float)
+        np_vl_5m = np.array(vl_5m, dtype=float)
+        np_tl_5m = np.array(tl_5m, dtype=float)
 
     # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
@@ -355,7 +357,7 @@ if __name__ == '__main__':
         else:
             trading_time_left = 0
 
-        logging.info(f'[{x}] MARKET_IS_OPEN: {market_is_open.upper()} TIME_LEFT:  {trading_time_left} Mins')
+        logging.info(f'[{x}] MARKET_IS_OPEN: {market_is_open} TIME_LEFT:  {trading_time_left} Mins')
 
         # new_bar_available = True
 
@@ -425,7 +427,6 @@ if __name__ == '__main__':
             np_vl_5m = bars['np_vl_5m']
             np_tl_5m = bars['np_tl_5m']
 
-
             logging.debug(f'[{ticker}] NP_OL_1M:    {np_ol_1m}')
             logging.debug(f'[{ticker}] NP_HL_1M:    {np_hl_1m}')
             logging.debug(f'[{ticker}] NP_LL_1M:    {np_ll_1m}')
@@ -444,37 +445,81 @@ if __name__ == '__main__':
 
             ############# INDICATORS / CALCULATIONS ###########################
 
-            mom_1m = talib.MOM(np_cl_1m, timeperiod=1)          # MOMENTUM
-            ema200_1m = talib.EMA(np_cl_1m, timeperiod=200)     # TREND
-            ema50_1m = talib.EMA(np_cl_1m, timeperiod=50)       # TREND
-            ema20_1m = talib.EMA(np_cl_1m, timeperiod=20)       # TREND
+            mom_cl_1m = talib.MOM(np_cl_1m, timeperiod=1)          # 1M CLOSE MOMENTUM
+            mom_vl_1m = talib.MOM(np_vl_1m, timeperiod=1)          # 1M VOL MOMENTUM
+            logging.info(f'[{ticker}] MOM_CL_1M:  {mom_cl_1m}')
+            logging.info(f'[{ticker}] MOM_VL_1M:  {mom_vl_1m}')
 
-            ema4_1m = talib.EMA(np_cl_1m, timeperiod=4)         # FAST EMA
-            ema8_1m = talib.EMA(np_cl_1m, timeperiod=8)         # SLOW EMA
+            mom_cl_5m = talib.MOM(np_cl_5m, timeperiod=1)          # 1M CLOSE MOMENTUM
+            mom_vl_5m = talib.MOM(np_vl_5m, timeperiod=1)          # 1M VOL MOMENTUM
+            logging.info(f'[{ticker}] MOM_CL_5M:  {mom_cl_5m}')
+            logging.info(f'[{ticker}] MOM_VL_5M:  {mom_vl_5m}')
 
-            ema4 = ema4_1m[-1]  # latest value from the ema4 list
-            ema8 = ema8_1m[-1]  # latest value from the ema8 list
 
-            # zero lag ema  - REF: https://www.tradingview.com/script/LTqZz3l9-Indicator-Zero-Lag-EMA-a-simple-trading-strategy/
+            ################### TREND #################
+
+            # To get 1 M Uptrend, use 5 Min Window
+                # calculate sma5_1m, timeperiod 5 (i.e. anything greater than 3)
+                # if mom_sma5_1m[-1] > 0 and mom_sma5_1m[-2] > 0 --> UPTREND_5M
+
+            # Reverse for downtrend
+                # calculate sma5_1m
+                # cal mom_sma5_1m for last 3 values
+                # if mom_sma5_1m[-1] < 0 and mom_sma5_1m < 0 --> DOWNTREND_5M
+
+            uptrend_5m = False      # default
+            downtrend_5m = False    # default
+            sideways_5m = False     # default
+
+            # TODO: Get 15 min and an hour long trend at least
+
+
+            sma5_1m = talib.SMA(np_cl_1m, timeperiod=5)
+
+            mom_sma5_1m = talib.MOM(sma5_1m, timeperiod=1)
+
+            if mom_sma5_1m[-1] > 0 and mom_sma5_1m[-2] > 0:
+                uptrend_5m = True
+
+            if mom_sma5_1m[-1] < 0 and mom_sma5_1m[-2] < 0:
+                downtrend_5m = True
+
+            if mom_sma5_1m[-1] == 0 and mom_sma5_1m[-2] == 0:   # TODO: USE a % DIFF not a direct 0 comparison
+                sideways_5m = True  # TODO: sideways_5m not ready for use
+
+
+            ################### BOLLINGER BANDS FOR DYNAMIC SUPPORT AND RESISTANCE
+
+            bb_cl_upperband_1m, bb_cl_midband_1m, bb_cl_lowerband_1m = talib.BBANDS(np_cl_1m, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
+
+
+            ######### BULL FLAG EXCEPTION ##########
 
             '''
-            In general, when the zero_lag ema is above the EMA the instrument is in a bull mode and 
-            when the zero_lag ema is below the EMA the stock is bearish . 
-
+            Added one key filter. I found that at times I could get shaken out of a play that was consolidating 
+            (that is, a bull flag) when prices made a series of lower closes within that consolidation. 
+            So, if there are three lower closes, but this price action does not go below the signal bar’s low, 
+            then I ignore the signal. 
+            
+            For this indicator on a long signal, then, the trigger bar would be the first bar that has a higher low 
+            than the previous bar. The next bar that closes above the high of this trigger bar paints this previous 
+            low bar, which now becomes the swing low point.
             '''
 
-            ema10_1m = talib.EMA(np_cl_1m, 10)
-            ema2_1m = talib.EMA(ema10_1m, 10)
-            d = ema10_1m - ema2_1m
-            zlema_1m = ema10_1m + d
+            bull_flag = False
 
-            zlema = zlema_1m[-1]
-            ema10 = ema10_1m[-1]
+            if np_cl_1m[-1] <= np_cl_1m[-3]:
+                bull_flag = True
+
+            bear_flag = False
+
+            if np_cl_1m[-1] <= np_cl_1m[-3]:
+                bear_flag = True
 
 
             ####################################################################
 
-            logging.info(f'[{ticker}] MOM_1M:  {mom_1m}')
+            logging.info(f'[{ticker}] MOM_1M:  {mom_cl_1m}')
 
             # TODO: Cancel order if not executed in 5 min (optional)
 
@@ -499,37 +544,25 @@ if __name__ == '__main__':
             logging.info(f'[{ticker}] PROFIT_PERCENTAGE:   {profit_percentage}')
             logging.info(f'[{ticker}] SELL_TARGET_BASED_ON_PROFIT_PERCENTAGE:   {sell_target_based_on_profit_percentage}')
 
-            ########################### TREND INDICATORS ###########################
-
-            if ema20_1m[-1] > ema50_1m[-1] > ema200_1m[-1]:
-                UPTREND = True
-            else:
-                UPTREND = False
-
-            logging.info(f'[{ticker}] UPTREND   {UPTREND}   EMA200 {ema200_1m[-1]} EMA50  {ema50_1m[-1]}  EMA20   {ema20_1m[-1]}')
-
             ########################### BUY INDICATORS ###########################
 
             bool_closing_time = ts['market_about_to_close']
-            bool_buy_momentum = (mom_1m[-1] > 0 and mom_1m[-2] > 0) and (mom_1m[-1] > mom_1m[-2])
-            bool_buy_zlema = zlema > ema10
+            bool_buy_momentum = (mom_cl_1m[-1] > 0 and mom_cl_1m[-2] > 0) and (mom_cl_1m[-1] >= mom_cl_1m[-2])
 
             logging.info(f"[{ticker}] BOOL_CLOSING_TIME:  {bool_closing_time}")
             logging.info(f"[{ticker}] BOOL_BUY_MOMENTUM:  {bool_buy_momentum}")
-            logging.info(f"[{ticker}] BOOL_BUY_ZERO-LAG-EMA:  {bool_buy_zlema}")
 
 
             ################################ SELL INDICATORS #####################
 
-            bool_sell_momentum = mom_1m[-1] < 0 and mom_1m[-2] < 0  # current and prev momentum are positive
+            bool_sell_momentum = mom_cl_1m[-1] < 0 and mom_cl_1m[-2] < 0  # current and prev momentum are positive
             bool_sell_price = float(np_cl_1m[-1]) > buy_price  # current price is gt buy price
             bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)  # current price > sell target
-            bool_sell_zlema = zlema < ema10
 
-            logging.info(f"[{ticker}] BOOL_SELL_MOMENTUM:  {bool_sell_momentum} [{mom_1m[-1]} < 0 AND {mom_1m[-2]} < 0]")
+
+            logging.info(f"[{ticker}] BOOL_SELL_MOMENTUM:  {bool_sell_momentum} [{mom_cl_1m[-1]} < 0 AND {mom_cl_1m[-2]} < 0]")
             logging.info(f"[{ticker}] BOOL_SELL_PRICE:  {bool_sell_price} [{np_cl_1m[-1]} > {buy_price}]")
             logging.info(f"[{ticker}] BOOL_SELL_PROFIT_TARGET:  {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
-            logging.info(f"[{ticker}] BOOL_SELL_ZERO-LAG-EMA:  {bool_sell_zlema}")
 
             # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
@@ -537,8 +570,7 @@ if __name__ == '__main__':
 
             ################################ BUY SIGNAL ###########################
 
-            BUY_SIGNAL = bool_buy_zlema
-                        # bool_buy_momentum # and not bool_closing_time
+            BUY_SIGNAL = bool_buy_momentum and not bool_closing_time
 
             logging.info(f'[{ticker}] BUY_SIGNAL:  {BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
@@ -546,7 +578,7 @@ if __name__ == '__main__':
 
             ################################ SELL SIGNAL ###########################
 
-            SELL_SIGNAL = bool_sell_zlema and bool_sell_price
+            SELL_SIGNAL = bool_sell_price
                           # or bool_sell_profit_target
                           # or (bool_sell_momentum and bool_sell_price)
                           #   or \
@@ -554,8 +586,7 @@ if __name__ == '__main__':
 
             logging.info(f'[{ticker}] SELL_SIGNAL:   {SELL_SIGNAL} [{np_cl_1m[-1]}]')
 
-            ################################
-
+            ################################################################
 
             # TRADING ACTIONS
 
