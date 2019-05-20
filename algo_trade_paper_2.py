@@ -374,35 +374,40 @@ if __name__ == '__main__':
 
             account = requests.get(url=account_uri, headers=headers).json()
 
+            shorting_enabled = account["shorting_enabled"]  # Only short if enabled, else go long only!!
+
             # LIMIT TOTAL TRADABLE AMOUNT
             buying_power = float(account['buying_power']) - day_trade_minimum   # Total Tradable Amount
+            selling_power = buying_power    # [shorting] the same but named differently
 
             # LIMIT BUYING POWER FOR EACH ALGO. ALGO: STOCK is 1:1
 
             buying_power_limit = buying_power * config.position_size    # E.G 1 (100%) if trading one stock only
+            selling_power_limit = selling_power * config.position_size  # [shorting]
 
             logging.info(f'[{ticker}] BUYING_POWER: [${int(buying_power_limit)}] OF [${int(buying_power)}] DAY_TRADE_MINIMUM: [${day_trade_minimum}]')
+            logging.info(f'[{ticker}] SELLING_POWER: [${int(selling_power_limit)}] OF [${int(selling_power)}] DAY_TRADE_MINIMUM: [${day_trade_minimum}]')
 
             ############# GET POSITION INFO
 
             ############  >_< CHECK IF A POSITION EXISTS FROM THE PREVIOUS TRADE ############
 
-            positions_uri = f'https://paper-api.alpaca.markets/{config.api_version}/positions/{ticker}'
+            positions_uri = f'{config.base_url}/positions/{ticker}'
 
             positions_response = requests.get(url=positions_uri, headers=headers).json()
 
             position = False    # default position to False
 
             # check if key exists in dict, code indicates error or no position
+            # TODO: Work on an alternate implementation for checking position
+
             if 'code' not in positions_response:
                 position = True
                 position_qty = int(positions_response['qty'])
                 buy_price = round(float(positions_response['avg_entry_price']),2)
 
-
             logging.info(f'[{ticker}] CURRENT_POSITION: [{position_qty}]')
             logging.info(f'[{ticker}] BUY_PRICE:    ${buy_price}')
-
 
 
             ############ >_< FETCH TICKERS BASED ON CURRENT TS ############
@@ -455,7 +460,6 @@ if __name__ == '__main__':
             logging.info(f'[{ticker}] MOM_CL_5M:  {mom_cl_5m}')
             logging.info(f'[{ticker}] MOM_VL_5M:  {mom_vl_5m}')
 
-
             ################### TREND #################
 
             # To get 1 M Uptrend, use 5 Min Window
@@ -473,7 +477,6 @@ if __name__ == '__main__':
 
             # TODO: Get 15 min and an hour long trend at least
 
-
             sma5_1m = talib.SMA(np_cl_1m, timeperiod=5)
 
             mom_sma5_1m = talib.MOM(sma5_1m, timeperiod=1)
@@ -487,11 +490,13 @@ if __name__ == '__main__':
             if mom_sma5_1m[-1] == 0 and mom_sma5_1m[-2] == 0:   # TODO: USE a % DIFF not a direct 0 comparison
                 sideways_5m = True  # TODO: sideways_5m not ready for use
 
+            logging.info(f'[{ticker}] UPTREND_5M:  {uptrend_5m}')
+            logging.info(f'[{ticker}] DOWNTREND_5M:  {downtrend_5m}')
+            logging.info(f'[{ticker}] SIDEWAYS_5M:  {sideways_5m}')
 
             ################### BOLLINGER BANDS FOR DYNAMIC SUPPORT AND RESISTANCE
 
             bb_cl_upperband_1m, bb_cl_midband_1m, bb_cl_lowerband_1m = talib.BBANDS(np_cl_1m, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
-
 
             ######### BULL FLAG EXCEPTION ##########
 
@@ -508,18 +513,18 @@ if __name__ == '__main__':
 
             bull_flag = False
 
-            if np_cl_1m[-1] <= np_cl_1m[-3]:
+            if np_cl_1m[-1] <= np_cl_1m[-3] or np_cl_1m[-1] <= np_cl_1m[-4]:    # check current price is
                 bull_flag = True
 
-            bear_flag = False
+            bear_flag = False   # [shorting]
 
-            if np_cl_1m[-1] <= np_cl_1m[-3]:
-                bear_flag = True
+            if np_cl_1m[-1] >= np_cl_1m[-3] or np_cl_1m[-1] >= np_cl_1m[-4]:
+                bear_flag = True    # [shorting]
 
+            logging.info(f'[{ticker}] BULL_FLAG:  {bull_flag}')
+            logging.info(f'[{ticker}] BEAR_FLAG:  {bear_flag}') # [shorting]
 
             ####################################################################
-
-            logging.info(f'[{ticker}] MOM_1M:  {mom_cl_1m}')
 
             # TODO: Cancel order if not executed in 5 min (optional)
 
@@ -527,7 +532,10 @@ if __name__ == '__main__':
 
             units_to_buy = int(buying_power_limit / np_cl_1m[-1])
 
+            units_to_sell = int(selling_power_limit / np_cl_1m[-1]) # [shorting]
+
             logging.info(f'[{ticker}] UNITS_TO_BUY:    {units_to_buy}')
+            logging.info(f'[{ticker}] UNITS_TO_SELL:    {units_to_sell}')
 
             # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
             # TODO: handle partial fills (optional)
@@ -541,16 +549,32 @@ if __name__ == '__main__':
             sell_target_based_on_profit_percentage = buy_price + (
                     buy_price * profit_percentage)
 
+            buy_target_based_on_profit_percentage = sell_price - (
+                    buy_price * profit_percentage)  # [shorting]
+
             logging.info(f'[{ticker}] PROFIT_PERCENTAGE:   {profit_percentage}')
             logging.info(f'[{ticker}] SELL_TARGET_BASED_ON_PROFIT_PERCENTAGE:   {sell_target_based_on_profit_percentage}')
+            logging.info(f'[{ticker}] BUY_TARGET_BASED_ON_PROFIT_PERCENTAGE:   {buy_target_based_on_profit_percentage}') # [shorting]
+
+
+            ########################### BUY / SELL INDICATORS ####################
+
+            bool_closing_time = ts['market_about_to_close']
 
             ########################### BUY INDICATORS ###########################
 
-            bool_closing_time = ts['market_about_to_close']
             bool_buy_momentum = (mom_cl_1m[-1] > 0 and mom_cl_1m[-2] > 0) and (mom_cl_1m[-1] >= mom_cl_1m[-2])
 
+            # TODO: Look for a large move on a single candle as well. Questioning if that would happen in 1 Min?
+            # TODO: To answer, check what the max price has moved in 1 Min. Worth it?
+
+            bool_buy_profit_target = float(np_cl_1m[-1]) <= float(buy_target_based_on_profit_percentage)  # [shorting] current price < buy target
+
             logging.info(f"[{ticker}] BOOL_CLOSING_TIME:  {bool_closing_time}")
+
             logging.info(f"[{ticker}] BOOL_BUY_MOMENTUM:  {bool_buy_momentum}")
+
+            logging.info(f"[{ticker}] BOOL_BUY_PROFIT_TARGET:  {bool_buy_profit_target} [{sell_target_based_on_profit_percentage}]") # [shorting]
 
 
             ################################ SELL INDICATORS #####################
@@ -561,11 +585,12 @@ if __name__ == '__main__':
 
 
             logging.info(f"[{ticker}] BOOL_SELL_MOMENTUM:  {bool_sell_momentum} [{mom_cl_1m[-1]} < 0 AND {mom_cl_1m[-2]} < 0]")
+
             logging.info(f"[{ticker}] BOOL_SELL_PRICE:  {bool_sell_price} [{np_cl_1m[-1]} > {buy_price}]")
+
             logging.info(f"[{ticker}] BOOL_SELL_PROFIT_TARGET:  {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
 
             # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
-
 
 
             ################################ BUY SIGNAL ###########################
