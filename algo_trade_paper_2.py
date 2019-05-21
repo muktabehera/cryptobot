@@ -396,6 +396,7 @@ if __name__ == '__main__':
             positions_response = requests.get(url=positions_uri, headers=headers).json()
 
             position = False    # default position to False
+            position_side = None    # default position side (buy or sell)
 
             # check if key exists in dict, code indicates error or no position
             # TODO: Work on an alternate implementation for checking position
@@ -403,6 +404,7 @@ if __name__ == '__main__':
             if 'code' not in positions_response:
                 position = True
                 position_qty = int(positions_response['qty'])
+                position_side = positions_response['side']
                 buy_price = round(float(positions_response['avg_entry_price']),2)
 
             logging.info(f'[{ticker}] CURRENT_POSITION: [{position_qty}]')
@@ -611,7 +613,7 @@ if __name__ == '__main__':
             bool_sell_price_above_buy = float(np_cl_1m[-1]) > buy_price
             # flag to indicate current price is gt buy price
 
-            bool_buy_price_above_sell = float(np_cl_1m[-1]) < sell_price
+            bool_buy_price_below_sell = float(np_cl_1m[-1]) < sell_price
             # flag to indicate current price is less than sell price
 
             bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)
@@ -633,24 +635,24 @@ if __name__ == '__main__':
 
             ################################ BUY SIGNAL ###########################
 
-            BUY_SIGNAL = bool_buy_momentum and uptrend_1m and not bool_closing_time
+            BUY_SIGNAL = bool_buy_momentum and \
+                         uptrend_1m and \
+                         not bool_closing_time
 
             logging.info(f'[{ticker}] BUY_SIGNAL:  {BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
-            # TODO: [IMPORTANT] include closing time check in actual trades
+            # TODO: add resistance check during buy
             # TODO: Vol check, add later
 
             ################################ SELL SIGNAL ###########################
 
             SELL_SIGNAL = bool_sell_profit_target or \
-                          (bool_sell_momentum and bool_sell_price_above_buy) or \
+                          (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
                           (bool_sell_price_above_buy and bool_closing_time)
 
             # SELL only if a buy position exists.
 
             logging.info(f'[{ticker}] SELL_SIGNAL:   {SELL_SIGNAL} [{np_cl_1m[-1]}]')
-
-
 
 
             ###########################################
@@ -661,26 +663,26 @@ if __name__ == '__main__':
 
             ################################ SHORT SIGNAL ###########################
 
-            SHORT_SIGNAL = bool_short_momentum and not bool_closing_time
+            SHORT_SIGNAL = bool_short_momentum and \
+                           downtrend_1m and \
+                           not bull_flag_1m and \
+                           not bool_closing_time
 
-            # (bool_sell_momentum and not bull_flag_1m) \
+            # TODO: Check for support before selling
+
             logging.info(f'[{ticker}] SHORT_SIGNAL:   {SHORT_SIGNAL} [{np_cl_1m[-1]}]')
 
 
 
             ################################ CLOSE SHORT SIGNAL #####################
 
-            CLOSE_SHORT_SIGNAL = bool_close_short_momentum and not bool_closing_time
-
-            # or (position and bool_buy_profit_target and not bool_closing_time) # [CLOSE SHORT]
-            # (bool_buy_momentum and uptrend_1m and not bear_flag_1m and not bool_closing_time) \
-            # or (bool_buy_price_above_sell and bool_closing_time)
+            CLOSE_SHORT_SIGNAL = bool_buy_profit_target or \
+                                 (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
+                                 (bool_buy_price_below_sell and bool_closing_time)
 
             logging.info(f'[{ticker}] CLOSE_SHORT_SIGNAL:   {CLOSE_SHORT_SIGNAL} [{np_cl_1m[-1]}]')
 
             ################################################################
-
-
 
             # TRADING ACTIONS
 
