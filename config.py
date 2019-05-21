@@ -14,8 +14,8 @@ if live_trade: # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PKOJ8CKFRJRJ50NC9WR2'
-    APCA_API_SECRET_KEY = 'sEuO/rj/PDAhq60lLO69hai5sJxaxSNSrwkbWqwD'
+    APCA_API_KEY_ID = 'PKFHKU5WPITCCK6NMDS9'
+    APCA_API_SECRET_KEY = 'x1OTvpkGxqNUCSN1WWBOnOxM8rfTKSC0N6ZFdKUO'
 
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
 
@@ -53,7 +53,7 @@ paper_limit_15m = 100
 
 
 # time left for market to close
-closing_window = 30     # in Minutes
+closing_window = 60     # in Minutes
 
 # profit taking percentage - used in a sell signal
 profit_percentage = 0.1  # 10%

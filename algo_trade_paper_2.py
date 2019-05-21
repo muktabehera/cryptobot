@@ -377,16 +377,15 @@ if __name__ == '__main__':
             shorting_enabled = account["shorting_enabled"]  # Only short if enabled, else go long only!!
 
             # LIMIT TOTAL TRADABLE AMOUNT
-            buying_power = float(account['buying_power']) - day_trade_minimum   # Total Tradable Amount
-            selling_power = buying_power    # [shorting] the same but named differently
 
-            # LIMIT BUYING POWER FOR EACH ALGO. ALGO: STOCK is 1:1
+            cash = float(account['cash']) - day_trade_minimum  # Total cash in account
 
-            buying_power_limit = buying_power * config.position_size    # E.G 1 (100%) if trading one stock only
-            selling_power_limit = selling_power * config.position_size  # [shorting]
+            # LIMIT BUYING OR SELLING POWER FOR EACH ALGO. ALGO: STOCK is 1:1
 
-            logging.info(f'[{ticker}] BUYING_POWER: [${int(buying_power_limit)}] OF [${int(buying_power)}] DAY_TRADE_MINIMUM: [${day_trade_minimum}]')
-            logging.info(f'[{ticker}] SELLING_POWER: [${int(selling_power_limit)}] OF [${int(selling_power)}] DAY_TRADE_MINIMUM: [${day_trade_minimum}]')
+            cash_limit = cash * config.position_size    # E.G 1 (100%) if trading one stock only
+
+            logging.info(f'[{ticker}] CASH: [${int(cash_limit)}] OF [${int(cash)}] DAY_TRADE_MINIMUM: [${day_trade_minimum}]')
+
 
             ############# GET POSITION INFO
 
@@ -451,14 +450,24 @@ if __name__ == '__main__':
             ############# INDICATORS / CALCULATIONS ###########################
 
             mom_cl_1m = talib.MOM(np_cl_1m, timeperiod=1)          # 1M CLOSE MOMENTUM
-            mom_vl_1m = talib.MOM(np_vl_1m, timeperiod=1)          # 1M VOL MOMENTUM
             logging.info(f'[{ticker}] MOM_CL_1M:  {mom_cl_1m}')
+
+            '''            
+            mom_vl_1m = talib.MOM(np_vl_1m, timeperiod=1)          # 1M VOL MOMENTUM
+            avg_vl5_1m = talib.SMA(np_vl_1m, timeperiod=5)
+            bool_buy_confirmation_vol = mom_vl_1m[-1] > 0 and mom_vl_1m[-2] > 0
+
+            # current vol is greater than or equal to avg vol in the last 5 mins
+            # bool_buy_vol = True, means vol is good for a buy
+
+            
             logging.info(f'[{ticker}] MOM_VL_1M:  {mom_vl_1m}')
 
             mom_cl_5m = talib.MOM(np_cl_5m, timeperiod=1)          # 1M CLOSE MOMENTUM
             mom_vl_5m = talib.MOM(np_vl_5m, timeperiod=1)          # 1M VOL MOMENTUM
             logging.info(f'[{ticker}] MOM_CL_5M:  {mom_cl_5m}')
             logging.info(f'[{ticker}] MOM_VL_5M:  {mom_vl_5m}')
+            '''
 
             ################### TREND #################
 
@@ -470,33 +479,45 @@ if __name__ == '__main__':
                 # calculate sma5_1m
                 # cal mom_sma5_1m for last 3 values
                 # if mom_sma5_1m[-1] < 0 and mom_sma5_1m < 0 --> DOWNTREND_5M
-
-            uptrend_5m = False      # default
-            downtrend_5m = False    # default
-            sideways_5m = False     # default
+            
+            uptrend_1m = False      # default
+            downtrend_1m = False    # default
+            sideways_1m = False     # default
 
             # TODO: Get 15 min and an hour long trend at least
 
-            sma5_1m = talib.SMA(np_cl_1m, timeperiod=5)
+            sma_1m = talib.SMA(np_cl_1m, timeperiod=10) # 10 to keep it smooth
 
-            mom_sma5_1m = talib.MOM(sma5_1m, timeperiod=1)
+            if sma_1m[-1] > sma_1m[-2]:
+                uptrend_1m = True
 
-            if mom_sma5_1m[-1] > 0 and mom_sma5_1m[-2] > 0:
-                uptrend_5m = True
+            if sma_1m[-1] < 0 and sma_1m[-2] < 0:
+                downtrend_1m = True
 
-            if mom_sma5_1m[-1] < 0 and mom_sma5_1m[-2] < 0:
-                downtrend_5m = True
+            if sma_1m[-1] == 0 and sma_1m[-2] == 0:   # TODO: USE a % DIFF not a direct 0 comparison
+                sideways_1m = True  # TODO: sideways_5m not ready for use
 
-            if mom_sma5_1m[-1] == 0 and mom_sma5_1m[-2] == 0:   # TODO: USE a % DIFF not a direct 0 comparison
-                sideways_5m = True  # TODO: sideways_5m not ready for use
+            logging.info(f'[{ticker}] UPTREND_5M:  {uptrend_1m}')
+            logging.info(f'[{ticker}] DOWNTREND_5M:  {downtrend_1m}')
+            logging.info(f'[{ticker}] SIDEWAYS_5M:  {sideways_1m}')
 
-            logging.info(f'[{ticker}] UPTREND_5M:  {uptrend_5m}')
-            logging.info(f'[{ticker}] DOWNTREND_5M:  {downtrend_5m}')
-            logging.info(f'[{ticker}] SIDEWAYS_5M:  {sideways_5m}')
 
             ################### BOLLINGER BANDS FOR DYNAMIC SUPPORT AND RESISTANCE
 
+            '''
+            
             bb_cl_upperband_1m, bb_cl_midband_1m, bb_cl_lowerband_1m = talib.BBANDS(np_cl_1m, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
+
+            bb_support_cl_1m = bb_cl_lowerband_1m
+            # set lowerband as dynamic support
+
+            bb_resistance_cl_1m = bb_cl_upperband_1m
+            # set upper band as dynamic resistance
+
+            bb_mid_cl_1m = bb_cl_midband_1m
+            # set mid band as mid band
+            
+            '''
 
             ######### BULL FLAG EXCEPTION ##########
 
@@ -511,18 +532,18 @@ if __name__ == '__main__':
             low bar, which now becomes the swing low point.
             '''
 
-            bull_flag = False
+            bull_flag_1m = False
 
             if np_cl_1m[-1] <= np_cl_1m[-3] or np_cl_1m[-1] <= np_cl_1m[-4]:    # check current price is
-                bull_flag = True
+                bull_flag_1m = True
 
-            bear_flag = False   # [shorting]
+            bear_flag_1m = False   # [shorting]
 
             if np_cl_1m[-1] >= np_cl_1m[-3] or np_cl_1m[-1] >= np_cl_1m[-4]:
-                bear_flag = True    # [shorting]
+                bear_flag_1m = True    # [shorting]
 
-            logging.info(f'[{ticker}] BULL_FLAG:  {bull_flag}')
-            logging.info(f'[{ticker}] BEAR_FLAG:  {bear_flag}') # [shorting]
+            logging.info(f'[{ticker}] BULL_FLAG:  {bull_flag_1m}')
+            logging.info(f'[{ticker}] BEAR_FLAG:  {bear_flag_1m}') # [shorting]
 
             ####################################################################
 
@@ -530,12 +551,10 @@ if __name__ == '__main__':
 
             trade_left_open = False  # to check if a trade was left open, initial False
 
-            units_to_buy = int(buying_power_limit / np_cl_1m[-1])
-
-            units_to_sell = int(selling_power_limit / np_cl_1m[-1]) # [shorting]
+            units_to_buy = units_to_short = int(cash_limit / np_cl_1m[-1]) # assign same value to both
 
             logging.info(f'[{ticker}] UNITS_TO_BUY:    {units_to_buy}')
-            logging.info(f'[{ticker}] UNITS_TO_SELL:    {units_to_sell}')
+            logging.info(f'[{ticker}] UNITS_TO_SELL:    {units_to_short}')
 
             # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
             # TODO: handle partial fills (optional)
@@ -547,14 +566,14 @@ if __name__ == '__main__':
             profit_percentage = float(config.profit_percentage)  # 0.2 for 20%
 
             sell_target_based_on_profit_percentage = buy_price + (
-                    buy_price * profit_percentage)
+                    buy_price * profit_percentage)  # LONG, buy higher than buy price]
 
             buy_target_based_on_profit_percentage = sell_price - (
-                    buy_price * profit_percentage)  # [shorting]
+                    sell_price * profit_percentage)  # [shorting, buy even lower than sell price]
 
             logging.info(f'[{ticker}] PROFIT_PERCENTAGE:   {profit_percentage}')
             logging.info(f'[{ticker}] SELL_TARGET_BASED_ON_PROFIT_PERCENTAGE:   {sell_target_based_on_profit_percentage}')
-            logging.info(f'[{ticker}] BUY_TARGET_BASED_ON_PROFIT_PERCENTAGE:   {buy_target_based_on_profit_percentage}') # [shorting]
+            logging.info(f'[{ticker}] [SHORT] BUY_TARGET_BASED_ON_PROFIT_PERCENTAGE:   {buy_target_based_on_profit_percentage}') # [shorting]
 
 
             ########################### BUY / SELL INDICATORS ####################
@@ -565,53 +584,103 @@ if __name__ == '__main__':
 
             bool_buy_momentum = (mom_cl_1m[-1] > 0 and mom_cl_1m[-2] > 0) and (mom_cl_1m[-1] >= mom_cl_1m[-2])
 
+            bool_close_short_momentum = mom_cl_1m[-1] > 0 and mom_cl_1m[-2] > 0
+            # similar to buy but without the 2nd condition
+
             # TODO: Look for a large move on a single candle as well. Questioning if that would happen in 1 Min?
             # TODO: To answer, check what the max price has moved in 1 Min. Worth it?
 
-            bool_buy_profit_target = float(np_cl_1m[-1]) <= float(buy_target_based_on_profit_percentage)  # [shorting] current price < buy target
+            bool_buy_profit_target = float(np_cl_1m[-1]) <= float(buy_target_based_on_profit_percentage)
+            # [SHORT] For sell to buy --> current price [-1] is < or equal to the target price with profit percentage
 
             logging.info(f"[{ticker}] BOOL_CLOSING_TIME:  {bool_closing_time}")
-
             logging.info(f"[{ticker}] BOOL_BUY_MOMENTUM:  {bool_buy_momentum}")
+            logging.info(f"[{ticker}] [SHORT] BOOL_BUY_PROFIT_TARGET:  {bool_buy_profit_target} [{buy_target_based_on_profit_percentage}]") # [shorting]
 
-            logging.info(f"[{ticker}] BOOL_BUY_PROFIT_TARGET:  {bool_buy_profit_target} [{sell_target_based_on_profit_percentage}]") # [shorting]
 
-
-            ################################ SELL INDICATORS #####################
+            ################################ SELL AND SHORT INDICATORS #####################
 
             bool_sell_momentum = mom_cl_1m[-1] < 0 and mom_cl_1m[-2] < 0  # current and prev momentum are positive
-            bool_sell_price = float(np_cl_1m[-1]) > buy_price  # current price is gt buy price
-            bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)  # current price > sell target
+            # use sell momentum to close a long position
 
+            bool_short_momentum = (mom_cl_1m[-1] < 0 and mom_cl_1m[-2] < 0) and (mom_cl_1m[-1] <= mom_cl_1m[-2])
+            # use short momentum to initiate a short position
+
+            # TODO: SHORT MOMENTUM needs some more thought
+
+            bool_sell_price_above_buy = float(np_cl_1m[-1]) > buy_price
+            # flag to indicate current price is gt buy price
+
+            bool_buy_price_above_sell = float(np_cl_1m[-1]) < sell_price
+            # flag to indicate current price is less than sell price
+
+            bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)
+            # current price > sell target
 
             logging.info(f"[{ticker}] BOOL_SELL_MOMENTUM:  {bool_sell_momentum} [{mom_cl_1m[-1]} < 0 AND {mom_cl_1m[-2]} < 0]")
-
-            logging.info(f"[{ticker}] BOOL_SELL_PRICE:  {bool_sell_price} [{np_cl_1m[-1]} > {buy_price}]")
-
+            logging.info(f"[{ticker}] BOOL_SELL_PRICE_ABOVE_BUY:  {bool_sell_price_above_buy} [{np_cl_1m[-1]} > {buy_price}]")
             logging.info(f"[{ticker}] BOOL_SELL_PROFIT_TARGET:  {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
+            logging.info(f"[{ticker}] BOOL_SHORT_MOMENTUM:  {bool_short_momentum}")
 
             # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
 
+
+            ###########################################
+            #####        LONG POSITIONS        ########
+            ###########################################
+
+
             ################################ BUY SIGNAL ###########################
 
-            BUY_SIGNAL = bool_buy_momentum and not bool_closing_time
+            BUY_SIGNAL = bool_buy_momentum and uptrend_1m and not bool_closing_time
 
             logging.info(f'[{ticker}] BUY_SIGNAL:  {BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
             # TODO: [IMPORTANT] include closing time check in actual trades
+            # TODO: Vol check, add later
 
             ################################ SELL SIGNAL ###########################
 
-            SELL_SIGNAL = bool_sell_price
-                          # or bool_sell_profit_target
-                          # or (bool_sell_momentum and bool_sell_price)
-                          #   or \
-                          # (bool_sell_price and position and bool_closing_time)
+            SELL_SIGNAL = bool_sell_profit_target or \
+                          (bool_sell_momentum and bool_sell_price_above_buy) or \
+                          (bool_sell_price_above_buy and bool_closing_time)
+
+            # SELL only if a buy position exists.
 
             logging.info(f'[{ticker}] SELL_SIGNAL:   {SELL_SIGNAL} [{np_cl_1m[-1]}]')
 
+
+
+
+            ###########################################
+            #####        SHORT POSITIONS       #######
+            ###########################################
+
+
+
+            ################################ SHORT SIGNAL ###########################
+
+            SHORT_SIGNAL = bool_short_momentum and not bool_closing_time
+
+            # (bool_sell_momentum and not bull_flag_1m) \
+            logging.info(f'[{ticker}] SHORT_SIGNAL:   {SHORT_SIGNAL} [{np_cl_1m[-1]}]')
+
+
+
+            ################################ CLOSE SHORT SIGNAL #####################
+
+            CLOSE_SHORT_SIGNAL = bool_close_short_momentum and not bool_closing_time
+
+            # or (position and bool_buy_profit_target and not bool_closing_time) # [CLOSE SHORT]
+            # (bool_buy_momentum and uptrend_1m and not bear_flag_1m and not bool_closing_time) \
+            # or (bool_buy_price_above_sell and bool_closing_time)
+
+            logging.info(f'[{ticker}] CLOSE_SHORT_SIGNAL:   {CLOSE_SHORT_SIGNAL} [{np_cl_1m[-1]}]')
+
             ################################################################
+
+
 
             # TRADING ACTIONS
 
@@ -803,7 +872,7 @@ if __name__ == '__main__':
                       f'POSITION    {position}              '
                       f'CLOSING     {bool_closing_time}          '
                       f'PROFIT_TARGET [{sell_target_based_on_profit_percentage}] {bool_sell_profit_target}  '
-                      f'PRICE       {bool_sell_price}')
+                      f'PRICE       {bool_sell_price_above_buy}')
 
                 position = False  # set position to false once a sale has completed
 
