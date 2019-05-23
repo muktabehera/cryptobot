@@ -785,6 +785,9 @@ if __name__ == '__main__':
                     buy_price = float(buy_order_details['filled_avg_price'])  # ACTUAL FROM BUY ORDER
                     ###############
 
+                    sell_target_based_on_profit_percentage = buy_price + (
+                            buy_price * profit_percentage)  # LONG, buy higher than buy price]
+
                     filled_at = buy_order_details['filled_at']
                     filled_qty = buy_order_details['filled_qty']
 
@@ -980,6 +983,9 @@ if __name__ == '__main__':
                     ###############
                     sell_price = round(float(sell_order_details['filled_avg_price']), 2)
                     ###############
+
+                    buy_target_based_on_profit_percentage = sell_price - (
+                            sell_price * profit_percentage)  # [shorting, buy even lower than sell price]
 
                     filled_at = sell_order_details['filled_at']
 
