@@ -380,6 +380,7 @@ if __name__ == '__main__':
             account = requests.get(url=account_uri, headers=headers).json()
 
             shorting_enabled = account["shorting_enabled"]  # Only short if enabled, else go long only!!
+            logging.info(f'[{ticker}] shorting_enabled = {shorting_enabled}')
 
             # LIMIT TOTAL TRADABLE AMOUNT
 

@@ -19,8 +19,8 @@ if live_trade: # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PKFHKU5WPITCCK6NMDS9'
-    APCA_API_SECRET_KEY = 'x1OTvpkGxqNUCSN1WWBOnOxM8rfTKSC0N6ZFdKUO'
+    APCA_API_KEY_ID = 'PKKECWNFA8OYCJN16FUY'
+    APCA_API_SECRET_KEY = 'YuCiC5oao7uJh2HBTF9cQRqdPYVk5GVAwKfQtbCC'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_paper_url = "https://hooks.slack.com/services/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"
     slack_message_prefix = 'PAPER'
@@ -41,13 +41,13 @@ ticker = {
 
 
 # Position sizing
-position_size = 0.5
+position_size = 0.25
 
 # time left for market to close
 closing_window = 60     # in Minutes
 
 # profit taking percentage - used in a sell signal
-profit_percentage = 0.1  # 10%
+profit_percentage = 0.02  # 10%
 
 
 
