@@ -14,7 +14,7 @@ if live_trade: # LIVE!!!
     APCA_API_KEY_ID = " "
     APCA_API_SECRET_KEY = " "
     base_url = f'{APCA_LIVE_BASE_URL}/{api_version}'
-    slack_live_url = ''  # ADD BEFORE RUNNLING LIVE!
+    slack_live_url = "https://hooks.slack.com/services/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"  # ADD BEFORE RUNNLING LIVE!
     slack_message_prefix = 'LIVE'
 else:   # PAPER TRADE
 
@@ -22,7 +22,7 @@ else:   # PAPER TRADE
     APCA_API_KEY_ID = 'PKFHKU5WPITCCK6NMDS9'
     APCA_API_SECRET_KEY = 'x1OTvpkGxqNUCSN1WWBOnOxM8rfTKSC0N6ZFdKUO'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
-    slack_paper_url = 'https://hooks.slack.com/services/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'
+    slack_paper_url = "https://hooks.slack.com/services/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"
     slack_message_prefix = 'PAPER'
 
 # TODO: CHANGE BASE URL TO POINT TO PROD WHEN READY FOR LIVE TRADE
@@ -41,7 +41,7 @@ ticker = {
 
 
 # Position sizing
-position_size = 0.25
+position_size = 0.5
 
 # time left for market to close
 closing_window = 60     # in Minutes
@@ -55,7 +55,7 @@ account_uri = f'{base_url}/account'
 order_uri = f'{base_url}/orders'
 clock_uri = f'{base_url}/clock'
 data_url = f'https://data.alpaca.markets/{data_api_version}'
-slack_health_check_url = 'https://hooks.slack.com/services/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'
+slack_health_check_url = "https://hooks.slack.com/services/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"
 
 
 

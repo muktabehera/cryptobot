@@ -265,7 +265,6 @@ def fetch_bars():
     
     '''
 
-
     logging.debug(f"bars_response : {bars_response}")
 
     return bars_response
@@ -320,7 +319,7 @@ if __name__ == '__main__':
         log_file_date = datetime.now().strftime("%Y%m%d")
         logger = logging.getLogger(__name__)
 
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/{ticker}_{log_file_date}.log")
 
         if config.live_trade:
@@ -501,14 +500,16 @@ if __name__ == '__main__':
 
             sma_1m = talib.SMA(np_cl_1m, timeperiod=10) # 10 to keep it smooth
 
-            if sma_1m[-1] > sma_1m[-2]:
+            if (sma_1m[-1] > sma_1m[-2]) and (sma_1m[-2] > sma_1m[-3]):
                 bool_uptrend_1m = True
+                logging.debug(f"bool_uptrend_1m[{bool_uptrend_1m} = {sma_1m[-1]} > {sma_1m[-2]}) and ({sma_1m[-2]} > {sma_1m[-3]}")
 
-            if sma_1m[-1] < 0 and sma_1m[-2] < 0:
+            if (sma_1m[-1] < sma_1m[-2]) and (sma_1m[-2] < sma_1m[-3]):
                 bool_downtrend_1m = True
+                logging.debug(f"bool_downtrend_1m [{bool_downtrend_1m}] = {sma_1m[-1]} < {sma_1m[-2]}) and ({sma_1m[-2]} < {sma_1m[-3]}")
 
-            if sma_1m[-1] == 0 and sma_1m[-2] == 0:   # TODO: USE a % DIFF not a direct 0 comparison
-                bool_sideways_1m = True  # TODO: sideways_5m not ready for use
+            if (sma_1m[-1] == sma_1m[-2]) and (sma_1m[-2] == sma_1m[-3]):
+                bool_sideways_1m = True
 
             logging.info(f'[{ticker}] bool_uptrend_1m:  {bool_uptrend_1m}')
             logging.info(f'[{ticker}] bool_downtrend_1m:  {bool_downtrend_1m}')
@@ -584,9 +585,9 @@ if __name__ == '__main__':
             buy_target_based_on_profit_percentage = sell_price - (
                     sell_price * profit_percentage)  # [shorting, buy even lower than sell price]
 
-            logging.info(f'[{ticker}] profit_percentage:   {profit_percentage}')
-            logging.info(f'[{ticker}] sell_target_based_on_profit_percentage:   {sell_target_based_on_profit_percentage}')
-            logging.info(f'[{ticker}] buy_target_based_on_profit_percentage:   {buy_target_based_on_profit_percentage}') # [shorting]
+            logging.info(f"[{ticker}] profit_percentage:   {profit_percentage}")
+            logging.info(f"[{ticker}] sell_target_based_on_profit_percentage:   {sell_target_based_on_profit_percentage}")
+            logging.info(f"[{ticker}] buy_target_based_on_profit_percentage:   {buy_target_based_on_profit_percentage}") # [shorting]
 
 
             ########################### BUY / SELL INDICATORS ####################
@@ -595,16 +596,19 @@ if __name__ == '__main__':
 
             ########################### BUY INDICATORS ###########################
 
-            bool_buy_momentum = (mom_cl_1m[-1] > 0 and mom_cl_1m[-2] > 0) and (mom_cl_1m[-1] >= mom_cl_1m[-2])
+            bool_buy_momentum = (mom_cl_1m[-1] > 0 and mom_cl_1m[-2] > 0) and (mom_cl_1m[-2] >= mom_cl_1m[-1])
+            logging.debug(f"bool_buy_momentum = ({mom_cl_1m[-1]} > 0 and {mom_cl_1m[-2]} > 0) and ({mom_cl_1m[-2]} >= {mom_cl_1m[-1]}) [{bool_buy_momentum}]")
 
             bool_close_short_momentum = mom_cl_1m[-1] > 0 and mom_cl_1m[-2] > 0
             # similar to buy but without the 2nd condition
+            logging.debug(f"bool_close_short_momentum [{bool_close_short_momentum}] = ({mom_cl_1m[-1]} > 0 and {mom_cl_1m[-2]} > 0)")
 
             # TODO: Look for a large move on a single candle as well. Questioning if that would happen in 1 Min?
             # TODO: To answer, check what the max price has moved in 1 Min. Worth it?
 
             bool_buy_profit_target = float(np_cl_1m[-1]) <= float(buy_target_based_on_profit_percentage)
             # [SHORT] For sell to buy --> current price [-1] is < or equal to the target price with profit percentage
+            logging.debug(f"bool_buy_profit_target [{bool_buy_profit_target}] = float({np_cl_1m[-1]}) <= float({buy_target_based_on_profit_percentage})")
 
             logging.info(f"[{ticker}] bool_closing_time:  {bool_closing_time}")
             logging.info(f"[{ticker}] bool_buy_momentum:  {bool_buy_momentum}")
@@ -663,7 +667,7 @@ if __name__ == '__main__':
 
             # SELL only if a buy position exists.
 
-            logging.info(f'[{ticker}] long_sell_signal:   {LONG_SELL_SIGNAL} [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] long_sell_signal:   {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
             ###########################################
@@ -676,12 +680,11 @@ if __name__ == '__main__':
 
             SHORT_SELL_SIGNAL = bool_short_momentum and \
                                 bool_downtrend_1m and \
-                                not bull_flag_1m and \
                                 not bool_closing_time
 
             # TODO: Check for support before selling
 
-            logging.info(f'[{ticker}] short_sell_signal:   {SHORT_SELL_SIGNAL} [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] short_sell_signal:   {SHORT_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
             ################################ CLOSE SHORT SIGNAL #####################
@@ -690,7 +693,7 @@ if __name__ == '__main__':
                                (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
                                (bool_buy_price_below_sell and bool_closing_time)
 
-            logging.info(f'[{ticker}] short_buy_signal:   {SHORT_BUY_SIGNAL} [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] short_buy_signal:   {SHORT_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
             ################################################################
@@ -738,7 +741,7 @@ if __name__ == '__main__':
                 }
                 buy_order_data = json.dumps(buy_order_data)
 
-                logging.debug(f'[{ticker}] [long_buy_signal] buy_order_data: {buy_order_data}')
+                logging.info(f'[{ticker}] [long_buy_signal] buy_order_data: {buy_order_data}')
 
                 buy_order_sent = False
 
