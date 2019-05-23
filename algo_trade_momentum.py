@@ -924,7 +924,7 @@ if __name__ == '__main__':
 
                 sell_order_data = {
                     'symbol': ticker,
-                    'qty': position_qty,    # sell entire position
+                    'qty': units_to_short,    # units to short
                     'side': 'sell',
                     'type': 'market',
                     # 'limit_price': limit_price,
@@ -985,8 +985,6 @@ if __name__ == '__main__':
 
                     side = str(sell_order_details['side']).upper()
 
-                    profit = round((float(sell_price - buy_price) * position_qty), 2)
-
                     sell_order_text = f'[{ticker}] [SHORT_SELL_SIGNAL] [{filled_at}] [EXECUTED] {side} ORDER WAS EXECUTED @ {sell_price}'
 
                     logging.debug(sell_order_text)
@@ -1013,7 +1011,7 @@ if __name__ == '__main__':
 
                 buy_order_data = {
                     'symbol': ticker,
-                    'qty': units_to_buy,
+                    'qty': position_qty,
                     'side': 'buy',
                     'type': 'market',
                     # 'limit_price': limit_price,
