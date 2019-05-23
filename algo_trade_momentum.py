@@ -409,7 +409,7 @@ if __name__ == '__main__':
             if 'code' not in positions_response:
                 position = True
                 position_qty = int(positions_response['qty'])
-                position_side = positions_response['side']
+                position_side = positions_response['side']  # long or short
                 buy_price = round(float(positions_response['avg_entry_price']),2)
 
             logging.info(f'[{ticker}] current_position: [{position_qty}]')
@@ -818,7 +818,7 @@ if __name__ == '__main__':
 
             ################################ LONG_SELL ###########################
 
-            if position and position_side == 'buy' and LONG_SELL_SIGNAL:
+            if position and position_side == 'long' and LONG_SELL_SIGNAL:
 
                 sell_price = round(np_cl_1m[-2], 3)  # set sell price to 1 to 2 bars prior val
                 # for limit price, set sell_price
@@ -1013,7 +1013,7 @@ if __name__ == '__main__':
 
             ################################ SHORT BUY ###########################
 
-            if position and position_side == 'sell' and SHORT_BUY_SIGNAL:  # if a sell position exists and a short buy sig is found
+            if position and position_side == 'short' and SHORT_BUY_SIGNAL:  # if a sell position exists and a short buy sig is found
 
                 buy_order_data = {
                     'symbol': ticker,
