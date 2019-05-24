@@ -31,10 +31,11 @@ slack_headers = {
 }
 
 
-def slackit(msg):
+def slackit(channel, msg):
 
     '''
     :param msg: text to be posted
+           channel: channel to post
     :return: response.text (ok)
     '''
 
@@ -44,14 +45,14 @@ def slackit(msg):
 
     data = {"text": msg}
 
-    if config.live_trade:
-        slack_url = config.slack_live_url
-    elif not config.live_trade:             # i.e. paper
-        slack_url = config.slack_paper_url
-    else:                                   # health-check
-        slack_url = config.slack_health_check_url
+    if config.slack_channel == 'LIVE':
+        slack_url = "https://hooks.slack.com/services/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"  # ADD BEFORE RUNNLING LIVE!
+    elif config.slack_channel == 'PAPER':
+        slack_url = "https://hooks.slack.com/services/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"
+    elif channel == 'CHECK':
+        slack_url = "https://hooks.slack.com/services/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"
 
-    response = requests.post(url=slack_url, headers=slack_headers, data=str(data))
+    response = requests.post(url=config.slack_url, headers=slack_headers, data=str(data))
     return response.text
 
 
@@ -409,7 +410,7 @@ if __name__ == '__main__':
 
             if 'code' not in positions_response:
                 position = True
-                position_qty = int(positions_response['qty'])
+                position_qty = int(positions_response['qty']).__abs__()     # to make -ve units positive
                 position_side = positions_response['side']  # long or short
                 buy_price = round(float(positions_response['avg_entry_price']),2)
 
@@ -675,13 +676,15 @@ if __name__ == '__main__':
             #####        SHORT POSITIONS       #######
             ###########################################
 
+            shorting_enabled = False    # MANUAL OVERRIDE!!
 
 
             ################################ SHORT SIGNAL ###########################
 
             SHORT_SELL_SIGNAL = bool_short_momentum and \
                                 bool_downtrend_1m and \
-                                not bool_closing_time
+                                not bool_closing_time \
+                                and shorting_enabled
 
             # TODO: Check for support before selling
 
@@ -692,7 +695,8 @@ if __name__ == '__main__':
 
             SHORT_BUY_SIGNAL = bool_buy_profit_target or \
                                (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
-                               (bool_buy_price_below_sell and bool_closing_time)
+                               (bool_buy_price_below_sell and bool_closing_time) \
+                               and shorting_enabled
 
             logging.info(f'[{ticker}] short_buy_signal:   {SHORT_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
@@ -899,7 +903,7 @@ if __name__ == '__main__':
 
                     trade_text = f'[{ticker}] [{current_ts}] BUY {position_qty} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
 
-                    slackit(msg=trade_text)    # post to slack
+                    slackit(channel=config.slack_channel, msg=trade_text)    # post to slack
 
                 # signals.append(signal)
 
@@ -998,7 +1002,7 @@ if __name__ == '__main__':
 
                     # post to slack
 
-                    slackit(msg=sell_order_text)    # post to slack
+                    slackit(channel=config.slack_channel, msg=sell_order_text)    # post to slack
 
                 # signals.append(signal)
 
@@ -1085,7 +1089,7 @@ if __name__ == '__main__':
 
                     trade_text = f'[{ticker}] [{current_ts}] SELL {position_qty} @ ${sell_price} BUY @ ${buy_price} \n PNL ${profit}'
 
-                    slackit(msg=trade_text)    # post to slack
+                    slackit(channel=config.slack_channel, msg=trade_text)    # post to slack
 
                     # post to slack
 
@@ -1106,7 +1110,7 @@ if __name__ == '__main__':
 
         if health_check_alert_counter == 1:
             msg = f'[{config.slack_message_prefix}] [{current_ts}] [{ticker}] OK'
-            slackit(msg=msg)                    # Post to health-check slack channel
+            slackit(channel="CHECK", msg=msg)                    # Post to health-check slack channel
         elif health_check_alert_counter > 120:
             health_check_alert_counter = 0
 
