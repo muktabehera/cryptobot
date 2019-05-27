@@ -45,14 +45,21 @@ def slackit(channel, msg):
 
     data = {"text": msg}
 
+    slack_url = ''
+
+
     if config.slack_channel == 'LIVE':
         slack_url = "https://hooks.slack.com/services/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"  # ADD BEFORE RUNNLING LIVE!
-    elif config.slack_channel == 'PAPER':
+    else: # config.slack_channel == 'PAPER':
         slack_url = "https://hooks.slack.com/services/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"
-    elif channel == 'CHECK':
+
+    if channel == 'CHECK':
         slack_url = "https://hooks.slack.com/services/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"
 
-    response = requests.post(url=config.slack_url, headers=slack_headers, data=str(data))
+    if channel == 'ERROR':
+        slack_url = "https://hooks.slack.com/services/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"
+
+    response = requests.post(url=slack_url, headers=slack_headers, data=str(data))
     return response.text
 
 
@@ -320,7 +327,7 @@ if __name__ == '__main__':
         log_file_date = datetime.now().strftime("%Y%m%d")
         logger = logging.getLogger(__name__)
 
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s',
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/{ticker}_{log_file_date}.log")
 
         if config.live_trade:
@@ -381,6 +388,7 @@ if __name__ == '__main__':
             account = requests.get(url=account_uri, headers=headers).json()
 
             shorting_enabled = account["shorting_enabled"]  # Only short if enabled, else go long only!!
+
             logging.info(f'[{ticker}] shorting_enabled = {shorting_enabled}')
 
             # LIMIT TOTAL TRADABLE AMOUNT
@@ -438,7 +446,7 @@ if __name__ == '__main__':
             # logging.debug(f'[{ticker}] NP_LL_1M:    {np_ll_1m}')
             logging.debug(f'[{ticker}] np_cl_1m:    {np_cl_1m}')
             logging.debug(f'[{ticker}] np_vl_1m:    {np_vl_1m}')
-            logging.debug(f'[{ticker}] np_tl_1m:    {np_tl_1m}')
+            # logging.debug(f'[{ticker}] np_tl_1m:    {np_tl_1m}')      # TOO MUCH INFO FOR DEBUG
 
             ############### 5 MIN ###############
 
@@ -502,20 +510,20 @@ if __name__ == '__main__':
 
             sma_1m = talib.SMA(np_cl_1m, timeperiod=10) # 10 to keep it smooth
 
-            if (sma_1m[-1] > sma_1m[-2]) and (sma_1m[-2] > sma_1m[-3]):
+            if (sma_1m[-1] >= sma_1m[-2]) and (sma_1m[-2] >= sma_1m[-3]):   # > or = for uptrend to relax it a little
                 bool_uptrend_1m = True
-                logging.debug(f"bool_uptrend_1m[{bool_uptrend_1m} = {sma_1m[-1]} > {sma_1m[-2]}) and ({sma_1m[-2]} > {sma_1m[-3]}")
+                logging.debug(f"bool_uptrend_1m [{np_cl_1m[-1]}] [{bool_uptrend_1m} = {sma_1m[-1]} > {sma_1m[-2]}) and ({sma_1m[-2]} > {sma_1m[-3]}")
 
-            if (sma_1m[-1] < sma_1m[-2]) and (sma_1m[-2] < sma_1m[-3]):
+            if (sma_1m[-1] <= sma_1m[-2]) and (sma_1m[-2] <= sma_1m[-3]):
                 bool_downtrend_1m = True
-                logging.debug(f"bool_downtrend_1m [{bool_downtrend_1m}] = {sma_1m[-1]} < {sma_1m[-2]}) and ({sma_1m[-2]} < {sma_1m[-3]}")
+                logging.debug(f"bool_downtrend_1m [{np_cl_1m[-1]}]  [{bool_downtrend_1m}] = {sma_1m[-1]} < {sma_1m[-2]}) and ({sma_1m[-2]} < {sma_1m[-3]}")
 
-            if (sma_1m[-1] == sma_1m[-2]) and (sma_1m[-2] == sma_1m[-3]):
-                bool_sideways_1m = True
+            # if (sma_1m[-1] == sma_1m[-2]) and (sma_1m[-2] == sma_1m[-3]):
+            #     bool_sideways_1m = True
 
             logging.info(f'[{ticker}] bool_uptrend_1m:  {bool_uptrend_1m}')
             logging.info(f'[{ticker}] bool_downtrend_1m:  {bool_downtrend_1m}')
-            logging.info(f'[{ticker}] bool_sideways_1m:  {bool_sideways_1m}')
+            # logging.info(f'[{ticker}] bool_sideways_1m:  {bool_sideways_1m}')
 
 
             ################### BOLLINGER BANDS FOR DYNAMIC SUPPORT AND RESISTANCE
@@ -569,7 +577,7 @@ if __name__ == '__main__':
 
             units_to_buy = units_to_short = int(cash_limit / np_cl_1m[-1]) # assign same value to both
 
-            logging.info(f'[{ticker}] units_to_buy:    {units_to_buy}')
+            logging.info(f'[{ticker}] units_to_buy:     {units_to_buy}')
             logging.info(f'[{ticker}] units_to_sell:    {units_to_short}')
 
             # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
@@ -580,16 +588,17 @@ if __name__ == '__main__':
             # used to set -> sell_target_based_on_profit_percentage
 
             profit_percentage = float(config.profit_percentage)  # 0.2 for 20%
+            price_delta = float(config.price_delta)
 
             sell_target_based_on_profit_percentage = buy_price + (
-                    buy_price * profit_percentage)  # LONG, buy higher than buy price]
+                    buy_price * profit_percentage) + price_delta # LONG, buy higher than buy price]
 
             buy_target_based_on_profit_percentage = sell_price - (
-                    sell_price * profit_percentage)  # [shorting, buy even lower than sell price]
+                    sell_price * profit_percentage) - price_delta  # [shorting, buy even lower than sell price]
 
-            logging.info(f"[{ticker}] profit_percentage:   {profit_percentage}")
+            logging.info(f"[{ticker}] profit_percentage:   {profit_percentage}  price_delta:    {price_delta}")
             logging.info(f"[{ticker}] sell_target_based_on_profit_percentage:   {sell_target_based_on_profit_percentage}")
-            logging.info(f"[{ticker}] buy_target_based_on_profit_percentage:   {buy_target_based_on_profit_percentage}") # [shorting]
+            logging.info(f"[{ticker}] buy_target_based_on_profit_percentage:    {buy_target_based_on_profit_percentage}") # [shorting]
 
 
             ########################### BUY / SELL INDICATORS ####################
@@ -613,8 +622,6 @@ if __name__ == '__main__':
             logging.debug(f"bool_buy_profit_target [{bool_buy_profit_target}] = float({np_cl_1m[-1]}) <= float({buy_target_based_on_profit_percentage})")
 
             logging.info(f"[{ticker}] bool_closing_time:  {bool_closing_time}")
-            logging.info(f"[{ticker}] bool_buy_momentum:  {bool_buy_momentum}")
-            logging.info(f"[{ticker}] bool_buy_profit_target:  {bool_buy_profit_target} [{buy_target_based_on_profit_percentage}]") # [shorting]
 
 
             ################################ SELL AND SHORT INDICATORS #####################
@@ -636,9 +643,15 @@ if __name__ == '__main__':
             bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)
             # current price > sell target
 
+            logging.info(f"[{ticker}] bool_buy_momentum:  {bool_buy_momentum}")
             logging.info(f"[{ticker}] bool_sell_momentum:  {bool_sell_momentum} [{mom_cl_1m[-1]} < 0 AND {mom_cl_1m[-2]} < 0]")
+
             logging.info(f"[{ticker}] bool_sell_price_above_buy:  {bool_sell_price_above_buy} [{np_cl_1m[-1]} > {buy_price}]")
+            logging.info(f"[{ticker}] bool_buy_price_below_sell:  {bool_buy_price_below_sell} [{np_cl_1m[-1]} < {sell_price}]")
+
+            logging.info(f"[{ticker}] bool_buy_profit_target:  {bool_buy_profit_target} [{buy_target_based_on_profit_percentage}]")  # [shorting]
             logging.info(f"[{ticker}] bool_sell_profit_target:  {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
+
             logging.info(f"[{ticker}] bool_short_momentum:  {bool_short_momentum}")
 
             # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
@@ -676,8 +689,6 @@ if __name__ == '__main__':
             #####        SHORT POSITIONS       #######
             ###########################################
 
-            shorting_enabled = False    # MANUAL OVERRIDE!!
-
 
             ################################ SHORT SIGNAL ###########################
 
@@ -695,8 +706,7 @@ if __name__ == '__main__':
 
             SHORT_BUY_SIGNAL = bool_buy_profit_target or \
                                (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
-                               (bool_buy_price_below_sell and bool_closing_time) \
-                               and shorting_enabled
+                               (bool_buy_price_below_sell and bool_closing_time)
 
             logging.info(f'[{ticker}] short_buy_signal:   {SHORT_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
@@ -759,7 +769,9 @@ if __name__ == '__main__':
                     logging.info(f"[{ticker}] [long_buy_signal] [buy_order_id] {order_id}")
 
                 except Exception as e:
-                    logging.info(f'[{ticker}] [long_buy_signal] Error placing order: {str(e)}')
+                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m}] [{np_cl_1m}] [long_buy_signal] Error placing order: {str(e)}'
+                    logging.info(error_text)
+                    slackit(channel="ERROR", msg=error_text)
 
                 buy_order_executed = False
 
@@ -802,7 +814,7 @@ if __name__ == '__main__':
                     # sell_target_based_on_profit_percentage = buy_price + (
                     #             buy_price * profit_percentage)
 
-                    buy_order_text = f"[[{ticker}] [LONG_BUY_SIGNAL] {filled_at}] {str(buy_order_details['side']).upper()} ORDER OF {filled_qty} [{ticker}] EXECUTED @ {buy_price}" \
+                    buy_order_text = f"[{ticker}] [LONG_BUY_SIGNAL] {filled_at} {str(buy_order_details['side']).upper()} ORDER OF {filled_qty} [{ticker}] EXECUTED @ {buy_price}" \
                         f" TARGET ${sell_target_based_on_profit_percentage}"
 
                     logging.info(buy_order_text)
@@ -854,7 +866,9 @@ if __name__ == '__main__':
                     logging.info(f"[{ticker}] [long_sell_signal] [sell_order_id] [{order_id}] ")
 
                 except Exception as e:
-                    logging.info(f'[{ticker}] [long_sell_signal] ERROR PLACING ORDER: {str(e)}')
+                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m}] [{np_cl_1m}] [long_sell_signal] Error placing order: {str(e)}'
+                    logging.info(error_text)
+                    slackit(channel="ERROR", msg=error_text)
 
                 sell_order_executed = False
 
@@ -901,7 +915,7 @@ if __name__ == '__main__':
 
                     # slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
 
-                    trade_text = f'[{ticker}] [{current_ts}] BUY {position_qty} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
+                    trade_text = f'[{ticker}] [LONG] [{current_ts}] BUY {position_qty} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
 
                     slackit(channel=config.slack_channel, msg=trade_text)    # post to slack
 
@@ -925,7 +939,7 @@ if __name__ == '__main__':
 
             if not position and SHORT_SELL_SIGNAL:
 
-                sell_price = round(np_cl_1m[-2], 3)  # set sell price to 1 to 2 bars prior val
+                # sell_price = round(np_cl_1m[-2], 3)  # set sell price to 1 to 2 bars prior val
                 # for limit price, set sell_price
 
                 # https://docs.alpaca.markets/api-documentation/web-api/orders/
@@ -954,7 +968,10 @@ if __name__ == '__main__':
                     logging.info(f"[{ticker}] [short_sell_signal] [sell_order_id] [{order_id}] ")
 
                 except Exception as e:
-                    logging.info(f'[{ticker}] [short_sell_signal] ERROR PLACING ORDER: {str(e)}')
+                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m}] [{np_cl_1m}] [short_sell_signal] Error placing order: {str(e)}'
+                    logging.info(error_text)
+                    slackit(channel="ERROR", msg=error_text)
+
 
                 sell_order_executed = False
 
@@ -983,7 +1000,7 @@ if __name__ == '__main__':
 
                         logging.info(f"[{ticker}] [SHORT_SELL_SIGNAL] SELL ORDER STATUS:   {sell_order_placed['status']} ")
 
-                        time.sleep(10)  # WAIT 10 SECS BEFORE NEXT CHECK
+                        time.sleep(5)  # WAIT 10 SECS BEFORE NEXT CHECK
 
                     ###############
                     sell_price = round(float(sell_order_details['filled_avg_price']), 2)
@@ -1044,7 +1061,9 @@ if __name__ == '__main__':
                     logging.info(f"[{ticker}] [short_buy_signal] [buy_order_id] {order_id}")
 
                 except Exception as e:
-                    logging.info(f'[{ticker}] [short_buy_signal] Error placing order: {str(e)}')
+                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m}] [{np_cl_1m}] [short_buy_signal] Error placing order: {str(e)}'
+                    logging.info(error_text)
+                    slackit(channel="ERROR", msg=error_text)
 
                 buy_order_executed = False
 
@@ -1069,7 +1088,7 @@ if __name__ == '__main__':
 
                         logging.info(f"[{ticker}] [SHORT_BUY_SIGNAL] BUY_ORDER_STATUS:    {buy_order_placed['status']} ")
 
-                        time.sleep(5)  # WAIT 10 SECS BEFORE NEXT CHECK
+                        time.sleep(5)  # WAIT 5 SECS BEFORE NEXT CHECK
 
                     ###############
                     buy_price = float(buy_order_details['filled_avg_price'])  # ACTUAL FROM BUY ORDER
@@ -1080,14 +1099,13 @@ if __name__ == '__main__':
 
                     # # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
 
-                    buy_order_text = f"[[{ticker}] [SHORT_BUY_SIGNAL] [{filled_at}] {str(buy_order_details['side']).upper()} ORDER OF {filled_qty} [{ticker}] EXECUTED @ {buy_price}" \
-                        f" TARGET ${buy_target_based_on_profit_percentage}"
+                    buy_order_text = f"[{ticker}] [SHORT_BUY_SIGNAL] [{filled_at}] {str(buy_order_details['side']).upper()} ORDER OF {filled_qty} [{ticker}] EXECUTED @ {buy_price}"
 
                     logging.debug(buy_order_text)
 
                     profit = round((float(buy_price - sell_price) * position_qty), 2)
 
-                    trade_text = f'[{ticker}] [{current_ts}] SELL {position_qty} @ ${sell_price} BUY @ ${buy_price} \n PNL ${profit}'
+                    trade_text = f'[{ticker}] [SHORT] [{current_ts}] SELL {position_qty} @ ${sell_price} BUY @ ${buy_price} \n PNL ${profit}'
 
                     slackit(channel=config.slack_channel, msg=trade_text)    # post to slack
 
@@ -1106,10 +1124,10 @@ if __name__ == '__main__':
 
 
 
-        # HEALTH COUNTER START - send a message to slack every 60 min
+        # HEALTH CHECK
 
         if health_check_alert_counter == 1:
-            msg = f'[{config.slack_message_prefix}] [{current_ts}] [{ticker}] OK'
+            msg = f'[CHECK] [{current_ts}] [{ticker}] OK'
             slackit(channel="CHECK", msg=msg)                    # Post to health-check slack channel
         elif health_check_alert_counter > 120:
             health_check_alert_counter = 0
@@ -1120,16 +1138,10 @@ if __name__ == '__main__':
 
         secs_to_sleep = 60
 
-        # logging.info('\n')
-        # sleeping_time = f'[{ticker}] [{current_ts}] SLEEPING {secs_to_sleep} SECONDS'
-        # logging.info(sleeping_time)
-
-        # slackit(channel='apca-paper', msg=sleeping_time)
-
         x += 1
 
         # logging.info('\n')
-        logging.info('--'*20)
+        logging.info('--'*40)
         time.sleep(int(secs_to_sleep))
 
 
