@@ -7,7 +7,13 @@ data_api_version = 'v1'
 
 position_size = 0.25        # Position sizing
 closing_window = 60         # time left for market to close
-profit_percentage = 0.02    # profit taking percentage - used in a sell signal
+
+
+profit_percentage = 0.00    # profit taking percentage - used in a sell signal
+price_delta = 0             # use either profit percentage or price delta
+
+if profit_percentage == 0:
+    price_delta = 0.5       # 50 Cents
 
 slack_channel = ''
 
@@ -22,8 +28,8 @@ if live_trade: # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PK9GRDFTZGJLPM4PVKZI'
-    APCA_API_SECRET_KEY = 'VvNkNlYT8VyA8p3y9OOKuYC9P2iPrdFhtDdfws7B'
+    APCA_API_KEY_ID = 'PKTP2O1VNOM5YGN6TVUJ'
+    APCA_API_SECRET_KEY = 'chVu2ZMQ54qX/WnwejWs7PqQ/RKcXKP6/7DRvJwy'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_channel = 'PAPER'
 
