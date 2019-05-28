@@ -1136,7 +1136,7 @@ if __name__ == '__main__':
 
         # HEALTH COUNTER END
 
-        secs_to_sleep = 60
+        secs_to_sleep = 30
 
         x += 1
 
