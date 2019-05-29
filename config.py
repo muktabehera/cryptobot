@@ -6,7 +6,7 @@ api_version = 'v2'
 data_api_version = 'v1'
 
 position_size = 0.25        # Position sizing
-closing_window = 60         # time left for market to close
+closing_window = 120         # time left for market to close
 
 
 profit_percentage = 0.00    # profit taking percentage - used in a sell signal

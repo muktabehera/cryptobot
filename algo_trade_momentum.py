@@ -596,9 +596,11 @@ if __name__ == '__main__':
             buy_target_based_on_profit_percentage = sell_price - (
                     sell_price * profit_percentage) - price_delta  # [shorting, buy even lower than sell price]
 
+            # ---> Calculated again below for LONG BUY and SHORT SELL
+
             logging.info(f"[{ticker}] profit_percentage:   {profit_percentage}  price_delta:    {price_delta}")
-            logging.info(f"[{ticker}] sell_target_based_on_profit_percentage:   {sell_target_based_on_profit_percentage}")
-            logging.info(f"[{ticker}] buy_target_based_on_profit_percentage:    {buy_target_based_on_profit_percentage}") # [shorting]
+            # logging.info(f"[{ticker}] sell_target_based_on_profit_percentage:   {sell_target_based_on_profit_percentage}")
+            # logging.info(f"[{ticker}] buy_target_based_on_profit_percentage:    {buy_target_based_on_profit_percentage}") # [shorting]
 
 
             ########################### BUY / SELL INDICATORS ####################
@@ -803,16 +805,10 @@ if __name__ == '__main__':
                     ###############
 
                     sell_target_based_on_profit_percentage = buy_price + (
-                            buy_price * profit_percentage)  # LONG, buy higher than buy price]
+                            buy_price * profit_percentage) + price_delta  # LONG, buy higher than buy price]
 
                     filled_at = buy_order_details['filled_at']
                     filled_qty = buy_order_details['filled_qty']
-
-
-                    # # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
-                    #
-                    # sell_target_based_on_profit_percentage = buy_price + (
-                    #             buy_price * profit_percentage)
 
                     buy_order_text = f"[{ticker}] [LONG_BUY_SIGNAL] {filled_at} {str(buy_order_details['side']).upper()} ORDER OF {filled_qty} [{ticker}] EXECUTED @ {buy_price}" \
                         f" TARGET ${sell_target_based_on_profit_percentage}"
@@ -1007,7 +1003,7 @@ if __name__ == '__main__':
                     ###############
 
                     buy_target_based_on_profit_percentage = sell_price - (
-                            sell_price * profit_percentage)  # [shorting, buy even lower than sell price]
+                            sell_price * profit_percentage) - price_delta # [shorting, buy even lower than sell price]
 
                     filled_at = sell_order_details['filled_at']
 
@@ -1103,7 +1099,7 @@ if __name__ == '__main__':
 
                     logging.debug(buy_order_text)
 
-                    profit = round((float(buy_price - sell_price) * position_qty), 2)
+                    profit = round((float(sell_price - buy_price) * position_qty), 2)   # shorting profit reversed
 
                     trade_text = f'[{ticker}] [SHORT] [{current_ts}] SELL {position_qty} @ ${sell_price} BUY @ ${buy_price} \n PNL ${profit}'
 
