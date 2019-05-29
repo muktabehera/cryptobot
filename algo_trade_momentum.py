@@ -758,7 +758,7 @@ if __name__ == '__main__':
                 }
                 buy_order_data = json.dumps(buy_order_data)
 
-                logging.info(f'[{ticker}] [long_buy_signal] buy_order_data: {buy_order_data}')
+                logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_buy_signal] buy_order_data: {buy_order_data}')
 
                 buy_order_sent = False
 
@@ -771,7 +771,7 @@ if __name__ == '__main__':
                     logging.info(f"[{ticker}] [long_buy_signal] [buy_order_id] {order_id}")
 
                 except Exception as e:
-                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m}] [{np_cl_1m}] [long_buy_signal] Error placing order: {str(e)}'
+                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_buy_signal] Error placing order: {str(e)}'
                     logging.info(error_text)
                     slackit(channel="ERROR", msg=error_text)
 
@@ -833,7 +833,7 @@ if __name__ == '__main__':
 
             if position and position_side == 'long' and LONG_SELL_SIGNAL:
 
-                sell_price = round(np_cl_1m[-2], 3)  # set sell price to 1 to 2 bars prior val
+                # sell_price = round(np_cl_1m[-2], 3)  # set sell price to 1 to 2 bars prior val
                 # for limit price, set sell_price
 
                 # https://docs.alpaca.markets/api-documentation/web-api/orders/
@@ -849,7 +849,7 @@ if __name__ == '__main__':
                 }
                 sell_order_data = json.dumps(sell_order_data)
 
-                logging.info(f'[{ticker}] [long_sell_signal] sell_order_data:    {sell_order_data}')
+                logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_sell_signal] sell_order_data:    {sell_order_data}')
 
                 sell_order_sent = False
 
@@ -862,7 +862,7 @@ if __name__ == '__main__':
                     logging.info(f"[{ticker}] [long_sell_signal] [sell_order_id] [{order_id}] ")
 
                 except Exception as e:
-                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m}] [{np_cl_1m}] [long_sell_signal] Error placing order: {str(e)}'
+                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_sell_signal] Error placing order: {str(e)}'
                     logging.info(error_text)
                     slackit(channel="ERROR", msg=error_text)
 
@@ -880,7 +880,7 @@ if __name__ == '__main__':
 
                         sell_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 
-                        waiting_to_sell = f"[{ticker}] [LONG_SELL_SIGNAL] [SELL] [WAITING_TO_EXECUTE] [{sell_order_details['submitted_at']}] " \
+                        waiting_to_sell = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [LONG_SELL_SIGNAL] [SELL] [WAITING_TO_EXECUTE] [{sell_order_details['submitted_at']}] " \
                             f"[{sell_order_details['status']}] {sell_order_details['side']} " \
                             f"order for {sell_order_details['qty']} shares of {sell_order_details['symbol']}"
 
@@ -951,7 +951,7 @@ if __name__ == '__main__':
                 }
                 sell_order_data = json.dumps(sell_order_data)
 
-                logging.info(f'[{ticker}] [short_sell_signal] sell_order_data:    {sell_order_data}')
+                logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_sell_signal] sell_order_data:    {sell_order_data}')
 
                 sell_order_sent = False
 
@@ -964,7 +964,7 @@ if __name__ == '__main__':
                     logging.info(f"[{ticker}] [short_sell_signal] [sell_order_id] [{order_id}] ")
 
                 except Exception as e:
-                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m}] [{np_cl_1m}] [short_sell_signal] Error placing order: {str(e)}'
+                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_sell_signal] Error placing order: {str(e)}'
                     logging.info(error_text)
                     slackit(channel="ERROR", msg=error_text)
 
@@ -983,7 +983,7 @@ if __name__ == '__main__':
 
                         sell_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 
-                        waiting_to_sell = f"[{ticker}] [SHORT_SELL_SIGNAL] [SELL] [WAITING_TO_EXECUTE] [{sell_order_details['submitted_at']}] " \
+                        waiting_to_sell = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [SHORT_SELL_SIGNAL] [SELL] [WAITING_TO_EXECUTE] [{sell_order_details['submitted_at']}] " \
                             f"[{sell_order_details['status']}] {sell_order_details['side']} " \
                             f"order for {sell_order_details['qty']} shares of {sell_order_details['symbol']}"
 
@@ -1014,15 +1014,15 @@ if __name__ == '__main__':
                     logging.debug(sell_order_text)
 
                     # post to slack
-
-                    slackit(channel=config.slack_channel, msg=sell_order_text)    # post to slack
+                    # --- > commented due to too many alerts
+                    # slackit(channel=config.slack_channel, msg=sell_order_text)    # post to slack
 
                 # signals.append(signal)
 
                 logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{sell_price}]     '
                       f'[SHORT_SELL_SIGNAL]      {SHORT_SELL_SIGNAL}            '
                       f'bool_short_momentum    {bool_short_momentum}         '
-                      f'position    {position}              '
+                      f'position    {position}[{position_qty}]              '
                       f'bool_closing_time     {bool_closing_time}          '
                       f'buy_target_based_on_profit_percentage [{buy_target_based_on_profit_percentage}] {bool_buy_profit_target}  '
                       f'bool_buy_price_below_sell       {bool_buy_price_below_sell}')
@@ -1044,7 +1044,7 @@ if __name__ == '__main__':
                 }
                 buy_order_data = json.dumps(buy_order_data)
 
-                logging.debug(f'[{ticker}] [short_buy_signal] buy_order_data: {buy_order_data}')
+                logging.debug(f'[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_buy_signal] buy_order_data: {buy_order_data}')
 
                 buy_order_sent = False
 
@@ -1057,7 +1057,7 @@ if __name__ == '__main__':
                     logging.info(f"[{ticker}] [short_buy_signal] [buy_order_id] {order_id}")
 
                 except Exception as e:
-                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m}] [{np_cl_1m}] [short_buy_signal] Error placing order: {str(e)}'
+                    error_text = f'[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_buy_signal] Error placing order: {str(e)}'
                     logging.info(error_text)
                     slackit(channel="ERROR", msg=error_text)
 
@@ -1075,7 +1075,7 @@ if __name__ == '__main__':
 
                         buy_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 
-                        logging.info(f"[{ticker}] [SHORT_BUY_SIGNAL] [BUY] [WAITING_TO_EXECUTE] [{buy_order_details['submitted_at']}] "
+                        logging.info(f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [SHORT_BUY_SIGNAL] [BUY] [WAITING_TO_EXECUTE] [{buy_order_details['submitted_at']}] "
                               f"[{buy_order_details['status']}] {buy_order_details['side']} "
                               f"order for {buy_order_details['qty']} shares of {buy_order_details['symbol']}")
 
@@ -1095,7 +1095,7 @@ if __name__ == '__main__':
 
                     # # TODO: [IMPORTANT] Use actual fill price to derive sell_target_based_on_profit_percentage
 
-                    buy_order_text = f"[{ticker}] [SHORT_BUY_SIGNAL] [{filled_at}] {str(buy_order_details['side']).upper()} ORDER OF {filled_qty} [{ticker}] EXECUTED @ {buy_price}"
+                    buy_order_text = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]  [SHORT_BUY_SIGNAL] [{filled_at}] {str(buy_order_details['side']).upper()} ORDER OF {filled_qty} [{ticker}] EXECUTED @ {buy_price}"
 
                     logging.debug(buy_order_text)
 
