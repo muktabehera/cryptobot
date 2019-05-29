@@ -817,7 +817,7 @@ if __name__ == '__main__':
 
                     # slackit(channel='apca_paper', msg=buy_order_text)  # post to slack
 
-                    logging.info(f'[{ticker}] [{np_cl_1m[-1]}] [{buy_price}] [{filled_at}]     '
+                    logging.debug(f'[{ticker}] [{np_cl_1m[-1]}] [{buy_price}] [{filled_at}]     '
                           f'[long_buy_signal]       {LONG_BUY_SIGNAL}            '
                           f'bool_buy_momentum    {bool_buy_momentum}          '
                           f'position    {position}[{position_qty}]             '
@@ -913,11 +913,12 @@ if __name__ == '__main__':
 
                     trade_text = f'[{ticker}] [LONG] [{current_ts}] BUY {position_qty} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
 
+                    logging.info(trade_text)
                     slackit(channel=config.slack_channel, msg=trade_text)    # post to slack
 
                 # signals.append(signal)
 
-                logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{sell_price}]     '
+                logging.debug(f'[{ticker}] [{np_tl_1m[-1]}] [{sell_price}]     '
                       f'[long_sell_signal]      {LONG_SELL_SIGNAL}            '
                       f'MOMENbool_sell_momentumTUM    {bool_sell_momentum}         '
                       f'position    {position}              '
@@ -1011,7 +1012,7 @@ if __name__ == '__main__':
 
                     sell_order_text = f'[{ticker}] [SHORT_SELL_SIGNAL] [{filled_at}] [EXECUTED] {side} ORDER WAS EXECUTED @ {sell_price}'
 
-                    logging.debug(sell_order_text)
+                    logging.info(sell_order_text)
 
                     # post to slack
                     # --- > commented due to too many alerts
@@ -1019,7 +1020,7 @@ if __name__ == '__main__':
 
                 # signals.append(signal)
 
-                logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{sell_price}]     '
+                logging.debug(f'[{ticker}] [{np_tl_1m[-1]}] [{sell_price}]     '
                       f'[SHORT_SELL_SIGNAL]      {SHORT_SELL_SIGNAL}            '
                       f'bool_short_momentum    {bool_short_momentum}         '
                       f'position    {position}[{position_qty}]              '
@@ -1103,11 +1104,12 @@ if __name__ == '__main__':
 
                     trade_text = f'[{ticker}] [SHORT] [{current_ts}] SELL {position_qty} @ ${sell_price} BUY @ ${buy_price} \n PNL ${profit}'
 
+                    logging.info(trade_text)
                     slackit(channel=config.slack_channel, msg=trade_text)    # post to slack
 
                     # post to slack
 
-                    logging.info(f'[{ticker}] [SHORT_BUY_SIGNAL] [{np_cl_1m[-1]}] [{buy_price}] [{filled_at}]     '
+                    logging.debug(f'[{ticker}] [SHORT_BUY_SIGNAL] [{np_cl_1m[-1]}] [{buy_price}] [{filled_at}]     '
                           f'[SHORT_BUY_SIGNAL]       {SHORT_BUY_SIGNAL}            '
                           f'bool_close_short_momentum    {bool_close_short_momentum}          '
                           f'position    {position}[{position_qty}]             '
