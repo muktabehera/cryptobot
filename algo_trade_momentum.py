@@ -374,7 +374,7 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if market_is_open:
+        if not market_is_open:
 
             # ready to trade
             # TODO: Post Market Open and Close to SLACK
@@ -431,6 +431,7 @@ if __name__ == '__main__':
 
             logging.info(f'[{ticker}] current_position: [{position_qty}]    side:   [{position_side}]')
             logging.info(f'[{ticker}] buy_price:    ${buy_price}')
+            logging.info(f'[{ticker}] sell_price:    ${sell_price}')
 
 
             ############ >_< FETCH TICKERS BASED ON CURRENT TS ############
