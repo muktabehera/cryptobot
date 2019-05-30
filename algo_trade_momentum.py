@@ -370,7 +370,7 @@ if __name__ == '__main__':
         else:
             trading_time_left = 0
 
-        logging.info(f'[{x}] market_is_open: {market_is_open} time_left:  {trading_time_left} mins')
+        logging.info(f'[{ticker}] [{x}] market_is_open: {market_is_open} time_left:  {trading_time_left} mins')
 
         # new_bar_available = True
 
@@ -420,9 +420,16 @@ if __name__ == '__main__':
                 position = True
                 position_qty = int(positions_response['qty']).__abs__()     # to make -ve units positive
                 position_side = positions_response['side']  # long or short
-                buy_price = round(float(positions_response['avg_entry_price']),2)
 
-            logging.info(f'[{ticker}] current_position: [{position_qty}]')
+                if position_side == 'long':
+                    buy_price = round(float(positions_response['avg_entry_price']),2)
+                    sell_price = 0.0
+
+                if position_side == 'short':
+                    buy_price = 0.0
+                    sell_price = round(float(positions_response['avg_entry_price']), 2)
+
+            logging.info(f'[{ticker}] current_position: [{position_qty}]    side:   [{position_side}]')
             logging.info(f'[{ticker}] buy_price:    ${buy_price}')
 
 
