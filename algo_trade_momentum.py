@@ -47,7 +47,6 @@ def slackit(channel, msg):
 
     slack_url = ''
 
-
     if config.slack_channel == 'LIVE':
         slack_url = "https://hooks.slack.com/services/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"  # ADD BEFORE RUNNLING LIVE!
     else: # config.slack_channel == 'PAPER':
@@ -374,7 +373,7 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if market_is_open:
+        if not market_is_open:
 
             # ready to trade
             # TODO: Post Market Open and Close to SLACK
@@ -583,7 +582,10 @@ if __name__ == '__main__':
 
             trade_left_open = False  # to check if a trade was left open, initial False
 
-            units_to_buy = units_to_short = int(cash_limit / np_cl_1m[-1]) # assign same value to both
+            units_to_buy = units_to_short = int(cash_limit / np_cl_1m[-1])  # assign same value to both
+
+            if position_qty > 0:
+                units_to_buy = units_to_short = 0
 
             logging.info(f'[{ticker}] units_to_buy:     {units_to_buy}')
             logging.info(f'[{ticker}] units_to_sell:    {units_to_short}')
