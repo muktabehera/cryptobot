@@ -9,7 +9,7 @@ position_size = 0.25        # Position sizing
 closing_window = 120         # time left for market to close
 
 
-profit_percentage = 0.00    # profit taking percentage - used in a sell signal
+profit_percentage = 0.1   # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0             # use either profit percentage or price delta
 
 if profit_percentage == 0:
@@ -17,7 +17,7 @@ if profit_percentage == 0:
 
 slack_channel = ''
 
-if live_trade: # LIVE!!!
+if live_trade:  # LIVE!!!
 
     APCA_LIVE_BASE_URL = 'https://api.alpaca.markets'
     APCA_API_KEY_ID = " "
@@ -51,13 +51,6 @@ ticker = {
     "CTSH": "CTSH",
     "FB":   "FB"
 }
-
-
-
-
-
-
-
 
 
 ############ BACKTEST ONLY ##################

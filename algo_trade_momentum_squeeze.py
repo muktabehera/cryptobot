@@ -17,6 +17,8 @@ import dateutil.parser
 import numpy as np
 import talib  # https://mrjbq7.github.io/ta-lib/
 
+from sklearn import linear_model
+
 nyc = pytz.timezone('America/New_York')
 
 
@@ -197,6 +199,7 @@ def fetch_bars():
         cl_1m.append(v1m['c'])
         vl_1m.append(v1m['v'])
         tl_1m.append(v1m_ts)
+        float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
 
         # convert to 1m np array
         # added datatype float to avoid real is not double error during MOM cacl
@@ -206,6 +209,7 @@ def fetch_bars():
         np_cl_1m = np.array(cl_1m, dtype=float)
         np_vl_1m = np.array(vl_1m, dtype=float)
         np_tl_1m = np.array(tl_1m)
+        float_np_tl_1m = np.array(float_tl_1m, dtype=float)
 
     # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
@@ -258,7 +262,8 @@ def fetch_bars():
         "np_ll_1m": np_ll_1m,
         "np_cl_1m": np_cl_1m,
         "np_vl_1m": np_vl_1m,
-        "np_tl_1m": np_tl_1m
+        "np_tl_1m": np_tl_1m,
+        "float_np_tl_1m": float_np_tl_1m
     }
 
     '''
@@ -350,7 +355,7 @@ if __name__ == '__main__':
         cl_1m = list()
         vl_1m = list()
         tl_1m = list()
-
+        float_tl_1m = list()
 
         # logging.info(f'Entering x = {x}')
 
@@ -373,7 +378,7 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if not market_is_open:
+        if market_is_open:
 
             # ready to trade
             # TODO: Post Market Open and Close to SLACK
@@ -446,7 +451,7 @@ if __name__ == '__main__':
             np_cl_1m = bars['np_cl_1m']
             np_vl_1m = bars['np_vl_1m']
             np_tl_1m = bars['np_tl_1m']
-
+            float_np_tl_1m = bars['float_np_tl_1m']
 
             # logging.debug(f'[{ticker}] NP_OL_1M:    {np_ol_1m}')
             logging.debug(f'[{ticker}] NP_HL_1M:    {np_hl_1m}')
@@ -562,7 +567,7 @@ if __name__ == '__main__':
             
             '''
 
-            ema20_1m = talib.EMA(np_cl_1m, period=20)
+            ema20_1m = talib.EMA(np_cl_1m, timeperiod=20)
             atr10_1m = talib.ATR(np_hl_1m, np_ll_1m, np_cl_1m, timeperiod=10)
 
             keltner_upperband_cl_1m = ema20_1m[-1] + (2 * atr10_1m[-1])
@@ -588,25 +593,47 @@ if __name__ == '__main__':
 
             squeeze_bb_justoutof_keltner = False
             squeeze_mom_is_positive = False
+            squeeze_positive_histogram_drop = False
+            squeeze_negative_histogram_drop = False
 
             if bb_cl_upperband_1m[-1] > keltner_upperband_cl_1m[-1] \
                 and bb_cl_upperband_1m[-2] < keltner_upperband_cl_1m[-2] \
                 and bb_cl_upperband_1m[-3] < keltner_upperband_cl_1m[-3] \
-                and bb_cl_upperband_1m[-4] < keltner_upperband_cl_1m[-4] \
                 and bb_cl_lowerband_1m[-1] < keltner_lowerband_cl_1m[-1] \
                 and bb_cl_lowerband_1m[-2] > keltner_lowerband_cl_1m[-2] \
-                and bb_cl_lowerband_1m[-3] > keltner_lowerband_cl_1m[-3] \
-                and bb_cl_lowerband_1m[-4] > keltner_lowerband_cl_1m[-4]:
+                and bb_cl_lowerband_1m[-3] > keltner_lowerband_cl_1m[-3]:
 
                     squeeze_bb_justoutof_keltner = True
 
             if mom_cl_1m[-1] > 0:
                 squeeze_mom_is_positive = True
 
+            # REF: https://www.tradingview.com/script/nqQ1DT5a-Squeeze-Momentum-Indicator-LazyBear/
+                # var = avg(avg(max(np_hl_1m, 20), min(np_ll_1m, 20)), sma(close, 20))
+                # val = linreg(np_cl_1m - var)
 
+            # Ref: http://beancoder.com/linear-regression-stock-prediction/
 
-            squeeze_positive_histogram_drop = False
-            squeeze_negative_histogram_drop = False
+            sma20_1m = talib.SMA(np_cl_1m, timeperiod=20)
+
+            np_reg_param_1m = np_cl_1m - (max(np_hl_1m) + min(np_ll_1m) + sma20_1m[-1])/3
+
+            float_np_tl_1m_2d = float_np_tl_1m.reshape(-1,1)
+            np_reg_param_1m_2d = np_reg_param_1m.reshape(-1,1)
+
+            linear_mod = linear_model.LinearRegression()
+            linear_mod.fit(float_np_tl_1m_2d, np_reg_param_1m_2d)
+            squeeze_hist_2d = linear_mod.predict(float_np_tl_1m_2d)    # return the plot made by linear regression
+
+            squeeze_hist = squeeze_hist_2d.flatten()    # convert results back to 1D array
+
+            if squeeze_mom_is_positive and (squeeze_hist[-1] < squeeze_hist[-2]):
+                squeeze_positive_histogram_drop = True
+
+            if not squeeze_mom_is_positive and (squeeze_hist[-1] > squeeze_hist[-2]):
+                squeeze_negative_histogram_drop = True
+
+            ##################### >> SQUEEZE SIGNALS << #####################
 
             squeeze_long_buy = squeeze_bb_justoutof_keltner and squeeze_mom_is_positive
             squeeze_long_sell = position and squeeze_positive_histogram_drop
@@ -614,12 +641,18 @@ if __name__ == '__main__':
             squeeze_short_sell = squeeze_bb_justoutof_keltner and not squeeze_mom_is_positive
             squeeze_short_buy = position and squeeze_negative_histogram_drop
 
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_hist:  {squeeze_hist}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_bb_justoutof_keltner:  {squeeze_bb_justoutof_keltner}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_mom_is_positive:  {squeeze_mom_is_positive}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_positive_histogram_drop:  {squeeze_positive_histogram_drop}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_negative_histogram_drop:  {squeeze_negative_histogram_drop}')
 
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_long_buy:  {squeeze_long_buy}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_long_sell:  {squeeze_long_sell}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_short_sell:  {squeeze_short_sell}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_short_buy:  {squeeze_short_buy}')
 
-
-
-
-
+            ##################### >> SQUEEZE SIGNALS << ##################################
 
 
             ######### BULL FLAG EXCEPTION ##########
@@ -749,8 +782,11 @@ if __name__ == '__main__':
 
             ################################ BUY SIGNAL ###########################
 
-            LONG_BUY_SIGNAL = bool_buy_momentum and \
-                              bool_uptrend_1m and \
+            # LONG_BUY_SIGNAL = bool_buy_momentum and \
+            #                   bool_uptrend_1m and \
+            #                   not bool_closing_time
+
+            LONG_BUY_SIGNAL = squeeze_long_buy and \
                               not bool_closing_time
 
             logging.info(f'[{ticker}] long_buy_signal:  {LONG_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
@@ -760,8 +796,12 @@ if __name__ == '__main__':
 
             ################################ SELL SIGNAL ###########################
 
+            # LONG_SELL_SIGNAL = bool_sell_profit_target or \
+            #                    (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
+            #                    (bool_sell_price_above_buy and bool_closing_time)
+
             LONG_SELL_SIGNAL = bool_sell_profit_target or \
-                               (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
+                               (squeeze_long_sell and bool_sell_price_above_buy and not bull_flag_1m) or \
                                (bool_sell_price_above_buy and bool_closing_time)
 
             # SELL only if a buy position exists.
@@ -776,8 +816,12 @@ if __name__ == '__main__':
 
             ################################ SHORT SIGNAL ###########################
 
-            SHORT_SELL_SIGNAL = bool_short_momentum and \
-                                bool_downtrend_1m and \
+            # SHORT_SELL_SIGNAL = bool_short_momentum and \
+            #                     bool_downtrend_1m and \
+            #                     not bool_closing_time \
+            #                     and shorting_enabled
+
+            SHORT_SELL_SIGNAL = squeeze_short_buy and \
                                 not bool_closing_time \
                                 and shorting_enabled
 
@@ -788,8 +832,12 @@ if __name__ == '__main__':
 
             ################################ CLOSE SHORT SIGNAL #####################
 
+            # SHORT_BUY_SIGNAL = bool_buy_profit_target or \
+            #                    (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
+            #                    (bool_buy_price_below_sell and bool_closing_time)
+
             SHORT_BUY_SIGNAL = bool_buy_profit_target or \
-                               (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
+                               (squeeze_short_buy and bool_buy_price_below_sell and not bear_flag_1m) or \
                                (bool_buy_price_below_sell and bool_closing_time)
 
             logging.info(f'[{ticker}] short_buy_signal:   {SHORT_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
