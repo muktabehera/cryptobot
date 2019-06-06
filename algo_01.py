@@ -380,7 +380,7 @@ for ticker in tickers:
 
     trade_left_open = False     # to check if a trade was left open, initial False
 
-    units_to_trade = config.units_to_trade
+    units_to_trade = 1  # config.units_to_trade
     # TODO: [IMPORTANT] derive units to trade dynamically based on cash balance and position size
     # TODO: handle partial fills
 

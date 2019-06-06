@@ -378,7 +378,7 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if market_is_open:
+        if not market_is_open:
 
             # ready to trade
             # TODO: Post Market Open and Close to SLACK
@@ -570,8 +570,8 @@ if __name__ == '__main__':
             ema20_1m = talib.EMA(np_cl_1m, timeperiod=20)
             atr10_1m = talib.ATR(np_hl_1m, np_ll_1m, np_cl_1m, timeperiod=10)
 
-            keltner_upperband_cl_1m = ema20_1m[-1] + (2 * atr10_1m[-1])
-            keltner_lowerband_cl_1m = ema20_1m[-1] - (2 * atr10_1m[-1])
+            keltner_upperband_cl_1m = ema20_1m + (2 * atr10_1m)
+            keltner_lowerband_cl_1m = ema20_1m - (2 * atr10_1m)
             # keltner_midband_cl_1m = ema20_1m[-1]
 
 
@@ -591,10 +591,10 @@ if __name__ == '__main__':
 
             # Bollinger bands move inside ketler channels
 
-            squeeze_bb_justoutof_keltner = False
-            squeeze_mom_is_positive = False
-            squeeze_positive_histogram_drop = False
-            squeeze_negative_histogram_drop = False
+            squeeze_bb_justoutof_keltner = False        # defaults
+            squeeze_mom_is_positive = False             # defaults
+            squeeze_positive_histogram_drop = False     # defaults
+            squeeze_negative_histogram_drop = False     # defaults
 
             if bb_cl_upperband_1m[-1] > keltner_upperband_cl_1m[-1] \
                 and bb_cl_upperband_1m[-2] < keltner_upperband_cl_1m[-2] \
@@ -603,7 +603,7 @@ if __name__ == '__main__':
                 and bb_cl_lowerband_1m[-2] > keltner_lowerband_cl_1m[-2] \
                 and bb_cl_lowerband_1m[-3] > keltner_lowerband_cl_1m[-3]:
 
-                    squeeze_bb_justoutof_keltner = True
+                squeeze_bb_justoutof_keltner = True
 
             if mom_cl_1m[-1] > 0:
                 squeeze_mom_is_positive = True
@@ -615,17 +615,30 @@ if __name__ == '__main__':
             # Ref: http://beancoder.com/linear-regression-stock-prediction/
 
             sma20_1m = talib.SMA(np_cl_1m, timeperiod=20)
+            sma20_1m = sma20_1m[-20:]    # splice to recent 20 values
 
-            np_reg_param_1m = np_cl_1m - (max(np_hl_1m) + min(np_ll_1m) + sma20_1m[-1])/3
+            # calculate squeeze histogram
 
-            float_np_tl_1m_2d = float_np_tl_1m.reshape(-1,1)
-            np_reg_param_1m_2d = np_reg_param_1m.reshape(-1,1)
+            inner_avg = np.average((max(np_hl_1m[-20:]), min(np_ll_1m[-20:])))  # splice to recent 20 values
+            np_inner_avg = np.full((20), inner_avg) # create a np array of len 20 with identical vals i.e. avg
 
+            a = np.array([np_inner_avg,sma20_1m])
+            outer_avg = np.average(a, axis=0)   # axis=0 to return an array instead of one val
+
+            np_reg_param_1m = np_cl_1m[-20:] - outer_avg  # splice to last 20 to keep it consistent
+
+            float_np_tl_1m_2d = float_np_tl_1m[-20:].reshape(-1,1)    # convert / reshape to 2d np array
+            np_reg_param_1m_2d = np_reg_param_1m.reshape(-1,1)  # convert to 2d np array
+
+            # linear regression model
             linear_mod = linear_model.LinearRegression()
             linear_mod.fit(float_np_tl_1m_2d, np_reg_param_1m_2d)
-            squeeze_hist_2d = linear_mod.predict(float_np_tl_1m_2d)    # return the plot made by linear regression
+
+            # return the plot made by linear regression using predict on ts_1m
+            squeeze_hist_2d = linear_mod.predict(float_np_tl_1m_2d)
 
             squeeze_hist = squeeze_hist_2d.flatten()    # convert results back to 1D array
+            # TODO: Plot squeeze histogram
 
             if squeeze_mom_is_positive and (squeeze_hist[-1] < squeeze_hist[-2]):
                 squeeze_positive_histogram_drop = True
@@ -640,8 +653,13 @@ if __name__ == '__main__':
 
             squeeze_short_sell = squeeze_bb_justoutof_keltner and not squeeze_mom_is_positive
             squeeze_short_buy = position and squeeze_negative_histogram_drop
+            # pair squeeze_short_buy only with squeeze_short_sell, doesn't make sense by itself
 
             logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_hist:  {squeeze_hist}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_cl_1m:  {np_cl_1m[-20:]}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_tl_1m:  {np_tl_1m[-20:]}')
+
+
             logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_bb_justoutof_keltner:  {squeeze_bb_justoutof_keltner}')
             logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_mom_is_positive:  {squeeze_mom_is_positive}')
             logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_positive_histogram_drop:  {squeeze_positive_histogram_drop}')
@@ -667,6 +685,8 @@ if __name__ == '__main__':
             than the previous bar. The next bar that closes above the high of this trigger bar paints this previous 
             low bar, which now becomes the swing low point.
             '''
+
+            # TODO: Incorrect, redo!!
 
             bull_flag_1m = False
 
