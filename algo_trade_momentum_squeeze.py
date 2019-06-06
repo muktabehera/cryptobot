@@ -672,37 +672,6 @@ if __name__ == '__main__':
 
             ##################### >> SQUEEZE SIGNALS << ##################################
 
-
-            ######### BULL FLAG EXCEPTION ##########
-
-            '''
-            Added one key filter. I found that at times I could get shaken out of a play that was consolidating 
-            (that is, a bull flag) when prices made a series of lower closes within that consolidation. 
-            So, if there are three lower closes, but this price action does not go below the signal bar’s low, 
-            then I ignore the signal. 
-            
-            For this indicator on a long signal, then, the trigger bar would be the first bar that has a higher low 
-            than the previous bar. The next bar that closes above the high of this trigger bar paints this previous 
-            low bar, which now becomes the swing low point.
-            '''
-
-            # TODO: Incorrect, redo!!
-
-            bull_flag_1m = False
-
-            if np_cl_1m[-1] <= np_cl_1m[-3] or np_cl_1m[-1] <= np_cl_1m[-4]:    # check current price is
-                bull_flag_1m = True
-
-            bear_flag_1m = False   # [shorting]
-
-            if np_cl_1m[-1] >= np_cl_1m[-3] or np_cl_1m[-1] >= np_cl_1m[-4]:
-                bear_flag_1m = True    # [shorting]
-
-            logging.info(f'[{ticker}] bull_flag_1m:  {bull_flag_1m}')
-            logging.info(f'[{ticker}] bear_flag_1m:  {bear_flag_1m}') # [shorting]
-
-            ####################################################################
-
             # TODO: Cancel order if not executed in 5 min (optional)
 
             trade_left_open = False  # to check if a trade was left open, initial False
@@ -793,7 +762,39 @@ if __name__ == '__main__':
 
             # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
+            ######### >>> START BULL FLAG EXCEPTION >>> ##########
 
+            '''
+            Added one key filter. I found that at times I could get shaken out of a play that was consolidating 
+            (that is, a bull flag) when prices made a series of lower closes within that consolidation. 
+            So, if there are three lower closes, but this price action does not go below the signal bar’s low, 
+            then I ignore the signal. 
+
+            For this indicator on a long signal, then, the trigger bar would be the first bar that has a higher low 
+            than the previous bar. The next bar that closes above the high of this trigger bar paints this previous 
+            low bar, which now becomes the swing low point.
+            '''
+
+            # TODO: Incorrect, redo!!
+
+            bull_flag_1m = False
+
+            # bool_sell_momentum to indicate price has decreased 3 consequtive bars
+
+            if bool_sell_momentum and (np_cl_1m[-1] <= np_cl_1m[-3] or np_cl_1m[-1] <= np_cl_1m[-4]):  # check current price is
+                bull_flag_1m = True
+
+            bear_flag_1m = False  # [shorting]
+
+            # bool_close_short_momentum to indicate price has increased 3 consequtive bars
+
+            if bool_close_short_momentum and (np_cl_1m[-1] >= np_cl_1m[-3] or np_cl_1m[-1] >= np_cl_1m[-4]):
+                bear_flag_1m = True  # [shorting]
+
+            logging.info(f'[{ticker}] bull_flag_1m:  {bull_flag_1m}')
+            logging.info(f'[{ticker}] bear_flag_1m:  {bear_flag_1m}')  # [shorting]
+
+            ################### <<< END BULL FLAG EXCEPTION <<< #######
 
             ###########################################
             #####        LONG POSITIONS        ########
@@ -1277,14 +1278,14 @@ if __name__ == '__main__':
         if health_check_alert_counter == 1:
             msg = f'[CHECK] [{current_ts}] [{ticker}] OK'
             slackit(channel="CHECK", msg=msg)                    # Post to health-check slack channel
-        elif health_check_alert_counter > 120:
+        elif health_check_alert_counter > 360:
             health_check_alert_counter = 0
 
         health_check_alert_counter += 1
 
         # HEALTH COUNTER END
 
-        secs_to_sleep = 30
+        secs_to_sleep = 10
 
         x += 1
 
