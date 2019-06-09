@@ -1,8 +1,8 @@
 
 live_trade = False  # SET TO TRUE WHEN TRADING LIVE!!!
 
-data_provider = 'alpaca'        # polygon or alpaca
-# data_provider = 'polygon'     # polygon or alpaca
+# data_provider = 'alpaca'        # polygon or alpaca
+data_provider = 'polygon'     # polygon or alpaca
 
 api_version = 'v2'
 
@@ -17,7 +17,7 @@ if data_provider == 'polygon':
     #     https://api.polygon.io/v1/historic/agg/minute/V?apiKey=PKYB9N5TQPSMNG5SLYNS&limit=3
 
 
-position_size = 0.25        # Position sizing
+position_size = 1.00        # Position sizing, 0.25 for 1/4 portion of equity for each stock
 closing_window = 120         # time left for market to close
 
 

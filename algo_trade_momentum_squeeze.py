@@ -158,6 +158,13 @@ def get_ts():
 
 def fetch_bars(data_provider):       # data_provider = config.data_provider
 
+    np_hl_1m = np.array([])
+    np_ll_1m = np.array([])
+    np_cl_1m = np.array([])
+    np_vl_1m = np.array([])
+    np_tl_1m = np.array([])
+    float_np_tl_1m = np.array([])
+
     if data_provider == 'alpaca':
 
         # TODO: pull bars async
