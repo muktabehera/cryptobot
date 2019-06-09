@@ -156,130 +156,208 @@ def get_ts():
     return ts_dict
 
 
-def fetch_bars():
+def fetch_bars(data_provider):       # data_provider = config.data_provider
 
-    # TODO: pull bars async
-    # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
+    if data_provider == 'alpaca':
 
-    start_ts = ts['open_ts']            # market open ts
-    # logging.info(f'start_ts:                   {start_ts}')
-    end_ts = ts['clock_ts']             # current ts
-    # logging.info(f'end_ts:                     {end_ts}')
-    market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
-    # logging.info(f'market_close_ts:                    {market_close_ts}')
+        # TODO: pull bars async
+        # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
 
-    paper_limit_1m = config.paper_limit_1m
-    paper_limit_5m = config.paper_limit_5m
-    paper_limit_15m = config.paper_limit_15m
+        start_ts = ts['open_ts']            # market open ts
+        # logging.info(f'start_ts:                   {start_ts}')
+        end_ts = ts['clock_ts']             # current ts
+        # logging.info(f'end_ts:                     {end_ts}')
+        market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
+        # logging.info(f'market_close_ts:                    {market_close_ts}')
 
-    ################################# GET 1 MIN BARS #################################
+        paper_limit_1m = config.paper_limit_1m
+        paper_limit_5m = config.paper_limit_5m
+        paper_limit_15m = config.paper_limit_15m
 
-    bar_interval = "1Min"
+        ################################# GET 1 MIN BARS #################################
 
-    payload_1m = {
-        "symbols": ticker,
-        "limit": paper_limit_1m,
-        "start": ts['log_start_1m'],
-        "end": ts['log_end_time']
-    }
-    base_uri_1m = f'{config.data_url}/bars/{bar_interval}'
-    bars_1m = requests.get(url=base_uri_1m, params=payload_1m, headers=headers).json()
+        bar_interval = "1Min"
 
-    for i, v1m in enumerate(bars_1m[ticker]):
-        # CONVERT UNIX TS TO READABLE TS
-        v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
-        v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+        payload_1m = {
+            "symbols": ticker,
+            "limit": paper_limit_1m,
+            "start": ts['log_start_1m'],
+            "end": ts['log_end_time']
+        }
+        base_uri_1m = f'{config.data_url}/bars/{bar_interval}'
+        bars_1m = requests.get(url=base_uri_1m, params=payload_1m, headers=headers).json()
 
-        # APPEND TO LIST
+        for i, v1m in enumerate(bars_1m[ticker]):
+            # CONVERT UNIX TS TO READABLE TS
+            v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
 
-        # append 1m bars to list
-        # ol_1m.append(v1m['o'])
-        ll_1m.append(v1m['l'])
-        hl_1m.append(v1m['h'])
-        cl_1m.append(v1m['c'])
-        vl_1m.append(v1m['v'])
-        tl_1m.append(v1m_ts)
-        float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
+            # APPEND TO LIST
 
-        # convert to 1m np array
-        # added datatype float to avoid real is not double error during MOM cacl
-        # np_ol_1m = np.array(ol_1m, dtype=float)
-        np_hl_1m = np.array(hl_1m, dtype=float)
-        np_ll_1m = np.array(ll_1m, dtype=float)
-        np_cl_1m = np.array(cl_1m, dtype=float)
-        np_vl_1m = np.array(vl_1m, dtype=float)
-        np_tl_1m = np.array(tl_1m)
-        float_np_tl_1m = np.array(float_tl_1m, dtype=float)
+            # append 1m bars to list
+            # ol_1m.append(v1m['o'])
+            ll_1m.append(v1m['l'])
+            hl_1m.append(v1m['h'])
+            cl_1m.append(v1m['c'])
+            vl_1m.append(v1m['v'])
+            tl_1m.append(v1m_ts)
+            float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
 
-    # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
+            # convert to 1m np array
+            # added datatype float to avoid real is not double error during MOM cacl
+            # np_ol_1m = np.array(ol_1m, dtype=float)
+            np_hl_1m = np.array(hl_1m, dtype=float)
+            np_ll_1m = np.array(ll_1m, dtype=float)
+            np_cl_1m = np.array(cl_1m, dtype=float)
+            np_vl_1m = np.array(vl_1m, dtype=float)
+            np_tl_1m = np.array(tl_1m)
+            float_np_tl_1m = np.array(float_tl_1m, dtype=float)
 
-    ################################# GET 5 MIN BARS #################################
-    '''
+        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
-    bar_interval = "5Min"
+        ################################# GET 5 MIN BARS #################################
+        '''
+    
+        bar_interval = "5Min"
+    
+        payload_5m = {
+            "symbols": ticker,
+            "limit": paper_limit_5m,
+            "start": ts['log_start_5m'],
+            "end": ts['log_end_time']
+        }
+    
+        base_uri_5m = f'{config.data_url}/bars/{bar_interval}'
+        bars_5m = requests.get(url=base_uri_5m, params=payload_5m, headers=headers).json()
+    
+        for i, v5m in enumerate(bars_5m[ticker]):
+            # CONVERT UNIX TS TO READABLE TS
+            v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+    
+            # APPEND TO LIST
+    
+            # append 1m bars to list
+            ol_5m.append(v5m['o'])
+            ll_5m.append(v5m['l'])
+            hl_5m.append(v5m['h'])
+            cl_5m.append(v5m['c'])
+            vl_5m.append(v5m['v'])
+            tl_5m.append(v5m_ts)
+    
+            # convert to 1m np array
+            # added datatype float to avoid real is not double error during MOM cacl
+            np_ol_5m = np.array(ol_5m, dtype=float)
+            np_hl_5m = np.array(hl_5m, dtype=float)
+            np_ll_5m = np.array(ll_5m, dtype=float)
+            np_cl_5m = np.array(cl_5m, dtype=float)
+            np_vl_5m = np.array(vl_5m, dtype=float)
+            np_tl_5m = np.array(tl_5m)
+            
+            '''
+        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
-    payload_5m = {
-        "symbols": ticker,
-        "limit": paper_limit_5m,
-        "start": ts['log_start_5m'],
-        "end": ts['log_end_time']
-    }
+        bars_response = {
 
-    base_uri_5m = f'{config.data_url}/bars/{bar_interval}'
-    bars_5m = requests.get(url=base_uri_5m, params=payload_5m, headers=headers).json()
+            # "np_ol_1m": np_ol_1m,
+            "np_hl_1m": np_hl_1m,
+            "np_ll_1m": np_ll_1m,
+            "np_cl_1m": np_cl_1m,
+            "np_vl_1m": np_vl_1m,
+            "np_tl_1m": np_tl_1m,
+            "float_np_tl_1m": float_np_tl_1m
+        }
 
-    for i, v5m in enumerate(bars_5m[ticker]):
-        # CONVERT UNIX TS TO READABLE TS
-        v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
-        v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
-
-        # APPEND TO LIST
-
-        # append 1m bars to list
-        ol_5m.append(v5m['o'])
-        ll_5m.append(v5m['l'])
-        hl_5m.append(v5m['h'])
-        cl_5m.append(v5m['c'])
-        vl_5m.append(v5m['v'])
-        tl_5m.append(v5m_ts)
-
-        # convert to 1m np array
-        # added datatype float to avoid real is not double error during MOM cacl
-        np_ol_5m = np.array(ol_5m, dtype=float)
-        np_hl_5m = np.array(hl_5m, dtype=float)
-        np_ll_5m = np.array(ll_5m, dtype=float)
-        np_cl_5m = np.array(cl_5m, dtype=float)
-        np_vl_5m = np.array(vl_5m, dtype=float)
-        np_tl_5m = np.array(tl_5m)
+        '''
+        
+        "np_ol_5m": np_ol_5m,
+        "np_hl_5m": np_hl_5m,
+        "np_ll_5m": np_ll_5m,
+        "np_cl_5m": np_cl_5m,
+        "np_vl_5m": np_vl_5m,
+        "np_tl_5m": np_tl_5m
         
         '''
-    # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
-    bars_response = {
+        logging.debug(f"bars_response : {bars_response}")
 
-        # "np_ol_1m": np_ol_1m,
-        "np_hl_1m": np_hl_1m,
-        "np_ll_1m": np_ll_1m,
-        "np_cl_1m": np_cl_1m,
-        "np_vl_1m": np_vl_1m,
-        "np_tl_1m": np_tl_1m,
-        "float_np_tl_1m": float_np_tl_1m
-    }
+        return bars_response
 
-    '''
-    
-    "np_ol_5m": np_ol_5m,
-    "np_hl_5m": np_hl_5m,
-    "np_ll_5m": np_ll_5m,
-    "np_cl_5m": np_cl_5m,
-    "np_vl_5m": np_vl_5m,
-    "np_tl_5m": np_tl_5m
-    
-    '''
+    elif data_provider == 'polygon':
 
-    logging.debug(f"bars_response : {bars_response}")
+        # TODO: pull bars async
+        # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
 
-    return bars_response
+        start_ts = ts['open_ts']  # market open ts
+        # logging.info(f'start_ts:                   {start_ts}')
+        end_ts = ts['clock_ts']  # current ts
+        # logging.info(f'end_ts:                     {end_ts}')
+        market_close_ts = ts['close_ts']  # to prevent getting more bars after market has closed for the day
+        # logging.info(f'market_close_ts:                    {market_close_ts}')
+
+        paper_limit_1m = config.paper_limit_1m
+        paper_limit_5m = config.paper_limit_5m
+        paper_limit_15m = config.paper_limit_15m
+
+        ################################# GET 1 MIN BARS #################################
+
+        bar_interval = "minute"
+
+        payload_1m = {
+            "apiKey": config.APCA_API_KEY_ID,
+            "limit": paper_limit_1m
+        }
+
+        # data_url = f'https://api.polygon.io/{data_api_version}/historic/agg'
+        base_uri_1m = f'{config.data_url}/{bar_interval}/{ticker}'
+
+
+        bars_1m = requests.get(url=base_uri_1m, params=payload_1m).json()
+
+        for i, v1m in enumerate(bars_1m['ticks']):
+            # CONVERT UNIX TS TO READABLE TS
+            # v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            # v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+
+            v1m_ts = str(v1m['t']) # workaround since polygon ts don't return correct str timestamps
+
+            # APPEND TO LIST
+
+            # append 1m bars to list
+            # ol_1m.append(v1m['o'])
+            ll_1m.append(v1m['l'])
+            hl_1m.append(v1m['h'])
+            cl_1m.append(v1m['c'])
+            vl_1m.append(v1m['v'])
+            tl_1m.append(v1m_ts)
+            float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
+
+            # convert to 1m np array
+            # added datatype float to avoid real is not double error during MOM cacl
+            # np_ol_1m = np.array(ol_1m, dtype=float)
+            np_hl_1m = np.array(hl_1m, dtype=float)
+            np_ll_1m = np.array(ll_1m, dtype=float)
+            np_cl_1m = np.array(cl_1m, dtype=float)
+            np_vl_1m = np.array(vl_1m, dtype=float)
+            np_tl_1m = np.array(tl_1m)
+            float_np_tl_1m = np.array(float_tl_1m, dtype=float)
+
+        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
+
+        bars_response = {
+
+            # "np_ol_1m": np_ol_1m,
+            "np_hl_1m": np_hl_1m,
+            "np_ll_1m": np_ll_1m,
+            "np_cl_1m": np_cl_1m,
+            "np_vl_1m": np_vl_1m,
+            "np_tl_1m": np_tl_1m,
+            "float_np_tl_1m": float_np_tl_1m
+        }
+
+        logging.debug(f"bars_response : {bars_response}")
+
+        return bars_response
 
 # TODO: Add ETAs at each step
 
@@ -339,6 +417,10 @@ if __name__ == '__main__':
         else:
             logging.info(f'[{ticker}] ### PAPER TRADE ###')
 
+        # lookup data provider from config
+        data_provider = config.data_provider
+        logging.info(f"[{ticker}] data provider:    {data_provider}")
+
         # Reset the lists each run to null
         '''
         tl_5m = list()
@@ -378,7 +460,7 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if market_is_open:
+        if not market_is_open:
 
             # ready to trade
             # TODO: Post Market Open and Close to SLACK
@@ -442,7 +524,7 @@ if __name__ == '__main__':
 
             # logging.info(f'[{ticker}] BAR INTERVAL:    {bar_interval} Min')
 
-            bars = fetch_bars()  # for 1Min
+            bars = fetch_bars(config.data_provider)  # for 1Min
 
             ############### 1 MIN ###############
             # np_ol_1m = bars['np_ol_1m']
