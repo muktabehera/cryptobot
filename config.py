@@ -16,12 +16,13 @@ if data_provider == 'polygon':
 
     #     https://api.polygon.io/v1/historic/agg/minute/V?apiKey=PKYB9N5TQPSMNG5SLYNS&limit=3
 
+day_trade_minimum = 0.00
 
-position_size = 1.00        # Position sizing, 0.25 for 1/4 portion of equity for each stock
-closing_window = 120         # time left for market to close
+position_size = 0.5         # Position sizing, 0.25 for 1/4 portion of equity for each stock
+closing_window = 60         # time left for market to close
 
 
-profit_percentage = 0.1   # profit taking percentage - used in a sell signal - updated to 10% test squeeze
+profit_percentage = 0.05    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0             # use either profit percentage or price delta
 
 if profit_percentage == 0:

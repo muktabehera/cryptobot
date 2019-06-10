@@ -372,7 +372,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
 
 if __name__ == '__main__':
 
-    day_trade_minimum = 25000.00        # TODO: SET day_trade_minimum TO 0 LATER
+    day_trade_minimum = config.day_trade_minimum    # TODO: SET day_trade_minimum TO 0 LATER
 
     buy_order_placed = dict()  # INITIALIZATION
     buy_order_details = dict()
