@@ -468,7 +468,7 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if not market_is_open:
+        if market_is_open:
 
             # ready to trade
             # TODO: Post Market Open and Close to SLACK
