@@ -1,15 +1,27 @@
 
 live_trade = False  # SET TO TRUE WHEN TRADING LIVE!!!
 
+# data_provider = 'alpaca'        # polygon or alpaca
+data_provider = 'polygon'     # polygon or alpaca
 
 api_version = 'v2'
-data_api_version = 'v1'
 
-position_size = 0.25        # Position sizing
+if data_provider == 'alpaca':
+    data_api_version = 'v1'
+    data_url = f'https://data.alpaca.markets/{data_api_version}'
+
+if data_provider == 'polygon':
+    data_api_version = 'v1'
+    data_url = f'https://api.polygon.io/{data_api_version}/historic/agg'
+
+    #     https://api.polygon.io/v1/historic/agg/minute/V?apiKey=PKYB9N5TQPSMNG5SLYNS&limit=3
+
+
+position_size = 1.00        # Position sizing, 0.25 for 1/4 portion of equity for each stock
 closing_window = 120         # time left for market to close
 
 
-profit_percentage = 0.00    # profit taking percentage - used in a sell signal
+profit_percentage = 0.1   # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0             # use either profit percentage or price delta
 
 if profit_percentage == 0:
@@ -17,7 +29,7 @@ if profit_percentage == 0:
 
 slack_channel = ''
 
-if live_trade: # LIVE!!!
+if live_trade:  # LIVE!!!
 
     APCA_LIVE_BASE_URL = 'https://api.alpaca.markets'
     APCA_API_KEY_ID = " "
@@ -28,8 +40,8 @@ if live_trade: # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PK5DIJJLFSD5Z0YP3H7R'
-    APCA_API_SECRET_KEY = 'JzV6SP6/yRq8emdMX2gwSxtbbIdr5gBybwZ0BU1V'
+    APCA_API_KEY_ID = 'PKYB9N5TQPSMNG5SLYNS'
+    APCA_API_SECRET_KEY = 'yKUnFMAFtCcDkZraWci3n5Ga2urmh7dY1H8h4UFB'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_channel = 'PAPER'
 
@@ -39,7 +51,7 @@ else:   # PAPER TRADE
 account_uri = f'{base_url}/account'
 order_uri = f'{base_url}/orders'
 clock_uri = f'{base_url}/clock'
-data_url = f'https://data.alpaca.markets/{data_api_version}'
+
 
 ticker = {
     "MSFT": "MSFT",
@@ -51,13 +63,6 @@ ticker = {
     "CTSH": "CTSH",
     "FB":   "FB"
 }
-
-
-
-
-
-
-
 
 
 ############ BACKTEST ONLY ##################
