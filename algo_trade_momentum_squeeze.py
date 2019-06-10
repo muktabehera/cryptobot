@@ -156,130 +156,216 @@ def get_ts():
     return ts_dict
 
 
-def fetch_bars():
+def fetch_bars(data_provider):       # data_provider = config.data_provider
 
-    # TODO: pull bars async
-    # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
+    np_hl_1m = np.array([])
+    np_ll_1m = np.array([])
+    np_cl_1m = np.array([])
+    np_vl_1m = np.array([])
+    np_tl_1m = np.array([])
+    float_np_tl_1m = np.array([])
 
-    start_ts = ts['open_ts']            # market open ts
-    # logging.info(f'start_ts:                   {start_ts}')
-    end_ts = ts['clock_ts']             # current ts
-    # logging.info(f'end_ts:                     {end_ts}')
-    market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
-    # logging.info(f'market_close_ts:                    {market_close_ts}')
+    if data_provider == 'alpaca':
 
-    paper_limit_1m = config.paper_limit_1m
-    paper_limit_5m = config.paper_limit_5m
-    paper_limit_15m = config.paper_limit_15m
+        # TODO: pull bars async
+        # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
 
-    ################################# GET 1 MIN BARS #################################
+        start_ts = ts['open_ts']            # market open ts
+        # logging.info(f'start_ts:                   {start_ts}')
+        end_ts = ts['clock_ts']             # current ts
+        # logging.info(f'end_ts:                     {end_ts}')
+        market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
+        # logging.info(f'market_close_ts:                    {market_close_ts}')
 
-    bar_interval = "1Min"
+        paper_limit_1m = config.paper_limit_1m
+        paper_limit_5m = config.paper_limit_5m
+        paper_limit_15m = config.paper_limit_15m
 
-    payload_1m = {
-        "symbols": ticker,
-        "limit": paper_limit_1m,
-        "start": ts['log_start_1m'],
-        "end": ts['log_end_time']
-    }
-    base_uri_1m = f'{config.data_url}/bars/{bar_interval}'
-    bars_1m = requests.get(url=base_uri_1m, params=payload_1m, headers=headers).json()
+        ################################# GET 1 MIN BARS #################################
 
-    for i, v1m in enumerate(bars_1m[ticker]):
-        # CONVERT UNIX TS TO READABLE TS
-        v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
-        v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+        bar_interval = "1Min"
 
-        # APPEND TO LIST
+        payload_1m = {
+            "symbols": ticker,
+            "limit": paper_limit_1m,
+            "start": ts['log_start_1m'],
+            "end": ts['log_end_time']
+        }
+        base_uri_1m = f'{config.data_url}/bars/{bar_interval}'
+        bars_1m = requests.get(url=base_uri_1m, params=payload_1m, headers=headers).json()
 
-        # append 1m bars to list
-        # ol_1m.append(v1m['o'])
-        ll_1m.append(v1m['l'])
-        hl_1m.append(v1m['h'])
-        cl_1m.append(v1m['c'])
-        vl_1m.append(v1m['v'])
-        tl_1m.append(v1m_ts)
-        float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
+        for i, v1m in enumerate(bars_1m[ticker]):
+            # CONVERT UNIX TS TO READABLE TS
+            v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
 
-        # convert to 1m np array
-        # added datatype float to avoid real is not double error during MOM cacl
-        # np_ol_1m = np.array(ol_1m, dtype=float)
-        np_hl_1m = np.array(hl_1m, dtype=float)
-        np_ll_1m = np.array(ll_1m, dtype=float)
-        np_cl_1m = np.array(cl_1m, dtype=float)
-        np_vl_1m = np.array(vl_1m, dtype=float)
-        np_tl_1m = np.array(tl_1m)
-        float_np_tl_1m = np.array(float_tl_1m, dtype=float)
+            # APPEND TO LIST
 
-    # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
+            # append 1m bars to list
+            # ol_1m.append(v1m['o'])
+            ll_1m.append(v1m['l'])
+            hl_1m.append(v1m['h'])
+            cl_1m.append(v1m['c'])
+            vl_1m.append(v1m['v'])
+            tl_1m.append(v1m_ts)
+            float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
 
-    ################################# GET 5 MIN BARS #################################
-    '''
+            # convert to 1m np array
+            # added datatype float to avoid real is not double error during MOM cacl
+            # np_ol_1m = np.array(ol_1m, dtype=float)
+            np_hl_1m = np.array(hl_1m, dtype=float)
+            np_ll_1m = np.array(ll_1m, dtype=float)
+            np_cl_1m = np.array(cl_1m, dtype=float)
+            np_vl_1m = np.array(vl_1m, dtype=float)
+            np_tl_1m = np.array(tl_1m)
+            float_np_tl_1m = np.array(float_tl_1m, dtype=float)
 
-    bar_interval = "5Min"
+        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
-    payload_5m = {
-        "symbols": ticker,
-        "limit": paper_limit_5m,
-        "start": ts['log_start_5m'],
-        "end": ts['log_end_time']
-    }
+        ################################# GET 5 MIN BARS #################################
+        '''
+    
+        bar_interval = "5Min"
+    
+        payload_5m = {
+            "symbols": ticker,
+            "limit": paper_limit_5m,
+            "start": ts['log_start_5m'],
+            "end": ts['log_end_time']
+        }
+    
+        base_uri_5m = f'{config.data_url}/bars/{bar_interval}'
+        bars_5m = requests.get(url=base_uri_5m, params=payload_5m, headers=headers).json()
+    
+        for i, v5m in enumerate(bars_5m[ticker]):
+            # CONVERT UNIX TS TO READABLE TS
+            v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+    
+            # APPEND TO LIST
+    
+            # append 1m bars to list
+            ol_5m.append(v5m['o'])
+            ll_5m.append(v5m['l'])
+            hl_5m.append(v5m['h'])
+            cl_5m.append(v5m['c'])
+            vl_5m.append(v5m['v'])
+            tl_5m.append(v5m_ts)
+    
+            # convert to 1m np array
+            # added datatype float to avoid real is not double error during MOM cacl
+            np_ol_5m = np.array(ol_5m, dtype=float)
+            np_hl_5m = np.array(hl_5m, dtype=float)
+            np_ll_5m = np.array(ll_5m, dtype=float)
+            np_cl_5m = np.array(cl_5m, dtype=float)
+            np_vl_5m = np.array(vl_5m, dtype=float)
+            np_tl_5m = np.array(tl_5m)
+            
+            '''
+        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
-    base_uri_5m = f'{config.data_url}/bars/{bar_interval}'
-    bars_5m = requests.get(url=base_uri_5m, params=payload_5m, headers=headers).json()
+        bars_response = {
 
-    for i, v5m in enumerate(bars_5m[ticker]):
-        # CONVERT UNIX TS TO READABLE TS
-        v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
-        v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+            # "np_ol_1m": np_ol_1m,
+            "np_hl_1m": np_hl_1m,
+            "np_ll_1m": np_ll_1m,
+            "np_cl_1m": np_cl_1m,
+            "np_vl_1m": np_vl_1m,
+            "np_tl_1m": np_tl_1m,
+            "float_np_tl_1m": float_np_tl_1m
+        }
 
-        # APPEND TO LIST
-
-        # append 1m bars to list
-        ol_5m.append(v5m['o'])
-        ll_5m.append(v5m['l'])
-        hl_5m.append(v5m['h'])
-        cl_5m.append(v5m['c'])
-        vl_5m.append(v5m['v'])
-        tl_5m.append(v5m_ts)
-
-        # convert to 1m np array
-        # added datatype float to avoid real is not double error during MOM cacl
-        np_ol_5m = np.array(ol_5m, dtype=float)
-        np_hl_5m = np.array(hl_5m, dtype=float)
-        np_ll_5m = np.array(ll_5m, dtype=float)
-        np_cl_5m = np.array(cl_5m, dtype=float)
-        np_vl_5m = np.array(vl_5m, dtype=float)
-        np_tl_5m = np.array(tl_5m)
+        '''
+        
+        "np_ol_5m": np_ol_5m,
+        "np_hl_5m": np_hl_5m,
+        "np_ll_5m": np_ll_5m,
+        "np_cl_5m": np_cl_5m,
+        "np_vl_5m": np_vl_5m,
+        "np_tl_5m": np_tl_5m
         
         '''
-    # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
-    bars_response = {
+        logging.debug(f"bars_response : {bars_response}")
 
-        # "np_ol_1m": np_ol_1m,
-        "np_hl_1m": np_hl_1m,
-        "np_ll_1m": np_ll_1m,
-        "np_cl_1m": np_cl_1m,
-        "np_vl_1m": np_vl_1m,
-        "np_tl_1m": np_tl_1m,
-        "float_np_tl_1m": float_np_tl_1m
-    }
+        return bars_response
 
-    '''
-    
-    "np_ol_5m": np_ol_5m,
-    "np_hl_5m": np_hl_5m,
-    "np_ll_5m": np_ll_5m,
-    "np_cl_5m": np_cl_5m,
-    "np_vl_5m": np_vl_5m,
-    "np_tl_5m": np_tl_5m
-    
-    '''
+    elif data_provider == 'polygon':
 
-    logging.debug(f"bars_response : {bars_response}")
+        # TODO: pull bars async
+        # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
 
-    return bars_response
+        start_ts = ts['open_ts']  # market open ts
+        # logging.info(f'start_ts:                   {start_ts}')
+        end_ts = ts['clock_ts']  # current ts
+        # logging.info(f'end_ts:                     {end_ts}')
+        market_close_ts = ts['close_ts']  # to prevent getting more bars after market has closed for the day
+        # logging.info(f'market_close_ts:                    {market_close_ts}')
+
+        paper_limit_1m = config.paper_limit_1m
+        paper_limit_5m = config.paper_limit_5m
+        paper_limit_15m = config.paper_limit_15m
+
+        ################################# GET 1 MIN BARS #################################
+
+        bar_interval = "minute"
+
+        payload_1m = {
+            "apiKey": config.APCA_API_KEY_ID,
+            "limit": paper_limit_1m
+        }
+
+        # data_url = f'https://api.polygon.io/{data_api_version}/historic/agg'
+        base_uri_1m = f'{config.data_url}/{bar_interval}/{ticker}'
+
+        bars_1m = requests.get(url=base_uri_1m, params=payload_1m).json()
+
+        for i, v1m in enumerate(bars_1m['ticks']):
+            # CONVERT UNIX TS TO READABLE TS
+
+            # Extra step: Divide Polygon's ts by 1000 to convert to seconds from milliseconds
+            v1m_ts_nyc = datetime.fromtimestamp(v1m['t']/1000).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+
+            # v1m_ts = str(v1m['t']) # workaround since polygon ts don't return correct str timestamps
+
+            # APPEND TO LIST
+
+            # append 1m bars to list
+            # ol_1m.append(v1m['o'])
+            ll_1m.append(v1m['l'])
+            hl_1m.append(v1m['h'])
+            cl_1m.append(v1m['c'])
+            vl_1m.append(v1m['v'])
+            tl_1m.append(v1m_ts)
+            float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
+
+            # convert to 1m np array
+            # added datatype float to avoid real is not double error during MOM cacl
+            # np_ol_1m = np.array(ol_1m, dtype=float)
+            np_hl_1m = np.array(hl_1m, dtype=float)
+            np_ll_1m = np.array(ll_1m, dtype=float)
+            np_cl_1m = np.array(cl_1m, dtype=float)
+            np_vl_1m = np.array(vl_1m, dtype=float)
+            np_tl_1m = np.array(tl_1m)
+            float_np_tl_1m = np.array(float_tl_1m, dtype=float)
+
+        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
+
+        bars_response = {
+
+            # "np_ol_1m": np_ol_1m,
+            "np_hl_1m": np_hl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_ll_1m": np_ll_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_cl_1m": np_cl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_vl_1m": np_vl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_tl_1m": np_tl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "float_np_tl_1m": float_np_tl_1m[::-1]  # reverse the list since polygon data is orders in asc order
+        }
+
+        logging.debug(f"bars_response : {bars_response}")
+
+        return bars_response
 
 # TODO: Add ETAs at each step
 
@@ -339,6 +425,10 @@ if __name__ == '__main__':
         else:
             logging.info(f'[{ticker}] ### PAPER TRADE ###')
 
+        # lookup data provider from config
+        data_provider = config.data_provider
+        logging.info(f"[{ticker}] data provider:    {data_provider}")
+
         # Reset the lists each run to null
         '''
         tl_5m = list()
@@ -378,7 +468,7 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if market_is_open:
+        if not market_is_open:
 
             # ready to trade
             # TODO: Post Market Open and Close to SLACK
@@ -442,7 +532,7 @@ if __name__ == '__main__':
 
             # logging.info(f'[{ticker}] BAR INTERVAL:    {bar_interval} Min')
 
-            bars = fetch_bars()  # for 1Min
+            bars = fetch_bars(config.data_provider)  # for 1Min
 
             ############### 1 MIN ###############
             # np_ol_1m = bars['np_ol_1m']
@@ -656,8 +746,8 @@ if __name__ == '__main__':
             # pair squeeze_short_buy only with squeeze_short_sell, doesn't make sense by itself
 
             logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_hist:  {squeeze_hist}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_cl_1m:  {np_cl_1m[-20:]}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_tl_1m:  {np_tl_1m[-20:]}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_cl_1m[-20:]:  {np_cl_1m[-20:]}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_tl_1m[-20:]:  {np_tl_1m[-20:]}')
 
 
             logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_bb_justoutof_keltner:  {squeeze_bb_justoutof_keltner}')
@@ -801,32 +891,39 @@ if __name__ == '__main__':
             ###########################################
 
 
-            ################################ BUY SIGNAL ###########################
+            ################################ LONG BUY SIGNAL - TO OPEN NEW LONG POSITION ###########################
 
-            # LONG_BUY_SIGNAL = bool_buy_momentum and \
-            #                   bool_uptrend_1m and \
-            #                   not bool_closing_time
-
-            LONG_BUY_SIGNAL = squeeze_long_buy and \
+            long_buy_signal_squeeze = squeeze_long_buy and \
+                                      not bool_closing_time
+            #
+            long_buy_signal_mom = bool_buy_momentum and \
+                              bool_uptrend_1m and \
                               not bool_closing_time
 
+            LONG_BUY_SIGNAL = long_buy_signal_squeeze or long_buy_signal_mom
+
+            logging.info(f'[{ticker}] long_buy_signal_squeeze:  {long_buy_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] long_buy_signal_mom:  {long_buy_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] long_buy_signal:  {LONG_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
             # TODO: add resistance check during buy
             # TODO: Vol check, add later
 
-            ################################ SELL SIGNAL ###########################
+            ################################ LONG SELL SIGNAL - TO CLOSE OPEN LONG POSITION ###################
 
-            # LONG_SELL_SIGNAL = bool_sell_profit_target or \
-            #                    (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
-            #                    (bool_sell_price_above_buy and bool_closing_time)
-
-            LONG_SELL_SIGNAL = bool_sell_profit_target or \
+            long_sell_signal_squeeze = bool_sell_profit_target or \
                                (squeeze_long_sell and bool_sell_price_above_buy and not bull_flag_1m) or \
                                (bool_sell_price_above_buy and bool_closing_time)
 
-            # SELL only if a buy position exists.
+            long_sell_signal_mom = bool_sell_profit_target or \
+                               (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
+                               (bool_sell_price_above_buy and bool_closing_time)
 
+            LONG_SELL_SIGNAL = long_sell_signal_squeeze or long_sell_signal_mom
+
+            # SELL only if a buy position exists.
+            logging.info(f'[{ticker}] long_sell_signal_squeeze:   {long_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] long_sell_signal_mom:   {long_sell_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] long_sell_signal:   {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
@@ -835,32 +932,39 @@ if __name__ == '__main__':
             ###########################################
 
 
-            ################################ SHORT SIGNAL ###########################
+            ################################ SHORT SELL SIGNAL - TOP OPEN NEW SHORT POSITION ###########################
 
-            # SHORT_SELL_SIGNAL = bool_short_momentum and \
-            #                     bool_downtrend_1m and \
-            #                     not bool_closing_time \
-            #                     and shorting_enabled
-
-            SHORT_SELL_SIGNAL = squeeze_short_buy and \
+            short_sell_signal_squeeze = squeeze_short_buy and \
                                 not bool_closing_time \
                                 and shorting_enabled
 
+            short_sell_signal_mom = bool_short_momentum and \
+                                bool_downtrend_1m and \
+                                not bool_closing_time \
+                                and shorting_enabled
+
+            SHORT_SELL_SIGNAL = short_sell_signal_squeeze or short_sell_signal_mom
             # TODO: Check for support before selling
 
+            logging.info(f'[{ticker}] short_sell_signal_squeeze:   {short_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] short_sell_signal_mom:   {short_sell_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] short_sell_signal:   {SHORT_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
-            ################################ CLOSE SHORT SIGNAL #####################
+            ################################ SHORT BUY SIGNAL - TO CLOSE OPEN SHORT POSITION #####################
 
-            # SHORT_BUY_SIGNAL = bool_buy_profit_target or \
-            #                    (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
-            #                    (bool_buy_price_below_sell and bool_closing_time)
+            short_buy_signal_mom = bool_buy_profit_target or \
+                               (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
+                               (bool_buy_price_below_sell and bool_closing_time)
 
-            SHORT_BUY_SIGNAL = bool_buy_profit_target or \
+            short_buy_signal_squeeze = bool_buy_profit_target or \
                                (squeeze_short_buy and bool_buy_price_below_sell and not bear_flag_1m) or \
                                (bool_buy_price_below_sell and bool_closing_time)
 
+            SHORT_BUY_SIGNAL = short_buy_signal_squeeze or short_buy_signal_mom
+
+            logging.info(f'[{ticker}] short_buy_signal_mom:   {short_buy_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] short_buy_signal_squeeze:   {short_buy_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] short_buy_signal:   {SHORT_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
@@ -885,7 +989,7 @@ if __name__ == '__main__':
                 
             '''
 
-            ################################ LONG BUY ###########################
+            ################################ LONG BUY - Open New Long Positionm ######################################
 
             if not position and LONG_BUY_SIGNAL:  # if no position exists and a buy sig is found
 
@@ -979,8 +1083,7 @@ if __name__ == '__main__':
                 else:
                     logging.error(f"[{current_ts}] [ERROR] {buy_order_details['side']} ORDER WAS NOT PLACED")
 
-
-            ################################ LONG_SELL ###########################
+            ################################ LONG_SELL - Close Existing Open Long Position ###########################
 
             if position and position_side == 'long' and LONG_SELL_SIGNAL:
 
@@ -1079,11 +1182,7 @@ if __name__ == '__main__':
 
                 position = False  # set position to false once a sale has completed
 
-
-
-
-
-            ################################ SHORT SELL ###########################
+            ################################ SHORT SELL - Open New Short Position #####################################
 
             if not position and SHORT_SELL_SIGNAL:
 
@@ -1181,7 +1280,7 @@ if __name__ == '__main__':
 
                 position = True  # set position to false once short sell is initiated
 
-            ################################ SHORT BUY ###########################
+            ################################ SHORT BUY - Close Existing Short Sell Position ###########################
 
             if position and position_side == 'short' and SHORT_BUY_SIGNAL:  # if a sell position exists and a short buy sig is found
 
@@ -1271,7 +1370,7 @@ if __name__ == '__main__':
                 else:
                     logging.error(f"[{current_ts}] [SHORT_BUY_SIGNAL] [ERROR] {buy_order_details['side']} ORDER WAS NOT PLACED")
 
-
+            ###########################################################################################################
 
         # HEALTH CHECK
 

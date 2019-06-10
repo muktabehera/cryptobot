@@ -1,11 +1,23 @@
 
 live_trade = False  # SET TO TRUE WHEN TRADING LIVE!!!
 
+# data_provider = 'alpaca'        # polygon or alpaca
+data_provider = 'polygon'     # polygon or alpaca
 
 api_version = 'v2'
-data_api_version = 'v1'
 
-position_size = 0.25        # Position sizing
+if data_provider == 'alpaca':
+    data_api_version = 'v1'
+    data_url = f'https://data.alpaca.markets/{data_api_version}'
+
+if data_provider == 'polygon':
+    data_api_version = 'v1'
+    data_url = f'https://api.polygon.io/{data_api_version}/historic/agg'
+
+    #     https://api.polygon.io/v1/historic/agg/minute/V?apiKey=PKYB9N5TQPSMNG5SLYNS&limit=3
+
+
+position_size = 1.00        # Position sizing, 0.25 for 1/4 portion of equity for each stock
 closing_window = 120         # time left for market to close
 
 
@@ -39,7 +51,7 @@ else:   # PAPER TRADE
 account_uri = f'{base_url}/account'
 order_uri = f'{base_url}/orders'
 clock_uri = f'{base_url}/clock'
-data_url = f'https://data.alpaca.markets/{data_api_version}'
+
 
 ticker = {
     "MSFT": "MSFT",
