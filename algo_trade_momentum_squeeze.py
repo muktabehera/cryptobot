@@ -17,6 +17,8 @@ import dateutil.parser
 import numpy as np
 import talib  # https://mrjbq7.github.io/ta-lib/
 
+from sklearn import linear_model
+
 nyc = pytz.timezone('America/New_York')
 
 
@@ -154,127 +156,216 @@ def get_ts():
     return ts_dict
 
 
-def fetch_bars():
+def fetch_bars(data_provider):       # data_provider = config.data_provider
 
-    # TODO: pull bars async
-    # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
+    np_hl_1m = np.array([])
+    np_ll_1m = np.array([])
+    np_cl_1m = np.array([])
+    np_vl_1m = np.array([])
+    np_tl_1m = np.array([])
+    float_np_tl_1m = np.array([])
 
-    start_ts = ts['open_ts']            # market open ts
-    # logging.info(f'start_ts:                   {start_ts}')
-    end_ts = ts['clock_ts']             # current ts
-    # logging.info(f'end_ts:                     {end_ts}')
-    market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
-    # logging.info(f'market_close_ts:                    {market_close_ts}')
+    if data_provider == 'alpaca':
 
-    paper_limit_1m = config.paper_limit_1m
-    paper_limit_5m = config.paper_limit_5m
-    paper_limit_15m = config.paper_limit_15m
+        # TODO: pull bars async
+        # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
 
-    ################################# GET 1 MIN BARS #################################
+        start_ts = ts['open_ts']            # market open ts
+        # logging.info(f'start_ts:                   {start_ts}')
+        end_ts = ts['clock_ts']             # current ts
+        # logging.info(f'end_ts:                     {end_ts}')
+        market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
+        # logging.info(f'market_close_ts:                    {market_close_ts}')
 
-    bar_interval = "1Min"
+        paper_limit_1m = config.paper_limit_1m
+        paper_limit_5m = config.paper_limit_5m
+        paper_limit_15m = config.paper_limit_15m
 
-    payload_1m = {
-        "symbols": ticker,
-        "limit": paper_limit_1m,
-        "start": ts['log_start_1m'],
-        "end": ts['log_end_time']
-    }
-    base_uri_1m = f'{config.data_url}/bars/{bar_interval}'
-    bars_1m = requests.get(url=base_uri_1m, params=payload_1m, headers=headers).json()
+        ################################# GET 1 MIN BARS #################################
 
-    for i, v1m in enumerate(bars_1m[ticker]):
-        # CONVERT UNIX TS TO READABLE TS
-        v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
-        v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+        bar_interval = "1Min"
 
-        # APPEND TO LIST
+        payload_1m = {
+            "symbols": ticker,
+            "limit": paper_limit_1m,
+            "start": ts['log_start_1m'],
+            "end": ts['log_end_time']
+        }
+        base_uri_1m = f'{config.data_url}/bars/{bar_interval}'
+        bars_1m = requests.get(url=base_uri_1m, params=payload_1m, headers=headers).json()
 
-        # append 1m bars to list
-        # ol_1m.append(v1m['o'])
-        # ll_1m.append(v1m['l'])
-        # hl_1m.append(v1m['h'])
-        cl_1m.append(v1m['c'])
-        vl_1m.append(v1m['v'])
-        tl_1m.append(v1m_ts)
+        for i, v1m in enumerate(bars_1m[ticker]):
+            # CONVERT UNIX TS TO READABLE TS
+            v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
 
-        # convert to 1m np array
-        # added datatype float to avoid real is not double error during MOM cacl
-        # np_ol_1m = np.array(ol_1m, dtype=float)
-        # np_hl_1m = np.array(hl_1m, dtype=float)
-        # np_ll_1m = np.array(ll_1m, dtype=float)
-        np_cl_1m = np.array(cl_1m, dtype=float)
-        np_vl_1m = np.array(vl_1m, dtype=float)
-        np_tl_1m = np.array(tl_1m)
+            # APPEND TO LIST
 
-    # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
+            # append 1m bars to list
+            # ol_1m.append(v1m['o'])
+            ll_1m.append(v1m['l'])
+            hl_1m.append(v1m['h'])
+            cl_1m.append(v1m['c'])
+            vl_1m.append(v1m['v'])
+            tl_1m.append(v1m_ts)
+            float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
 
-    ################################# GET 5 MIN BARS #################################
-    '''
+            # convert to 1m np array
+            # added datatype float to avoid real is not double error during MOM cacl
+            # np_ol_1m = np.array(ol_1m, dtype=float)
+            np_hl_1m = np.array(hl_1m, dtype=float)
+            np_ll_1m = np.array(ll_1m, dtype=float)
+            np_cl_1m = np.array(cl_1m, dtype=float)
+            np_vl_1m = np.array(vl_1m, dtype=float)
+            np_tl_1m = np.array(tl_1m)
+            float_np_tl_1m = np.array(float_tl_1m, dtype=float)
 
-    bar_interval = "5Min"
+        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
-    payload_5m = {
-        "symbols": ticker,
-        "limit": paper_limit_5m,
-        "start": ts['log_start_5m'],
-        "end": ts['log_end_time']
-    }
+        ################################# GET 5 MIN BARS #################################
+        '''
+    
+        bar_interval = "5Min"
+    
+        payload_5m = {
+            "symbols": ticker,
+            "limit": paper_limit_5m,
+            "start": ts['log_start_5m'],
+            "end": ts['log_end_time']
+        }
+    
+        base_uri_5m = f'{config.data_url}/bars/{bar_interval}'
+        bars_5m = requests.get(url=base_uri_5m, params=payload_5m, headers=headers).json()
+    
+        for i, v5m in enumerate(bars_5m[ticker]):
+            # CONVERT UNIX TS TO READABLE TS
+            v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+    
+            # APPEND TO LIST
+    
+            # append 1m bars to list
+            ol_5m.append(v5m['o'])
+            ll_5m.append(v5m['l'])
+            hl_5m.append(v5m['h'])
+            cl_5m.append(v5m['c'])
+            vl_5m.append(v5m['v'])
+            tl_5m.append(v5m_ts)
+    
+            # convert to 1m np array
+            # added datatype float to avoid real is not double error during MOM cacl
+            np_ol_5m = np.array(ol_5m, dtype=float)
+            np_hl_5m = np.array(hl_5m, dtype=float)
+            np_ll_5m = np.array(ll_5m, dtype=float)
+            np_cl_5m = np.array(cl_5m, dtype=float)
+            np_vl_5m = np.array(vl_5m, dtype=float)
+            np_tl_5m = np.array(tl_5m)
+            
+            '''
+        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
-    base_uri_5m = f'{config.data_url}/bars/{bar_interval}'
-    bars_5m = requests.get(url=base_uri_5m, params=payload_5m, headers=headers).json()
+        bars_response = {
 
-    for i, v5m in enumerate(bars_5m[ticker]):
-        # CONVERT UNIX TS TO READABLE TS
-        v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
-        v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+            # "np_ol_1m": np_ol_1m,
+            "np_hl_1m": np_hl_1m,
+            "np_ll_1m": np_ll_1m,
+            "np_cl_1m": np_cl_1m,
+            "np_vl_1m": np_vl_1m,
+            "np_tl_1m": np_tl_1m,
+            "float_np_tl_1m": float_np_tl_1m
+        }
 
-        # APPEND TO LIST
-
-        # append 1m bars to list
-        ol_5m.append(v5m['o'])
-        ll_5m.append(v5m['l'])
-        hl_5m.append(v5m['h'])
-        cl_5m.append(v5m['c'])
-        vl_5m.append(v5m['v'])
-        tl_5m.append(v5m_ts)
-
-        # convert to 1m np array
-        # added datatype float to avoid real is not double error during MOM cacl
-        np_ol_5m = np.array(ol_5m, dtype=float)
-        np_hl_5m = np.array(hl_5m, dtype=float)
-        np_ll_5m = np.array(ll_5m, dtype=float)
-        np_cl_5m = np.array(cl_5m, dtype=float)
-        np_vl_5m = np.array(vl_5m, dtype=float)
-        np_tl_5m = np.array(tl_5m)
+        '''
+        
+        "np_ol_5m": np_ol_5m,
+        "np_hl_5m": np_hl_5m,
+        "np_ll_5m": np_ll_5m,
+        "np_cl_5m": np_cl_5m,
+        "np_vl_5m": np_vl_5m,
+        "np_tl_5m": np_tl_5m
         
         '''
-    # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
-    bars_response = {
+        logging.debug(f"bars_response : {bars_response}")
 
-        # "np_ol_1m": np_ol_1m,
-        # "np_hl_1m": np_hl_1m,
-        # "np_ll_1m": np_ll_1m,
-        "np_cl_1m": np_cl_1m,
-        "np_vl_1m": np_vl_1m,
-        "np_tl_1m": np_tl_1m
-    }
+        return bars_response
 
-    '''
-    
-    "np_ol_5m": np_ol_5m,
-    "np_hl_5m": np_hl_5m,
-    "np_ll_5m": np_ll_5m,
-    "np_cl_5m": np_cl_5m,
-    "np_vl_5m": np_vl_5m,
-    "np_tl_5m": np_tl_5m
-    
-    '''
+    elif data_provider == 'polygon':
 
-    logging.debug(f"bars_response : {bars_response}")
+        # TODO: pull bars async
+        # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
 
-    return bars_response
+        start_ts = ts['open_ts']  # market open ts
+        # logging.info(f'start_ts:                   {start_ts}')
+        end_ts = ts['clock_ts']  # current ts
+        # logging.info(f'end_ts:                     {end_ts}')
+        market_close_ts = ts['close_ts']  # to prevent getting more bars after market has closed for the day
+        # logging.info(f'market_close_ts:                    {market_close_ts}')
+
+        paper_limit_1m = config.paper_limit_1m
+        paper_limit_5m = config.paper_limit_5m
+        paper_limit_15m = config.paper_limit_15m
+
+        ################################# GET 1 MIN BARS #################################
+
+        bar_interval = "minute"
+
+        payload_1m = {
+            "apiKey": config.APCA_API_KEY_ID,
+            "limit": paper_limit_1m
+        }
+
+        # data_url = f'https://api.polygon.io/{data_api_version}/historic/agg'
+        base_uri_1m = f'{config.data_url}/{bar_interval}/{ticker}'
+
+        bars_1m = requests.get(url=base_uri_1m, params=payload_1m).json()
+
+        for i, v1m in enumerate(bars_1m['ticks']):
+            # CONVERT UNIX TS TO READABLE TS
+
+            # Extra step: Divide Polygon's ts by 1000 to convert to seconds from milliseconds
+            v1m_ts_nyc = datetime.fromtimestamp(v1m['t']/1000).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+
+            # v1m_ts = str(v1m['t']) # workaround since polygon ts don't return correct str timestamps
+
+            # APPEND TO LIST
+
+            # append 1m bars to list
+            # ol_1m.append(v1m['o'])
+            ll_1m.append(v1m['l'])
+            hl_1m.append(v1m['h'])
+            cl_1m.append(v1m['c'])
+            vl_1m.append(v1m['v'])
+            tl_1m.append(v1m_ts)
+            float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
+
+            # convert to 1m np array
+            # added datatype float to avoid real is not double error during MOM cacl
+            # np_ol_1m = np.array(ol_1m, dtype=float)
+            np_hl_1m = np.array(hl_1m, dtype=float)
+            np_ll_1m = np.array(ll_1m, dtype=float)
+            np_cl_1m = np.array(cl_1m, dtype=float)
+            np_vl_1m = np.array(vl_1m, dtype=float)
+            np_tl_1m = np.array(tl_1m)
+            float_np_tl_1m = np.array(float_tl_1m, dtype=float)
+
+        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
+
+        bars_response = {
+
+            # "np_ol_1m": np_ol_1m,
+            "np_hl_1m": np_hl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_ll_1m": np_ll_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_cl_1m": np_cl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_vl_1m": np_vl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_tl_1m": np_tl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "float_np_tl_1m": float_np_tl_1m[::-1]  # reverse the list since polygon data is orders in asc order
+        }
+
+        logging.debug(f"bars_response : {bars_response}")
+
+        return bars_response
 
 # TODO: Add ETAs at each step
 
@@ -334,6 +425,10 @@ if __name__ == '__main__':
         else:
             logging.info(f'[{ticker}] ### PAPER TRADE ###')
 
+        # lookup data provider from config
+        data_provider = config.data_provider
+        logging.info(f"[{ticker}] data provider:    {data_provider}")
+
         # Reset the lists each run to null
         '''
         tl_5m = list()
@@ -345,12 +440,12 @@ if __name__ == '__main__':
         '''
 
         # ol_1m = list()
-        # hl_1m = list()
-        # ll_1m = list()
+        hl_1m = list()
+        ll_1m = list()
         cl_1m = list()
         vl_1m = list()
         tl_1m = list()
-
+        float_tl_1m = list()
 
         # logging.info(f'Entering x = {x}')
 
@@ -437,20 +532,20 @@ if __name__ == '__main__':
 
             # logging.info(f'[{ticker}] BAR INTERVAL:    {bar_interval} Min')
 
-            bars = fetch_bars()  # for 1Min
+            bars = fetch_bars(config.data_provider)  # for 1Min
 
             ############### 1 MIN ###############
             # np_ol_1m = bars['np_ol_1m']
-            # np_hl_1m = bars['np_hl_1m']
-            # np_ll_1m = bars['np_ll_1m']
+            np_hl_1m = bars['np_hl_1m']
+            np_ll_1m = bars['np_ll_1m']
             np_cl_1m = bars['np_cl_1m']
             np_vl_1m = bars['np_vl_1m']
             np_tl_1m = bars['np_tl_1m']
-
+            float_np_tl_1m = bars['float_np_tl_1m']
 
             # logging.debug(f'[{ticker}] NP_OL_1M:    {np_ol_1m}')
-            # logging.debug(f'[{ticker}] NP_HL_1M:    {np_hl_1m}')
-            # logging.debug(f'[{ticker}] NP_LL_1M:    {np_ll_1m}')
+            logging.debug(f'[{ticker}] NP_HL_1M:    {np_hl_1m}')
+            logging.debug(f'[{ticker}] NP_LL_1M:    {np_ll_1m}')
             logging.debug(f'[{ticker}] np_cl_1m:    {np_cl_1m}')
             logging.debug(f'[{ticker}] np_vl_1m:    {np_vl_1m}')
             # logging.debug(f'[{ticker}] np_tl_1m:    {np_tl_1m}')      # TOO MUCH INFO FOR DEBUG
@@ -533,10 +628,8 @@ if __name__ == '__main__':
             # logging.info(f'[{ticker}] bool_sideways_1m:  {bool_sideways_1m}')
 
 
-            ################### BOLLINGER BANDS FOR DYNAMIC SUPPORT AND RESISTANCE
+            ################### BOLLINGER BANDS FOR SQUEEZE + DYNAMIC SUPPORT AND RESISTANCE >>>>>>>>
 
-            '''
-            
             bb_cl_upperband_1m, bb_cl_midband_1m, bb_cl_lowerband_1m = talib.BBANDS(np_cl_1m, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
 
             bb_support_cl_1m = bb_cl_lowerband_1m
@@ -547,36 +640,127 @@ if __name__ == '__main__':
 
             bb_mid_cl_1m = bb_cl_midband_1m
             # set mid band as mid band
+
+            ################### Keltner Channels >>>>>>>>>
+
+            '''
+            There are three steps to calculating Keltner Channels. 
+            First, select the length for the exponential moving average. 
+            Second, choose the time periods for the Average True Range (ATR). 
+            Third, choose the multiplier for the Average True Range.
+
+            Middle Line: 20-day exponential moving average 
+            Upper Channel Line: 20-day EMA + (2 x ATR(10))
+            Lower Channel Line: 20-day EMA - (2 x ATR(10))
+            
+            REF: https://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:keltner_channels
             
             '''
 
-            ######### BULL FLAG EXCEPTION ##########
+            ema20_1m = talib.EMA(np_cl_1m, timeperiod=20)
+            atr10_1m = talib.ATR(np_hl_1m, np_ll_1m, np_cl_1m, timeperiod=10)
+
+            keltner_upperband_cl_1m = ema20_1m + (2 * atr10_1m)
+            keltner_lowerband_cl_1m = ema20_1m - (2 * atr10_1m)
+            # keltner_midband_cl_1m = ema20_1m[-1]
+
+
+            ################### TTM SQUEEZE >>>>>>>>>
 
             '''
-            Added one key filter. I found that at times I could get shaken out of a play that was consolidating 
-            (that is, a bull flag) when prices made a series of lower closes within that consolidation. 
-            So, if there are three lower closes, but this price action does not go below the signal bar’s low, 
-            then I ignore the signal. 
+            Long Buy:
+                - Bollinger bands move inside the Keltner channels and momentum oscillator is > 0
+                - momentum histogram continues to rise
+                - first drop is a market sell to close long position
+            Short Sell:
+                - Bollinger bands move inside the Keltner channels and momentum oscillator is < 0
+                - momentum histogram continues to rise (downwards)
+                - first drop is a market buy to close short position 
             
-            For this indicator on a long signal, then, the trigger bar would be the first bar that has a higher low 
-            than the previous bar. The next bar that closes above the high of this trigger bar paints this previous 
-            low bar, which now becomes the swing low point.
             '''
 
-            bull_flag_1m = False
+            # Bollinger bands move inside ketler channels
 
-            if np_cl_1m[-1] <= np_cl_1m[-3] or np_cl_1m[-1] <= np_cl_1m[-4]:    # check current price is
-                bull_flag_1m = True
+            squeeze_bb_justoutof_keltner = False        # defaults
+            squeeze_mom_is_positive = False             # defaults
+            squeeze_positive_histogram_drop = False     # defaults
+            squeeze_negative_histogram_drop = False     # defaults
 
-            bear_flag_1m = False   # [shorting]
+            if bb_cl_upperband_1m[-1] > keltner_upperband_cl_1m[-1] \
+                and bb_cl_upperband_1m[-2] < keltner_upperband_cl_1m[-2] \
+                and bb_cl_upperband_1m[-3] < keltner_upperband_cl_1m[-3] \
+                and bb_cl_lowerband_1m[-1] < keltner_lowerband_cl_1m[-1] \
+                and bb_cl_lowerband_1m[-2] > keltner_lowerband_cl_1m[-2] \
+                and bb_cl_lowerband_1m[-3] > keltner_lowerband_cl_1m[-3]:
 
-            if np_cl_1m[-1] >= np_cl_1m[-3] or np_cl_1m[-1] >= np_cl_1m[-4]:
-                bear_flag_1m = True    # [shorting]
+                squeeze_bb_justoutof_keltner = True
 
-            logging.info(f'[{ticker}] bull_flag_1m:  {bull_flag_1m}')
-            logging.info(f'[{ticker}] bear_flag_1m:  {bear_flag_1m}') # [shorting]
+            if mom_cl_1m[-1] > 0:
+                squeeze_mom_is_positive = True
 
-            ####################################################################
+            # REF: https://www.tradingview.com/script/nqQ1DT5a-Squeeze-Momentum-Indicator-LazyBear/
+                # var = avg(avg(max(np_hl_1m, 20), min(np_ll_1m, 20)), sma(close, 20))
+                # val = linreg(np_cl_1m - var)
+
+            # Ref: http://beancoder.com/linear-regression-stock-prediction/
+
+            sma20_1m = talib.SMA(np_cl_1m, timeperiod=20)
+            sma20_1m = sma20_1m[-20:]    # splice to recent 20 values
+
+            # calculate squeeze histogram
+
+            inner_avg = np.average((max(np_hl_1m[-20:]), min(np_ll_1m[-20:])))  # splice to recent 20 values
+            np_inner_avg = np.full((20), inner_avg) # create a np array of len 20 with identical vals i.e. avg
+
+            a = np.array([np_inner_avg,sma20_1m])
+            outer_avg = np.average(a, axis=0)   # axis=0 to return an array instead of one val
+
+            np_reg_param_1m = np_cl_1m[-20:] - outer_avg  # splice to last 20 to keep it consistent
+
+            float_np_tl_1m_2d = float_np_tl_1m[-20:].reshape(-1,1)    # convert / reshape to 2d np array
+            np_reg_param_1m_2d = np_reg_param_1m.reshape(-1,1)  # convert to 2d np array
+
+            # linear regression model
+            linear_mod = linear_model.LinearRegression()
+            linear_mod.fit(float_np_tl_1m_2d, np_reg_param_1m_2d)
+
+            # return the plot made by linear regression using predict on ts_1m
+            squeeze_hist_2d = linear_mod.predict(float_np_tl_1m_2d)
+
+            squeeze_hist = squeeze_hist_2d.flatten()    # convert results back to 1D array
+            # TODO: Plot squeeze histogram
+
+            if squeeze_mom_is_positive and (squeeze_hist[-1] < squeeze_hist[-2]):
+                squeeze_positive_histogram_drop = True
+
+            if not squeeze_mom_is_positive and (squeeze_hist[-1] > squeeze_hist[-2]):
+                squeeze_negative_histogram_drop = True
+
+            ##################### >> SQUEEZE SIGNALS << #####################
+
+            squeeze_long_buy = squeeze_bb_justoutof_keltner and squeeze_mom_is_positive
+            squeeze_long_sell = position and squeeze_positive_histogram_drop
+
+            squeeze_short_sell = squeeze_bb_justoutof_keltner and not squeeze_mom_is_positive
+            squeeze_short_buy = position and squeeze_negative_histogram_drop
+            # pair squeeze_short_buy only with squeeze_short_sell, doesn't make sense by itself
+
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_hist:  {squeeze_hist}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_cl_1m[-20:]:  {np_cl_1m[-20:]}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_tl_1m[-20:]:  {np_tl_1m[-20:]}')
+
+
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_bb_justoutof_keltner:  {squeeze_bb_justoutof_keltner}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_mom_is_positive:  {squeeze_mom_is_positive}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_positive_histogram_drop:  {squeeze_positive_histogram_drop}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_negative_histogram_drop:  {squeeze_negative_histogram_drop}')
+
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_long_buy:  {squeeze_long_buy}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_long_sell:  {squeeze_long_sell}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_short_sell:  {squeeze_short_sell}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_short_buy:  {squeeze_short_buy}')
+
+            ##################### >> SQUEEZE SIGNALS << ##################################
 
             # TODO: Cancel order if not executed in 5 min (optional)
 
@@ -668,32 +852,78 @@ if __name__ == '__main__':
 
             # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
+            ######### >>> START BULL FLAG EXCEPTION >>> ##########
 
+            '''
+            Added one key filter. I found that at times I could get shaken out of a play that was consolidating 
+            (that is, a bull flag) when prices made a series of lower closes within that consolidation. 
+            So, if there are three lower closes, but this price action does not go below the signal bar’s low, 
+            then I ignore the signal. 
+
+            For this indicator on a long signal, then, the trigger bar would be the first bar that has a higher low 
+            than the previous bar. The next bar that closes above the high of this trigger bar paints this previous 
+            low bar, which now becomes the swing low point.
+            '''
+
+            # TODO: Incorrect, redo!!
+
+            bull_flag_1m = False
+
+            # bool_sell_momentum to indicate price has decreased 3 consequtive bars
+
+            if bool_sell_momentum and (np_cl_1m[-1] <= np_cl_1m[-3] or np_cl_1m[-1] <= np_cl_1m[-4]):  # check current price is
+                bull_flag_1m = True
+
+            bear_flag_1m = False  # [shorting]
+
+            # bool_close_short_momentum to indicate price has increased 3 consequtive bars
+
+            if bool_close_short_momentum and (np_cl_1m[-1] >= np_cl_1m[-3] or np_cl_1m[-1] >= np_cl_1m[-4]):
+                bear_flag_1m = True  # [shorting]
+
+            logging.info(f'[{ticker}] bull_flag_1m:  {bull_flag_1m}')
+            logging.info(f'[{ticker}] bear_flag_1m:  {bear_flag_1m}')  # [shorting]
+
+            ################### <<< END BULL FLAG EXCEPTION <<< #######
 
             ###########################################
             #####        LONG POSITIONS        ########
             ###########################################
 
 
-            ################################ BUY SIGNAL ###########################
+            ################################ LONG BUY SIGNAL - TO OPEN NEW LONG POSITION ###########################
 
-            LONG_BUY_SIGNAL = bool_buy_momentum and \
+            long_buy_signal_squeeze = squeeze_long_buy and \
+                                      not bool_closing_time
+            #
+            long_buy_signal_mom = bool_buy_momentum and \
                               bool_uptrend_1m and \
                               not bool_closing_time
 
+            LONG_BUY_SIGNAL = long_buy_signal_squeeze or long_buy_signal_mom
+
+            logging.info(f'[{ticker}] long_buy_signal_squeeze:  {long_buy_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] long_buy_signal_mom:  {long_buy_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] long_buy_signal:  {LONG_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
             # TODO: add resistance check during buy
             # TODO: Vol check, add later
 
-            ################################ SELL SIGNAL ###########################
+            ################################ LONG SELL SIGNAL - TO CLOSE OPEN LONG POSITION ###################
 
-            LONG_SELL_SIGNAL = bool_sell_profit_target or \
+            long_sell_signal_squeeze = bool_sell_profit_target or \
+                               (squeeze_long_sell and bool_sell_price_above_buy and not bull_flag_1m) or \
+                               (bool_sell_price_above_buy and bool_closing_time)
+
+            long_sell_signal_mom = bool_sell_profit_target or \
                                (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
                                (bool_sell_price_above_buy and bool_closing_time)
 
-            # SELL only if a buy position exists.
+            LONG_SELL_SIGNAL = long_sell_signal_squeeze or long_sell_signal_mom
 
+            # SELL only if a buy position exists.
+            logging.info(f'[{ticker}] long_sell_signal_squeeze:   {long_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] long_sell_signal_mom:   {long_sell_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] long_sell_signal:   {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
@@ -702,24 +932,39 @@ if __name__ == '__main__':
             ###########################################
 
 
-            ################################ SHORT SIGNAL ###########################
+            ################################ SHORT SELL SIGNAL - TOP OPEN NEW SHORT POSITION ###########################
 
-            SHORT_SELL_SIGNAL = bool_short_momentum and \
+            short_sell_signal_squeeze = squeeze_short_buy and \
+                                not bool_closing_time \
+                                and shorting_enabled
+
+            short_sell_signal_mom = bool_short_momentum and \
                                 bool_downtrend_1m and \
                                 not bool_closing_time \
                                 and shorting_enabled
 
+            SHORT_SELL_SIGNAL = short_sell_signal_squeeze or short_sell_signal_mom
             # TODO: Check for support before selling
 
+            logging.info(f'[{ticker}] short_sell_signal_squeeze:   {short_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] short_sell_signal_mom:   {short_sell_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] short_sell_signal:   {SHORT_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
-            ################################ CLOSE SHORT SIGNAL #####################
+            ################################ SHORT BUY SIGNAL - TO CLOSE OPEN SHORT POSITION #####################
 
-            SHORT_BUY_SIGNAL = bool_buy_profit_target or \
+            short_buy_signal_mom = bool_buy_profit_target or \
                                (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
                                (bool_buy_price_below_sell and bool_closing_time)
 
+            short_buy_signal_squeeze = bool_buy_profit_target or \
+                               (squeeze_short_buy and bool_buy_price_below_sell and not bear_flag_1m) or \
+                               (bool_buy_price_below_sell and bool_closing_time)
+
+            SHORT_BUY_SIGNAL = short_buy_signal_squeeze or short_buy_signal_mom
+
+            logging.info(f'[{ticker}] short_buy_signal_mom:   {short_buy_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] short_buy_signal_squeeze:   {short_buy_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] short_buy_signal:   {SHORT_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
@@ -744,7 +989,7 @@ if __name__ == '__main__':
                 
             '''
 
-            ################################ LONG BUY ###########################
+            ################################ LONG BUY - Open New Long Positionm ######################################
 
             if not position and LONG_BUY_SIGNAL:  # if no position exists and a buy sig is found
 
@@ -838,8 +1083,7 @@ if __name__ == '__main__':
                 else:
                     logging.error(f"[{current_ts}] [ERROR] {buy_order_details['side']} ORDER WAS NOT PLACED")
 
-
-            ################################ LONG_SELL ###########################
+            ################################ LONG_SELL - Close Existing Open Long Position ###########################
 
             if position and position_side == 'long' and LONG_SELL_SIGNAL:
 
@@ -938,11 +1182,7 @@ if __name__ == '__main__':
 
                 position = False  # set position to false once a sale has completed
 
-
-
-
-
-            ################################ SHORT SELL ###########################
+            ################################ SHORT SELL - Open New Short Position #####################################
 
             if not position and SHORT_SELL_SIGNAL:
 
@@ -1040,7 +1280,7 @@ if __name__ == '__main__':
 
                 position = True  # set position to false once short sell is initiated
 
-            ################################ SHORT BUY ###########################
+            ################################ SHORT BUY - Close Existing Short Sell Position ###########################
 
             if position and position_side == 'short' and SHORT_BUY_SIGNAL:  # if a sell position exists and a short buy sig is found
 
@@ -1130,21 +1370,21 @@ if __name__ == '__main__':
                 else:
                     logging.error(f"[{current_ts}] [SHORT_BUY_SIGNAL] [ERROR] {buy_order_details['side']} ORDER WAS NOT PLACED")
 
-
+            ###########################################################################################################
 
         # HEALTH CHECK
 
         if health_check_alert_counter == 1:
             msg = f'[CHECK] [{current_ts}] [{ticker}] OK'
             slackit(channel="CHECK", msg=msg)                    # Post to health-check slack channel
-        elif health_check_alert_counter > 120:
+        elif health_check_alert_counter > 360:
             health_check_alert_counter = 0
 
         health_check_alert_counter += 1
 
         # HEALTH COUNTER END
 
-        secs_to_sleep = 30
+        secs_to_sleep = 10
 
         x += 1
 
