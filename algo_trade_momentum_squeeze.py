@@ -318,15 +318,16 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
         # data_url = f'https://api.polygon.io/{data_api_version}/historic/agg'
         base_uri_1m = f'{config.data_url}/{bar_interval}/{ticker}'
 
-
         bars_1m = requests.get(url=base_uri_1m, params=payload_1m).json()
 
         for i, v1m in enumerate(bars_1m['ticks']):
             # CONVERT UNIX TS TO READABLE TS
-            # v1m_ts_nyc = datetime.fromtimestamp(v1m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
-            # v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
 
-            v1m_ts = str(v1m['t']) # workaround since polygon ts don't return correct str timestamps
+            # Extra step: Divide Polygon's ts by 1000 to convert to seconds from milliseconds
+            v1m_ts_nyc = datetime.fromtimestamp(v1m['t']/1000).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
+            v1m_ts = v1m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
+
+            # v1m_ts = str(v1m['t']) # workaround since polygon ts don't return correct str timestamps
 
             # APPEND TO LIST
 
@@ -354,12 +355,12 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
         bars_response = {
 
             # "np_ol_1m": np_ol_1m,
-            "np_hl_1m": np_hl_1m,
-            "np_ll_1m": np_ll_1m,
-            "np_cl_1m": np_cl_1m,
-            "np_vl_1m": np_vl_1m,
-            "np_tl_1m": np_tl_1m,
-            "float_np_tl_1m": float_np_tl_1m
+            "np_hl_1m": np_hl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_ll_1m": np_ll_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_cl_1m": np_cl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_vl_1m": np_vl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "np_tl_1m": np_tl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            "float_np_tl_1m": float_np_tl_1m[::-1]  # reverse the list since polygon data is orders in asc order
         }
 
         logging.debug(f"bars_response : {bars_response}")
@@ -745,8 +746,8 @@ if __name__ == '__main__':
             # pair squeeze_short_buy only with squeeze_short_sell, doesn't make sense by itself
 
             logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_hist:  {squeeze_hist}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_cl_1m:  {np_cl_1m[-20:]}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_tl_1m:  {np_tl_1m[-20:]}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_cl_1m[-20:]:  {np_cl_1m[-20:]}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_tl_1m[-20:]:  {np_tl_1m[-20:]}')
 
 
             logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_bb_justoutof_keltner:  {squeeze_bb_justoutof_keltner}')
@@ -890,32 +891,39 @@ if __name__ == '__main__':
             ###########################################
 
 
-            ################################ BUY SIGNAL ###########################
+            ################################ LONG BUY SIGNAL - TO OPEN NEW LONG POSITION ###########################
 
-            # LONG_BUY_SIGNAL = bool_buy_momentum and \
-            #                   bool_uptrend_1m and \
-            #                   not bool_closing_time
-
-            LONG_BUY_SIGNAL = squeeze_long_buy and \
+            long_buy_signal_squeeze = squeeze_long_buy and \
+                                      not bool_closing_time
+            #
+            long_buy_signal_mom = bool_buy_momentum and \
+                              bool_uptrend_1m and \
                               not bool_closing_time
 
+            LONG_BUY_SIGNAL = long_buy_signal_squeeze or long_buy_signal_mom
+
+            logging.info(f'[{ticker}] long_buy_signal_squeeze:  {long_buy_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] long_buy_signal_mom:  {long_buy_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] long_buy_signal:  {LONG_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
             # TODO: add resistance check during buy
             # TODO: Vol check, add later
 
-            ################################ SELL SIGNAL ###########################
+            ################################ LONG SELL SIGNAL - TO CLOSE OPEN LONG POSITION ###################
 
-            # LONG_SELL_SIGNAL = bool_sell_profit_target or \
-            #                    (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
-            #                    (bool_sell_price_above_buy and bool_closing_time)
-
-            LONG_SELL_SIGNAL = bool_sell_profit_target or \
+            long_sell_signal_squeeze = bool_sell_profit_target or \
                                (squeeze_long_sell and bool_sell_price_above_buy and not bull_flag_1m) or \
                                (bool_sell_price_above_buy and bool_closing_time)
 
-            # SELL only if a buy position exists.
+            long_sell_signal_mom = bool_sell_profit_target or \
+                               (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
+                               (bool_sell_price_above_buy and bool_closing_time)
 
+            LONG_SELL_SIGNAL = long_sell_signal_squeeze or long_sell_signal_mom
+
+            # SELL only if a buy position exists.
+            logging.info(f'[{ticker}] long_sell_signal_squeeze:   {long_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] long_sell_signal_mom:   {long_sell_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] long_sell_signal:   {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
@@ -924,32 +932,39 @@ if __name__ == '__main__':
             ###########################################
 
 
-            ################################ SHORT SIGNAL ###########################
+            ################################ SHORT SELL SIGNAL - TOP OPEN NEW SHORT POSITION ###########################
 
-            # SHORT_SELL_SIGNAL = bool_short_momentum and \
-            #                     bool_downtrend_1m and \
-            #                     not bool_closing_time \
-            #                     and shorting_enabled
-
-            SHORT_SELL_SIGNAL = squeeze_short_buy and \
+            short_sell_signal_squeeze = squeeze_short_buy and \
                                 not bool_closing_time \
                                 and shorting_enabled
 
+            short_sell_signal_mom = bool_short_momentum and \
+                                bool_downtrend_1m and \
+                                not bool_closing_time \
+                                and shorting_enabled
+
+            SHORT_SELL_SIGNAL = short_sell_signal_squeeze or short_sell_signal_mom
             # TODO: Check for support before selling
 
+            logging.info(f'[{ticker}] short_sell_signal_squeeze:   {short_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] short_sell_signal_mom:   {short_sell_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] short_sell_signal:   {SHORT_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
-            ################################ CLOSE SHORT SIGNAL #####################
+            ################################ SHORT BUY SIGNAL - TO CLOSE OPEN SHORT POSITION #####################
 
-            # SHORT_BUY_SIGNAL = bool_buy_profit_target or \
-            #                    (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
-            #                    (bool_buy_price_below_sell and bool_closing_time)
+            short_buy_signal_mom = bool_buy_profit_target or \
+                               (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
+                               (bool_buy_price_below_sell and bool_closing_time)
 
-            SHORT_BUY_SIGNAL = bool_buy_profit_target or \
+            short_buy_signal_squeeze = bool_buy_profit_target or \
                                (squeeze_short_buy and bool_buy_price_below_sell and not bear_flag_1m) or \
                                (bool_buy_price_below_sell and bool_closing_time)
 
+            SHORT_BUY_SIGNAL = short_buy_signal_squeeze or short_buy_signal_mom
+
+            logging.info(f'[{ticker}] short_buy_signal_mom:   {short_buy_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] short_buy_signal_squeeze:   {short_buy_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
             logging.info(f'[{ticker}] short_buy_signal:   {SHORT_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
@@ -974,7 +989,7 @@ if __name__ == '__main__':
                 
             '''
 
-            ################################ LONG BUY ###########################
+            ################################ LONG BUY - Open New Long Positionm ######################################
 
             if not position and LONG_BUY_SIGNAL:  # if no position exists and a buy sig is found
 
@@ -1068,8 +1083,7 @@ if __name__ == '__main__':
                 else:
                     logging.error(f"[{current_ts}] [ERROR] {buy_order_details['side']} ORDER WAS NOT PLACED")
 
-
-            ################################ LONG_SELL ###########################
+            ################################ LONG_SELL - Close Existing Open Long Position ###########################
 
             if position and position_side == 'long' and LONG_SELL_SIGNAL:
 
@@ -1168,11 +1182,7 @@ if __name__ == '__main__':
 
                 position = False  # set position to false once a sale has completed
 
-
-
-
-
-            ################################ SHORT SELL ###########################
+            ################################ SHORT SELL - Open New Short Position #####################################
 
             if not position and SHORT_SELL_SIGNAL:
 
@@ -1270,7 +1280,7 @@ if __name__ == '__main__':
 
                 position = True  # set position to false once short sell is initiated
 
-            ################################ SHORT BUY ###########################
+            ################################ SHORT BUY - Close Existing Short Sell Position ###########################
 
             if position and position_side == 'short' and SHORT_BUY_SIGNAL:  # if a sell position exists and a short buy sig is found
 
@@ -1360,7 +1370,7 @@ if __name__ == '__main__':
                 else:
                     logging.error(f"[{current_ts}] [SHORT_BUY_SIGNAL] [ERROR] {buy_order_details['side']} ORDER WAS NOT PLACED")
 
-
+            ###########################################################################################################
 
         # HEALTH CHECK
 
