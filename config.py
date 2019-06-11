@@ -1,10 +1,14 @@
 
 live_trade = False  # SET TO TRUE WHEN TRADING LIVE!!!
 
+testing_algo_after_hours = True     # Set to False ALWAYS unless testing after hours
+
 # data_provider = 'alpaca'        # polygon or alpaca
 data_provider = 'polygon'     # polygon or alpaca
 
 api_version = 'v2'
+
+
 
 if data_provider == 'alpaca':
     data_api_version = 'v1'
@@ -18,11 +22,11 @@ if data_provider == 'polygon':
 
 day_trade_minimum = 0.00
 
-position_size = 0.5         # Position sizing, 0.25 for 1/4 portion of equity for each stock
+position_size = 0.33         # Position sizing, 0.25 for 1/4 portion of equity for each stock
 closing_window = 60         # time left for market to close
 
 
-profit_percentage = 0.05    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
+profit_percentage = 0.02    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0             # use either profit percentage or price delta
 
 if profit_percentage == 0:
@@ -41,8 +45,8 @@ if live_trade:  # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PKYB9N5TQPSMNG5SLYNS'
-    APCA_API_SECRET_KEY = 'yKUnFMAFtCcDkZraWci3n5Ga2urmh7dY1H8h4UFB'
+    APCA_API_KEY_ID = 'PKHUBU9MNWKGTQ6IHG9U'
+    APCA_API_SECRET_KEY = 'z2LqwS12BHjtPYfqOfMwHtSxvVhdYRNQFWPGHni1'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_channel = 'PAPER'
 

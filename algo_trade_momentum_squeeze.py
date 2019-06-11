@@ -372,15 +372,13 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
 
 if __name__ == '__main__':
 
-    day_trade_minimum = config.day_trade_minimum    # TODO: SET day_trade_minimum TO 0 LATER
+    day_trade_minimum = config.day_trade_minimum
 
     buy_order_placed = dict()  # INITIALIZATION
     buy_order_details = dict()
 
     sell_order_placed = dict()
     sell_order_details = dict()
-
-    # bar_interval = config.bar_interval
 
     order_uri = config.order_uri
     clock_uri = config.clock_uri
@@ -402,7 +400,8 @@ if __name__ == '__main__':
 
     ticker = config.ticker[f"{symbol}"]
 
-    position_qty = 0  # default
+    position_qty = 0    # default
+    equity = 0.00       # default to 0
 
     health_check_alert_counter = 0
 
@@ -468,6 +467,9 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
+        if config.testing_algo_after_hours:
+            market_is_open = True
+
         if market_is_open:
 
             # ready to trade
@@ -481,19 +483,11 @@ if __name__ == '__main__':
 
             account = requests.get(url=account_uri, headers=headers).json()
 
+            equity = float(account["equity"])
+
             shorting_enabled = account["shorting_enabled"]  # Only short if enabled, else go long only!!
 
             logging.info(f'[{ticker}] shorting_enabled = {shorting_enabled}')
-
-            # LIMIT TOTAL TRADABLE AMOUNT
-
-            cash = float(account['cash']) - day_trade_minimum  # Total cash in account
-
-            # LIMIT BUYING OR SELLING POWER FOR EACH ALGO. ALGO: STOCK is 1:1
-
-            cash_limit = cash * config.position_size    # E.G 1 (100%) if trading one stock only
-
-            logging.info(f'[{ticker}] cash: [${int(cash_limit)}] of [${int(cash)}] day_trade_minimum: [${day_trade_minimum}]')
 
 
             ############# GET POSITION INFO
@@ -504,8 +498,9 @@ if __name__ == '__main__':
 
             positions_response = requests.get(url=positions_uri, headers=headers).json()
 
-            position = False    # default position to False
+            position = False        # default position to False
             position_side = None    # default position side (buy or sell)
+
 
             # check if key exists in dict, code indicates error or no position
             # TODO: Work on an alternate implementation for checking position
@@ -523,9 +518,21 @@ if __name__ == '__main__':
                     buy_price = 0.0
                     sell_price = round(float(positions_response['avg_entry_price']), 2)
 
+            # LIMIT TOTAL TRADABLE AMOUNT
+
+            equity_less_daytrademin = equity - day_trade_minimum  # Total cash in account
+
+            # LIMIT BUYING OR SELLING POWER FOR EACH ALGO. ALGO: STOCK is 1:1
+
+            # cash_limit = cash * config.position_size    # E.G 1 (100%) if trading one stock only
+            equity_limit = equity * config.position_size
+
+            logging.info(f'[{ticker}] equity:   ${equity}')
+            logging.info(f'[{ticker}] equity_limit: [${int(equity_limit)}] of [${int(equity_less_daytrademin)}] day_trade_minimum: [${day_trade_minimum}]')
+
             logging.info(f'[{ticker}] current_position: [{position_qty}]    side:   [{position_side}]')
             logging.info(f'[{ticker}] buy_price:    ${buy_price}')
-            logging.info(f'[{ticker}] sell_price:    ${sell_price}')
+            logging.info(f'[{ticker}] sell_price:   ${sell_price}')
 
 
             ############ >_< FETCH TICKERS BASED ON CURRENT TS ############
@@ -750,15 +757,15 @@ if __name__ == '__main__':
             logging.info(f'[{ticker}] [{np_cl_1m[-1]}] np_tl_1m[-20:]:  {np_tl_1m[-20:]}')
 
 
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_bb_justoutof_keltner:  {squeeze_bb_justoutof_keltner}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_mom_is_positive:  {squeeze_mom_is_positive}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_positive_histogram_drop:  {squeeze_positive_histogram_drop}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_negative_histogram_drop:  {squeeze_negative_histogram_drop}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_bb_justoutof_keltner:    {squeeze_bb_justoutof_keltner}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_mom_is_positive:         {squeeze_mom_is_positive}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_positive_histogram_drop: {squeeze_positive_histogram_drop}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_negative_histogram_drop: {squeeze_negative_histogram_drop}')
 
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_long_buy:  {squeeze_long_buy}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_long_sell:  {squeeze_long_sell}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_short_sell:  {squeeze_short_sell}')
-            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_short_buy:  {squeeze_short_buy}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_long_buy:                {squeeze_long_buy}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_long_sell:               {squeeze_long_sell}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_short_sell:              {squeeze_short_sell}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] squeeze_short_buy:               {squeeze_short_buy}')
 
             ##################### >> SQUEEZE SIGNALS << ##################################
 
@@ -766,7 +773,7 @@ if __name__ == '__main__':
 
             trade_left_open = False  # to check if a trade was left open, initial False
 
-            units_to_buy = units_to_short = int(cash_limit / np_cl_1m[-1])  # assign same value to both
+            units_to_buy = units_to_short = int(equity_limit / np_cl_1m[-1])  # assign same value to both
 
             if position_qty > 0:
                 units_to_buy = units_to_short = 0
@@ -839,16 +846,16 @@ if __name__ == '__main__':
             bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)
             # current price > sell target
 
-            logging.info(f"[{ticker}] bool_buy_momentum:  {bool_buy_momentum}")
-            logging.info(f"[{ticker}] bool_sell_momentum:  {bool_sell_momentum} [{mom_cl_1m[-1]} < 0 AND {mom_cl_1m[-2]} < 0]")
+            logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_momentum:    {bool_buy_momentum}")
+            logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_momentum:   {bool_sell_momentum} [{mom_cl_1m[-1]} < 0 AND {mom_cl_1m[-2]} < 0]")
 
-            logging.info(f"[{ticker}] bool_sell_price_above_buy:  {bool_sell_price_above_buy} [{np_cl_1m[-1]} > {buy_price}]")
-            logging.info(f"[{ticker}] bool_buy_price_below_sell:  {bool_buy_price_below_sell} [{np_cl_1m[-1]} < {sell_price}]")
+            logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_above_buy:    {bool_sell_price_above_buy} [{np_cl_1m[-1]} > {buy_price}]")
+            logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_below_sell:    {bool_buy_price_below_sell} [{np_cl_1m[-1]} < {sell_price}]")
 
-            logging.info(f"[{ticker}] bool_buy_profit_target:  {bool_buy_profit_target} [{buy_target_based_on_profit_percentage}]")  # [shorting]
-            logging.info(f"[{ticker}] bool_sell_profit_target:  {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
+            logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_profit_target:   {bool_buy_profit_target} [{buy_target_based_on_profit_percentage}]")  # [shorting]
+            logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_profit_target:  {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
 
-            logging.info(f"[{ticker}] bool_short_momentum:  {bool_short_momentum}")
+            logging.info(f"[{ticker}] bool_short_momentum:      {bool_short_momentum}")
 
             # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
@@ -900,11 +907,11 @@ if __name__ == '__main__':
                               bool_uptrend_1m and \
                               not bool_closing_time
 
-            LONG_BUY_SIGNAL = long_buy_signal_squeeze or long_buy_signal_mom
+            LONG_BUY_SIGNAL = long_buy_signal_squeeze   # or long_buy_signal_mom
 
-            logging.info(f'[{ticker}] long_buy_signal_squeeze:  {long_buy_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
-            logging.info(f'[{ticker}] long_buy_signal_mom:  {long_buy_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
-            logging.info(f'[{ticker}] long_buy_signal:  {LONG_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_buy_signal_squeeze:      {long_buy_signal_squeeze}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_buy_signal_mom:          {long_buy_signal_mom}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_buy_signal:              {LONG_BUY_SIGNAL}')
 
             # TODO: add resistance check during buy
             # TODO: Vol check, add later
@@ -922,9 +929,9 @@ if __name__ == '__main__':
             LONG_SELL_SIGNAL = long_sell_signal_squeeze or long_sell_signal_mom
 
             # SELL only if a buy position exists.
-            logging.info(f'[{ticker}] long_sell_signal_squeeze:   {long_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
-            logging.info(f'[{ticker}] long_sell_signal_mom:   {long_sell_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
-            logging.info(f'[{ticker}] long_sell_signal:   {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_sell_signal_squeeze:     {long_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_sell_signal_mom:         {long_sell_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_sell_signal:             {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
 
 
             ###########################################
@@ -943,12 +950,12 @@ if __name__ == '__main__':
                                 not bool_closing_time \
                                 and shorting_enabled
 
-            SHORT_SELL_SIGNAL = short_sell_signal_squeeze or short_sell_signal_mom
+            SHORT_SELL_SIGNAL = short_sell_signal_squeeze   # or short_sell_signal_mom
             # TODO: Check for support before selling
 
-            logging.info(f'[{ticker}] short_sell_signal_squeeze:   {short_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
-            logging.info(f'[{ticker}] short_sell_signal_mom:   {short_sell_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
-            logging.info(f'[{ticker}] short_sell_signal:   {SHORT_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_sell_signal_squeeze:    {short_sell_signal_squeeze}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_sell_signal_mom:        {short_sell_signal_mom}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_sell_signal:            {SHORT_SELL_SIGNAL}')
 
 
             ################################ SHORT BUY SIGNAL - TO CLOSE OPEN SHORT POSITION #####################
@@ -963,9 +970,9 @@ if __name__ == '__main__':
 
             SHORT_BUY_SIGNAL = short_buy_signal_squeeze or short_buy_signal_mom
 
-            logging.info(f'[{ticker}] short_buy_signal_mom:   {short_buy_signal_mom} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
-            logging.info(f'[{ticker}] short_buy_signal_squeeze:   {short_buy_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
-            logging.info(f'[{ticker}] short_buy_signal:   {SHORT_BUY_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal_mom:         {short_buy_signal_mom}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal_squeeze:     {short_buy_signal_squeeze}')
+            logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal:             {SHORT_BUY_SIGNAL}')
 
 
             ################################################################
