@@ -1,14 +1,12 @@
 
-live_trade = False  # SET TO TRUE WHEN TRADING LIVE!!!
+live_trade = False                  # SET TO TRUE WHEN TRADING LIVE!!!
 
-testing_algo_after_hours = True     # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = True    # Set to False ALWAYS unless testing after hours
 
-# data_provider = 'alpaca'        # polygon or alpaca
-data_provider = 'polygon'     # polygon or alpaca
+# data_provider = 'alpaca'          # polygon or alpaca
+data_provider = 'polygon'           # polygon or alpaca
 
 api_version = 'v2'
-
-
 
 if data_provider == 'alpaca':
     data_api_version = 'v1'
@@ -20,14 +18,14 @@ if data_provider == 'polygon':
 
     #     https://api.polygon.io/v1/historic/agg/minute/V?apiKey=PKYB9N5TQPSMNG5SLYNS&limit=3
 
-day_trade_minimum = 0.00
+day_trade_minimum = 0.00                    # this can be set to 25000.00 to keep min balance to avoid PDT flag
 
-position_size = 0.33         # Position sizing, 0.25 for 1/4 portion of equity for each stock
-closing_window = 60         # time left for market to close
+max_open_positions_allowed = 5              # Use to divide total equity among X max allowed open positions
+closing_window = 60                         # time left for market to close
 
-
-profit_percentage = 0.02    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
-price_delta = 0             # use either profit percentage or price delta
+secs_to_sleep = 10                          # time between reruns if market is open.
+profit_percentage = 0.02                    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
+price_delta = 0                             # use either profit percentage or price delta
 
 if profit_percentage == 0:
     price_delta = 0.5       # 50 Cents
@@ -58,16 +56,57 @@ order_uri = f'{base_url}/orders'
 clock_uri = f'{base_url}/clock'
 
 
+# Top Popular Large and Mid Cap stocks on Robinhood
+
 ticker = {
     "MSFT": "MSFT",
-    "V":    "V",
-    "AAPL": "AAPL",
-    "NFLX": "NFLX",
     "AMZN": "AMZN",
+    "AAPL": "AAPL",
     "GOOG": "GOOG",
-    "CTSH": "CTSH",
-    "FB":   "FB"
+    "FB"  : "FB",
+    "BRK.": "BRK.B",
+    "BABA": "BABA",
+    "TCEH": "TCEHY",
+    "V"   :  "V",
+    "JPM" :  "JPM",
+    "WMT" :  "WMT",
+    "BAC" :  "BAC",
+    "CSCO": "CSCO",
+    "DIS" :  "DIS",
+    "PFE" :  "PFE",
+    "T"   :  "T",
+    "BA"  : "BA",
+    "NFLX": "NFLX",
+    "PYPL": "PYPL",
+    "NKE" :  "NKE",
+    "CRM" :  "CRM",
+    "COST": "COST",
+    "NVDA": "NVDA",
+    "GE"  : "GE",
+    "QCOM": "QCOM",
+    "UBER": "UBER",
+    "CVS" :  "CVS",
+    "SNE" :  "SNE",
+    "GM"  : "GM",
+    "MU"  : "MU",
+    "ATVI": "ATVI",
+    "JD"  : "JD",
+    "SHOP": "SHOP",
+    "NOK" :  "NOK",
+    "SIRI": "SIRI",
+    "SPOT": "SPOT",
+    "TWLO": "TWLO",
+    "LYFT": "LYFT",
+    "CGC" :  "CGC",
+    "ROKU": "ROKU",
+    "DBX" :  "DBX",
+    "VZ"  : "VZ",
+    "KO"  : "KO",
+    "SBUX": "SBUX",
+    "SQ"  : "SQ",
+    "LUV" :  "LUV"
 }
+
 
 
 ############ BACKTEST ONLY ##################
