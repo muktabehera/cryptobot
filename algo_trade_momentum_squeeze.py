@@ -380,6 +380,7 @@ if __name__ == '__main__':
     sell_order_placed = dict()
     sell_order_details = dict()
 
+    secs_to_sleep = config.secs_to_sleep
     order_uri = config.order_uri
     clock_uri = config.clock_uri
 
@@ -402,6 +403,8 @@ if __name__ == '__main__':
 
     position_qty = 0    # default
     equity = 0.00       # default to 0
+    equity_limit = 0.0  # default
+    cash = 0.0          # default cash
 
     health_check_alert_counter = 0
 
@@ -467,7 +470,7 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if config.testing_algo_after_hours:
+        if config.testing_algo_after_hours:     ######### CHECK THIS ###########
             market_is_open = True
 
         if market_is_open:
@@ -483,7 +486,8 @@ if __name__ == '__main__':
 
             account = requests.get(url=account_uri, headers=headers).json()
 
-            equity = float(account["equity"])
+            equity = float(account["equity"])       # equity
+            cash = float(account["cash"])           # cash
 
             shorting_enabled = account["shorting_enabled"]  # Only short if enabled, else go long only!!
 
@@ -525,9 +529,17 @@ if __name__ == '__main__':
             # LIMIT BUYING OR SELLING POWER FOR EACH ALGO. ALGO: STOCK is 1:1
 
             # cash_limit = cash * config.position_size    # E.G 1 (100%) if trading one stock only
-            equity_limit = equity * config.position_size
 
-            logging.info(f'[{ticker}] equity:   ${equity}')
+            equity_limit = equity / config.max_open_positions_allowed
+
+            if cash <= 0:
+                equity_limit = 0        # added cash check to avoid margin trading
+                logging.info(f'[{ticker}] equity:   ${equity}   cash:   ${cash}     NO CASH AVAILABLE, EXITING')
+                logging.info('--' * 40)
+                time.sleep(secs_to_sleep)
+                continue
+
+            logging.info(f'[{ticker}] equity:   ${equity}   cash:   ${cash} max_open_positions_allowed: {config.max_open_positions_allowed}')
             logging.info(f'[{ticker}] equity_limit: [${int(equity_limit)}] of [${int(equity_less_daytrademin)}] day_trade_minimum: [${day_trade_minimum}]')
 
             logging.info(f'[{ticker}] current_position: [{position_qty}]    side:   [{position_side}]')
@@ -1390,8 +1402,6 @@ if __name__ == '__main__':
         health_check_alert_counter += 1
 
         # HEALTH COUNTER END
-
-        secs_to_sleep = 10
 
         x += 1
 
