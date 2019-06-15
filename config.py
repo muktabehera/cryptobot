@@ -1,10 +1,10 @@
 
-live_trade = False                  # SET TO TRUE WHEN TRADING LIVE!!!
+live_trade = False                      # SET TO TRUE WHEN TRADING LIVE!!!
 
-testing_algo_after_hours = False    # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = True         # Set to False ALWAYS unless testing after hours
 
-data_provider = 'alpaca'          # polygon or alpaca
-# data_provider = 'polygon'           # polygon or alpaca
+data_provider = 'alpaca'                # polygon or alpaca
+# data_provider = 'polygon'             # polygon or alpaca
 
 api_version = 'v2'
 
@@ -23,7 +23,7 @@ day_trade_minimum = 0.00                    # this can be set to 25000.00 to kee
 max_open_positions_allowed = 5              # Use to divide total equity among X max allowed open positions
 closing_window = 60                         # time left for market to close
 
-secs_to_sleep = 10                          # time between reruns if market is open.
+secs_to_sleep = 1                          # time between reruns if market is open.
 profit_percentage = 0.02                    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0                             # use either profit percentage or price delta
 
@@ -58,66 +58,34 @@ clock_uri = f'{base_url}/clock'
 
 # Top Popular Large and Mid Cap stocks on Robinhood
 
-ticker = {
-    "MSFT": "MSFT",
-    "AMZN": "AMZN",
-    "AAPL": "AAPL",
-    "GOOG": "GOOG",
-    "FB"  : "FB",
-    "BRK.": "BRK.B",
-    "BABA": "BABA",
-    "TCEH": "TCEHY",
-    "V"   :  "V",
-    "JPM" :  "JPM",
-    "WMT" :  "WMT",
-    "BAC" :  "BAC",
-    "CSCO": "CSCO",
-    "DIS" :  "DIS",
-    "PFE" :  "PFE",
-    "T"   :  "T",
-    "BA"  : "BA",
-    "NFLX": "NFLX",
-    "PYPL": "PYPL",
-    "NKE" :  "NKE",
-    "CRM" :  "CRM",
-    "COST": "COST",
-    "NVDA": "NVDA",
-    "GE"  : "GE",
-    "QCOM": "QCOM",
-    "UBER": "UBER",
-    "CVS" :  "CVS",
-    "SNE" :  "SNE",
-    "GM"  : "GM",
-    "MU"  : "MU",
-    "ATVI": "ATVI",
-    "JD"  : "JD",
-    "SHOP": "SHOP",
-    "NOK" :  "NOK",
-    "SIRI": "SIRI",
-    "SPOT": "SPOT",
-    "TWLO": "TWLO",
-    "LYFT": "LYFT",
-    "CGC" :  "CGC",
-    "ROKU": "ROKU",
-    "DBX" :  "DBX",
-    "VZ"  : "VZ",
-    "KO"  : "KO",
-    "SBUX": "SBUX",
-    "SQ"  : "SQ",
-    "LUV" :  "LUV"
+tickers = {
+    "1": ["MSFT", "AMZN", "AAPL", "GOOG", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
+          "BA", "NFLX", "PYPL", "NKE", "CRM"],
+
+    "2": ["COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD", "SHOP", "NOK", "SIRI", "DBX", "SPOT",
+          "TWLO", "LYFT", "CGC", "ROKU", "VZ"],
+
+    "3": ["KO", "SBUX", "SQ", "LUV", "CTSH", "TSLA", "ADBE", "ACN"],
+
+    "4": [],
+
+    "5": []
 }
 
+    # "UBER": "UBER",
+
+
+
+limit_1m = 100
+limit_5m = 100
+limit_15m = 100
 
 
 ############ BACKTEST ONLY ##################
 
-tickers = ['V'] # for backtest algo_01.py
+# tickers = ['V'] # for backtest algo_01.py
 # num bars to fetch per time window
-limit_1m = 350
-limit_5m = 78
-limit_15m = 29
-
-paper_limit_1m = 100
-paper_limit_5m = 100
-paper_limit_15m = 100
-
+# limit_1m = 350
+# limit_5m = 78
+# limit_15m = 29
+############ BACKTEST ONLY ##################
