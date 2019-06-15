@@ -1,10 +1,10 @@
 
-live_trade = False                  # SET TO TRUE WHEN TRADING LIVE!!!
+live_trade = False                      # SET TO TRUE WHEN TRADING LIVE!!!
 
-testing_algo_after_hours = False    # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = True         # Set to False ALWAYS unless testing after hours
 
-data_provider = 'alpaca'          # polygon or alpaca
-# data_provider = 'polygon'           # polygon or alpaca
+data_provider = 'alpaca'                # polygon or alpaca
+# data_provider = 'polygon'             # polygon or alpaca
 
 api_version = 'v2'
 
@@ -23,7 +23,7 @@ day_trade_minimum = 0.00                    # this can be set to 25000.00 to kee
 max_open_positions_allowed = 5              # Use to divide total equity among X max allowed open positions
 closing_window = 60                         # time left for market to close
 
-secs_to_sleep = 10                          # time between reruns if market is open.
+secs_to_sleep = 1                          # time between reruns if market is open.
 profit_percentage = 0.02                    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0                             # use either profit percentage or price delta
 
@@ -64,9 +64,8 @@ ticker = {
     "AAPL": "AAPL",
     "GOOG": "GOOG",
     "FB"  : "FB",
-    "BRK.": "BRK.B",
+    "BRK.B": "BRK.B",
     "BABA": "BABA",
-    "TCEH": "TCEHY",
     "V"   :  "V",
     "JPM" :  "JPM",
     "WMT" :  "WMT",
@@ -84,27 +83,27 @@ ticker = {
     "NVDA": "NVDA",
     "GE"  : "GE",
     "QCOM": "QCOM",
-    "UBER": "UBER",
+    # "UBER": "UBER",
     "CVS" :  "CVS",
     "SNE" :  "SNE",
     "GM"  : "GM",
     "MU"  : "MU",
     "ATVI": "ATVI",
     "JD"  : "JD",
-    "SHOP": "SHOP",
-    "NOK" :  "NOK",
-    "SIRI": "SIRI",
-    "SPOT": "SPOT",
-    "TWLO": "TWLO",
-    "LYFT": "LYFT",
-    "CGC" :  "CGC",
-    "ROKU": "ROKU",
-    "DBX" :  "DBX",
-    "VZ"  : "VZ",
-    "KO"  : "KO",
-    "SBUX": "SBUX",
-    "SQ"  : "SQ",
-    "LUV" :  "LUV"
+    # "SHOP": "SHOP",
+    # "NOK" :  "NOK",
+    # "SIRI": "SIRI",
+    # "SPOT": "SPOT",
+    # "TWLO": "TWLO",
+    # "LYFT": "LYFT",
+    # "CGC" :  "CGC",
+    # "ROKU": "ROKU",
+    # "DBX" :  "DBX",
+    # "VZ"  : "VZ",
+    # "KO"  : "KO",
+    # "SBUX": "SBUX",
+    # "SQ"  : "SQ",
+    # "LUV" :  "LUV"
 }
 
 
