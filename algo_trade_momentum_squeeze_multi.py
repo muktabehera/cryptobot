@@ -411,7 +411,7 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/set_{set}_{log_file_date}.log")
 
-        logging.disable(logging.INFO)
+        # logging.disable(logging.INFO)
 
         # log_file_date = datetime.now().strftime("%Y%m%d")
         # logger = logging.getLogger(__name__)
