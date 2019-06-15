@@ -184,7 +184,7 @@ def fetch_bars(bar_interval):
 
     # paper_limit_5m = num_bars(start_ts=start_ts, end_ts=end_ts, market_close_ts=market_close_ts, num=5)
 
-    paper_limit_1m = config.paper_limit_1m
+    paper_limit_1m = config.limit_1m
 
     # elif int(bar_interval) == 1:
     bar_interval = "1Min"

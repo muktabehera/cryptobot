@@ -74,22 +74,22 @@ ticker = {
     "DIS" :  "DIS",
     "PFE" :  "PFE",
     "T"   :  "T",
-    "BA"  : "BA",
-    "NFLX": "NFLX",
-    "PYPL": "PYPL",
-    "NKE" :  "NKE",
-    "CRM" :  "CRM",
-    "COST": "COST",
-    "NVDA": "NVDA",
-    "GE"  : "GE",
-    "QCOM": "QCOM",
+    # "BA"  : "BA",
+    # "NFLX": "NFLX",
+    # "PYPL": "PYPL",
+    # "NKE" :  "NKE",
+    # "CRM" :  "CRM",
+    # "COST": "COST",
+    # "NVDA": "NVDA",
+    # "GE"  : "GE",
+    # "QCOM": "QCOM",
     # "UBER": "UBER",
-    "CVS" :  "CVS",
-    "SNE" :  "SNE",
-    "GM"  : "GM",
-    "MU"  : "MU",
-    "ATVI": "ATVI",
-    "JD"  : "JD",
+    # "CVS" :  "CVS",
+    # "SNE" :  "SNE",
+    # "GM"  : "GM",
+    # "MU"  : "MU",
+    # "ATVI": "ATVI",
+    # "JD"  : "JD",
     # "SHOP": "SHOP",
     # "NOK" :  "NOK",
     # "SIRI": "SIRI",
@@ -107,16 +107,16 @@ ticker = {
 }
 
 
+limit_1m = 100
+limit_5m = 100
+limit_15m = 100
+
 
 ############ BACKTEST ONLY ##################
 
 tickers = ['V'] # for backtest algo_01.py
 # num bars to fetch per time window
-limit_1m = 350
-limit_5m = 78
-limit_15m = 29
-
-paper_limit_1m = 100
-paper_limit_5m = 100
-paper_limit_15m = 100
-
+# limit_1m = 350
+# limit_5m = 78
+# limit_15m = 29
+############ BACKTEST ONLY ##################

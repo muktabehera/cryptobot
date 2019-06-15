@@ -163,9 +163,9 @@ def fetch_bars():
     market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
     # logging.info(f'market_close_ts:                    {market_close_ts}')
 
-    paper_limit_1m = config.paper_limit_1m
-    paper_limit_5m = config.paper_limit_5m
-    paper_limit_15m = config.paper_limit_15m
+    paper_limit_1m = config.limit_1m
+    paper_limit_5m = config.limit_5m
+    paper_limit_15m = config.limit_15m
 
     ################################# GET 1 MIN BARS #################################
 

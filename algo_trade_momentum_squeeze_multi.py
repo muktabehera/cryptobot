@@ -165,21 +165,21 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
     np_tl_1m = np.array([])
     float_np_tl_1m = np.array([])
 
+    # TODO: pull bars async
+    # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
+
+    start_ts = ts['open_ts']  # market open ts
+    # logging.info(f'start_ts:                   {start_ts}')
+    end_ts = ts['clock_ts']  # current ts
+    # logging.info(f'end_ts:                     {end_ts}')
+    market_close_ts = ts['close_ts']  # to prevent getting more bars after market has closed for the day
+    # logging.info(f'market_close_ts:                    {market_close_ts}')
+
+    limit_1m = config.limit_1m
+    limit_5m = config.limit_5m
+    limit_15m = config.limit_15m
+
     if data_provider == 'alpaca':
-
-        # TODO: pull bars async
-        # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
-
-        start_ts = ts['open_ts']            # market open ts
-        # logging.info(f'start_ts:                   {start_ts}')
-        end_ts = ts['clock_ts']             # current ts
-        # logging.info(f'end_ts:                     {end_ts}')
-        market_close_ts = ts['close_ts']    # to prevent getting more bars after market has closed for the day
-        # logging.info(f'market_close_ts:                    {market_close_ts}')
-
-        paper_limit_1m = config.paper_limit_1m
-        paper_limit_5m = config.paper_limit_5m
-        paper_limit_15m = config.paper_limit_15m
 
         ################################# GET 1 MIN BARS #################################
 
@@ -187,7 +187,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
 
         payload_1m = {
             "symbols": ticker,
-            "limit": paper_limit_1m,
+            "limit": limit_1m,
             "start": ts['log_start_1m'],
             "end": ts['log_end_time']
         }
@@ -229,7 +229,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
     
         payload_5m = {
             "symbols": ticker,
-            "limit": paper_limit_5m,
+            "limit": limit_5m,
             "start": ts['log_start_5m'],
             "end": ts['log_end_time']
         }
@@ -292,27 +292,13 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
 
     elif data_provider == 'polygon':
 
-        # TODO: pull bars async
-        # TODO: Convert bar_interval as a method instead of 1Min, 5Min sections
-
-        start_ts = ts['open_ts']  # market open ts
-        # logging.info(f'start_ts:                   {start_ts}')
-        end_ts = ts['clock_ts']  # current ts
-        # logging.info(f'end_ts:                     {end_ts}')
-        market_close_ts = ts['close_ts']  # to prevent getting more bars after market has closed for the day
-        # logging.info(f'market_close_ts:                    {market_close_ts}')
-
-        paper_limit_1m = config.paper_limit_1m
-        paper_limit_5m = config.paper_limit_5m
-        paper_limit_15m = config.paper_limit_15m
-
         ################################# GET 1 MIN BARS #################################
 
         bar_interval = "minute"
 
         payload_1m = {
             "apiKey": config.APCA_API_KEY_ID,
-            "limit": paper_limit_1m
+            "limit": limit_1m
         }
 
         # data_url = f'https://api.polygon.io/{data_api_version}/historic/agg'
@@ -741,10 +727,10 @@ if __name__ == '__main__':
                 squeeze_negative_histogram_drop = False     # defaults
 
                 if bb_cl_upperband_1m[-1] > keltner_upperband_cl_1m[-1] \
-                    and bb_cl_upperband_1m[-2] < keltner_upperband_cl_1m[-2] \
+                    and bb_cl_upperband_1m[-2] <= keltner_upperband_cl_1m[-2] \
                     and bb_cl_upperband_1m[-3] < keltner_upperband_cl_1m[-3] \
                     and bb_cl_lowerband_1m[-1] < keltner_lowerband_cl_1m[-1] \
-                    and bb_cl_lowerband_1m[-2] > keltner_lowerband_cl_1m[-2] \
+                    and bb_cl_lowerband_1m[-2] >= keltner_lowerband_cl_1m[-2] \
                     and bb_cl_lowerband_1m[-3] > keltner_lowerband_cl_1m[-3]:
 
                     squeeze_bb_justoutof_keltner = True
