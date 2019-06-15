@@ -58,53 +58,22 @@ clock_uri = f'{base_url}/clock'
 
 # Top Popular Large and Mid Cap stocks on Robinhood
 
-ticker = {
-    "MSFT": "MSFT",
-    "AMZN": "AMZN",
-    "AAPL": "AAPL",
-    "GOOG": "GOOG",
-    "FB"  : "FB",
-    "BRK.B": "BRK.B",
-    "BABA": "BABA",
-    "V"   :  "V",
-    "JPM" :  "JPM",
-    "WMT" :  "WMT",
-    "BAC" :  "BAC",
-    "CSCO": "CSCO",
-    "DIS" :  "DIS",
-    "PFE" :  "PFE",
-    "T"   :  "T",
-    # "BA"  : "BA",
-    # "NFLX": "NFLX",
-    # "PYPL": "PYPL",
-    # "NKE" :  "NKE",
-    # "CRM" :  "CRM",
-    # "COST": "COST",
-    # "NVDA": "NVDA",
-    # "GE"  : "GE",
-    # "QCOM": "QCOM",
-    # "UBER": "UBER",
-    # "CVS" :  "CVS",
-    # "SNE" :  "SNE",
-    # "GM"  : "GM",
-    # "MU"  : "MU",
-    # "ATVI": "ATVI",
-    # "JD"  : "JD",
-    # "SHOP": "SHOP",
-    # "NOK" :  "NOK",
-    # "SIRI": "SIRI",
-    # "SPOT": "SPOT",
-    # "TWLO": "TWLO",
-    # "LYFT": "LYFT",
-    # "CGC" :  "CGC",
-    # "ROKU": "ROKU",
-    # "DBX" :  "DBX",
-    # "VZ"  : "VZ",
-    # "KO"  : "KO",
-    # "SBUX": "SBUX",
-    # "SQ"  : "SQ",
-    # "LUV" :  "LUV"
+tickers = {
+    "1": ["MSFT", "AMZN", "AAPL", "GOOG", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
+          "BA", "NFLX", "PYPL", "NKE", "CRM"],
+
+    "2": ["COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD", "SHOP", "NOK", "SIRI", "DBX", "SPOT",
+          "TWLO", "LYFT", "CGC", "ROKU", "VZ"],
+
+    "3": ["KO", "SBUX", "SQ", "LUV", "CTSH", "TSLA", "ADBE", "ACN"],
+
+    "4": [],
+
+    "5": []
 }
+
+    # "UBER": "UBER",
+
 
 
 limit_1m = 100
@@ -114,7 +83,7 @@ limit_15m = 100
 
 ############ BACKTEST ONLY ##################
 
-tickers = ['V'] # for backtest algo_01.py
+# tickers = ['V'] # for backtest algo_01.py
 # num bars to fetch per time window
 # limit_1m = 350
 # limit_5m = 78

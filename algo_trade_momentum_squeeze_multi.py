@@ -376,18 +376,18 @@ if __name__ == '__main__':
     BUY_PRICE = np.array([0.000])  # initialize here, set to actual avg price at which asset was bought
     sell_target_based_on_profit_percentage = np.array([0])  # initialization
 
-    # parser = argparse.ArgumentParser(description="apca - auto trader")
+    parser = argparse.ArgumentParser(description="apca - auto trader")
 
-    # parser.add_argument('-s', action="store", dest='symbol',
-    #                     help="ticker symbol from config")   # symbol
+    parser.add_argument('-s', action="store", dest='set',
+                        help="symbol set from config, values include 1...5")   # symbol
 
-    # arg_val = parser.parse_args()
+    arg_val = parser.parse_args()
 
-    # symbol = str(arg_val.symbol)        # passed to the -s switch e.g. -s V or -s MSFT or -s GOOG
+    set = str(arg_val.set)
 
-    # ticker = config.ticker[f"{symbol}"]
+    tickers = config.tickers[f"{set}"]
 
-    tickers = config.ticker            # get ticker dict from config
+    # tickers = config.ticker            # get ticker dict from config
     num_tickers = len(tickers)
 
     position_qty = 0    # default
@@ -409,9 +409,9 @@ if __name__ == '__main__':
         log_file_date = datetime.now().strftime("%Y%m%d")
         logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/tickers_{log_file_date}.log")
+                            datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/set_{set}_{log_file_date}.log")
 
-        # logging.disable(logging.INFO)
+        logging.disable(logging.INFO)
 
         # log_file_date = datetime.now().strftime("%Y%m%d")
         # logger = logging.getLogger(__name__)
@@ -1414,10 +1414,10 @@ if __name__ == '__main__':
 
         # HEALTH CHECK
         end_time = datetime.now() - start_time
-        print(f"Finished {num_tickers} tickers in {end_time.seconds} seconds")
+        logging.info(f"Finished {num_tickers} tickers in {end_time.seconds} seconds")
 
         if health_check_alert_counter == 1:
-            msg = f'[CHECK] [{current_ts}]] OK'
+            msg = f'SET {set} [CHECK] OK'
             slackit(channel="CHECK", msg=msg)                    # Post to health-check slack channel
         elif health_check_alert_counter > 360:
             health_check_alert_counter = 0
