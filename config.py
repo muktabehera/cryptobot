@@ -1,7 +1,7 @@
 
 live_trade = False                      # SET TO TRUE WHEN TRADING LIVE!!!
 
-testing_algo_after_hours = True         # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = False         # Set to False ALWAYS unless testing after hours
 
 # data_provider = 'alpaca'                # polygon or alpaca
 data_provider = 'polygon'             # polygon or alpaca
@@ -43,8 +43,8 @@ if live_trade:  # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PKHUBU9MNWKGTQ6IHG9U'
-    APCA_API_SECRET_KEY = 'z2LqwS12BHjtPYfqOfMwHtSxvVhdYRNQFWPGHni1'
+    APCA_API_KEY_ID = 'PKQ48RGDO6QD9OSI8Y56'
+    APCA_API_SECRET_KEY = 'z6HICCqF1Q3p26EoJOisXDIsXgzWlqeUXx89sbgY'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_channel = 'PAPER'
 
@@ -76,10 +76,9 @@ tickers = {
     # "UBER": "UBER",
 
 
-
-limit_1m = 100
-limit_5m = 100
-limit_15m = 100
+limit_1m = 20     # 100 i.e the number of last bars to fetch for each symbol for backtesting and signal generation
+# limit_5m = 100
+# limit_15m = 100
 
 
 ############ BACKTEST ONLY ##################

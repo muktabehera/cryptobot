@@ -69,6 +69,7 @@ def get_ts():
     Get all timestamps to be used in the algo
     :return: dict of all timestamps (ts)
     '''
+
     ts_dict = dict()
 
     clock = requests.get(url=clock_uri, headers=headers).json()
@@ -116,15 +117,15 @@ def get_ts():
         market_about_to_close = True  # if there are 30 min left for market to close
 
     start_1m = end_time - pd.Timedelta('1 Minutes')
-    start_5m = end_time - pd.Timedelta('5 Minutes')
-    start_15m = end_time - pd.Timedelta('15 Minutes')
+    # start_5m = end_time - pd.Timedelta('5 Minutes')
+    # start_15m = end_time - pd.Timedelta('15 Minutes')
     start_dt = end_time - pd.Timedelta('1 Days')
 
     log_end_time = end_time.strftime('%Y-%m-%d %H:%M:%S')  # 2019-03-04 02:05:58
     log_end_dt = start_1m.strftime('%Y-%m-%d')  # 2019-03-04
     log_start_1m = start_1m.strftime('%Y-%m-%d %H:%M:%S')  # 2019-03-04 02:05:58
-    log_start_5m = start_5m.strftime('%Y-%m-%d %H:%M:%S')  # 2019-03-04 02:05:58
-    log_start_15m = start_15m.strftime('%Y-%m-%d %H:%M:%S')  # 2019-03-04 02:05:58
+    # log_start_5m = start_5m.strftime('%Y-%m-%d %H:%M:%S')  # 2019-03-04 02:05:58
+    # log_start_15m = start_15m.strftime('%Y-%m-%d %H:%M:%S')  # 2019-03-04 02:05:58
     log_start_dt = start_dt.strftime('%Y-%m-%d')  # '2019-03-04'
 
     ts_dict = {
@@ -141,13 +142,13 @@ def get_ts():
         "closing_window": closing_window,
         "market_about_to_close": market_about_to_close,
         "start_1m": start_1m,
-        "start_5m": start_5m,
-        "start_15m": start_15m,
+        # "start_5m": start_5m,
+        # "start_15m": start_15m,
         "log_end_time": log_end_time,
         "log_end_dt": log_end_dt,
         "log_start_1m": log_start_1m,
-        "log_start_5m": log_start_5m,
-        "log_start_15m": log_start_15m,
+        # "log_start_5m": log_start_5m,
+        # "log_start_15m": log_start_15m,
         "log_start_dt": log_start_dt
     }
 
@@ -161,7 +162,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
     np_hl_1m = np.array([])
     np_ll_1m = np.array([])
     np_cl_1m = np.array([])
-    np_vl_1m = np.array([])
+    # np_vl_1m = np.array([])
     np_tl_1m = np.array([])
     float_np_tl_1m = np.array([])
 
@@ -176,8 +177,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
     # logging.info(f'market_close_ts:                    {market_close_ts}')
 
     limit_1m = config.limit_1m
-    limit_5m = config.limit_5m
-    limit_15m = config.limit_15m
+    # limit_5m = config.limit_5m
+    # limit_15m = config.limit_15m
 
     if data_provider == 'alpaca':
 
@@ -206,7 +207,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             ll_1m.append(v1m['l'])
             hl_1m.append(v1m['h'])
             cl_1m.append(v1m['c'])
-            vl_1m.append(v1m['v'])
+            # vl_1m.append(v1m['v'])
             tl_1m.append(v1m_ts)
             float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
 
@@ -216,52 +217,10 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             np_hl_1m = np.array(hl_1m, dtype=float)
             np_ll_1m = np.array(ll_1m, dtype=float)
             np_cl_1m = np.array(cl_1m, dtype=float)
-            np_vl_1m = np.array(vl_1m, dtype=float)
+            # np_vl_1m = np.array(vl_1m, dtype=float)
             np_tl_1m = np.array(tl_1m)
             float_np_tl_1m = np.array(float_tl_1m, dtype=float)
 
-        # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
-
-        ################################# GET 5 MIN BARS #################################
-        '''
-    
-        bar_interval = "5Min"
-    
-        payload_5m = {
-            "symbols": ticker,
-            "limit": limit_5m,
-            "start": ts['log_start_5m'],
-            "end": ts['log_end_time']
-        }
-    
-        base_uri_5m = f'{config.data_url}/bars/{bar_interval}'
-        bars_5m = requests.get(url=base_uri_5m, params=payload_5m, headers=headers).json()
-    
-        for i, v5m in enumerate(bars_5m[ticker]):
-            # CONVERT UNIX TS TO READABLE TS
-            v5m_ts_nyc = datetime.fromtimestamp(v5m['t']).astimezone(nyc)  # Covert Unix TS to NYC NOT UTC!!
-            v5m_ts = v5m_ts_nyc.strftime('%Y-%m-%d %H:%M:%S')  # Convert to str with format
-    
-            # APPEND TO LIST
-    
-            # append 1m bars to list
-            ol_5m.append(v5m['o'])
-            ll_5m.append(v5m['l'])
-            hl_5m.append(v5m['h'])
-            cl_5m.append(v5m['c'])
-            vl_5m.append(v5m['v'])
-            tl_5m.append(v5m_ts)
-    
-            # convert to 1m np array
-            # added datatype float to avoid real is not double error during MOM cacl
-            np_ol_5m = np.array(ol_5m, dtype=float)
-            np_hl_5m = np.array(hl_5m, dtype=float)
-            np_ll_5m = np.array(ll_5m, dtype=float)
-            np_cl_5m = np.array(cl_5m, dtype=float)
-            np_vl_5m = np.array(vl_5m, dtype=float)
-            np_tl_5m = np.array(tl_5m)
-            
-            '''
         # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
         bars_response = {
@@ -270,21 +229,10 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             "np_hl_1m": np_hl_1m,
             "np_ll_1m": np_ll_1m,
             "np_cl_1m": np_cl_1m,
-            "np_vl_1m": np_vl_1m,
+            # "np_vl_1m": np_vl_1m,
             "np_tl_1m": np_tl_1m,
             "float_np_tl_1m": float_np_tl_1m
         }
-
-        '''
-        
-        "np_ol_5m": np_ol_5m,
-        "np_hl_5m": np_hl_5m,
-        "np_ll_5m": np_ll_5m,
-        "np_cl_5m": np_cl_5m,
-        "np_vl_5m": np_vl_5m,
-        "np_tl_5m": np_tl_5m
-        
-        '''
 
         logging.debug(f"bars_response : {bars_response}")
 
@@ -322,7 +270,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             ll_1m.append(v1m['l'])
             hl_1m.append(v1m['h'])
             cl_1m.append(v1m['c'])
-            vl_1m.append(v1m['v'])
+            # vl_1m.append(v1m['v'])
             tl_1m.append(v1m_ts)
             float_tl_1m.append(v1m['t'])  # to get float ts for linear regression
 
@@ -332,7 +280,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             np_hl_1m = np.array(hl_1m, dtype=float)
             np_ll_1m = np.array(ll_1m, dtype=float)
             np_cl_1m = np.array(cl_1m, dtype=float)
-            np_vl_1m = np.array(vl_1m, dtype=float)
+            # np_vl_1m = np.array(vl_1m, dtype=float)
             np_tl_1m = np.array(tl_1m)
             float_np_tl_1m = np.array(float_tl_1m, dtype=float)
 
@@ -344,7 +292,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             "np_hl_1m": np_hl_1m[::-1],             # reverse the list since polygon data is orders in asc order
             "np_ll_1m": np_ll_1m[::-1],             # reverse the list since polygon data is orders in asc order
             "np_cl_1m": np_cl_1m[::-1],             # reverse the list since polygon data is orders in asc order
-            "np_vl_1m": np_vl_1m[::-1],             # reverse the list since polygon data is orders in asc order
+            # "np_vl_1m": np_vl_1m[::-1],             # reverse the list since polygon data is orders in asc order
             "np_tl_1m": np_tl_1m[::-1],             # reverse the list since polygon data is orders in asc order
             "float_np_tl_1m": float_np_tl_1m[::-1]  # reverse the list since polygon data is orders in asc order
         }
@@ -410,43 +358,6 @@ if __name__ == '__main__':
         logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/set_{set}_{log_file_date}.log")
-
-        # logging.disable(logging.INFO)
-
-        # log_file_date = datetime.now().strftime("%Y%m%d")
-        # logger = logging.getLogger(__name__)
-
-        # logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
-        #                     datefmt='%Y-%m-%d %H:%M:%S', filename=f"logs/{ticker}_{log_file_date}.log")
-
-        # if config.live_trade:
-        #     logging.info(f'[{ticker}] !!! LIVE TRADE !!!')
-        # else:
-        #     logging.info(f'[{ticker}] ### PAPER TRADE ###')
-
-        # lookup data provider from config
-        # data_provider = config.data_provider
-        # logging.info(f"[{ticker}] data provider:    {data_provider}")
-
-        # Reset the lists each run to null
-        '''
-        tl_5m = list()
-        ol_5m = list()
-        hl_5m = list()
-        ll_5m = list()
-        cl_5m = list()
-        vl_5m = list()
-        '''
-
-        # # ol_1m = list()
-        # hl_1m = list()
-        # ll_1m = list()
-        # cl_1m = list()
-        # vl_1m = list()
-        # tl_1m = list()
-        # float_tl_1m = list()
-
-        # logging.info(f'Entering x = {x}')
 
         ts = get_ts()
 
@@ -579,37 +490,16 @@ if __name__ == '__main__':
                 np_hl_1m = bars['np_hl_1m']
                 np_ll_1m = bars['np_ll_1m']
                 np_cl_1m = bars['np_cl_1m']
-                np_vl_1m = bars['np_vl_1m']
+                # np_vl_1m = bars['np_vl_1m']
                 np_tl_1m = bars['np_tl_1m']
                 float_np_tl_1m = bars['float_np_tl_1m']
 
                 # logging.debug(f'[{ticker}] NP_OL_1M:    {np_ol_1m}')
-                logging.debug(f'[{ticker}] NP_HL_1M:    {np_hl_1m}')
-                logging.debug(f'[{ticker}] NP_LL_1M:    {np_ll_1m}')
+                logging.debug(f'[{ticker}] np_hl_1m:    {np_hl_1m}')
+                logging.debug(f'[{ticker}] np_ll_1m:    {np_ll_1m}')
                 logging.debug(f'[{ticker}] np_cl_1m:    {np_cl_1m}')
-                logging.debug(f'[{ticker}] np_vl_1m:    {np_vl_1m}')
+                # logging.debug(f'[{ticker}] np_vl_1m:    {np_vl_1m}')
                 # logging.debug(f'[{ticker}] np_tl_1m:    {np_tl_1m}')      # TOO MUCH INFO FOR DEBUG
-
-                ############### 5 MIN ###############
-
-                '''
-                
-                np_ol_5m = bars['np_ol_5m']
-                np_hl_5m = bars['np_hl_5m']
-                np_ll_5m = bars['np_ll_5m']
-                np_cl_5m = bars['np_cl_5m']
-                np_vl_5m = bars['np_vl_5m']
-                np_tl_5m = bars['np_tl_5m']
-                
-                logging.debug(f'[{ticker}] NP_OL_5M:    {np_ol_5m}')
-                logging.debug(f'[{ticker}] NP_HL_5M:    {np_hl_5m}')
-                logging.debug(f'[{ticker}] NP_LL_5M:    {np_ll_5m}')
-                logging.debug(f'[{ticker}] NP_CL_5M:    {np_cl_5m}')
-                logging.debug(f'[{ticker}] NP_VL_5M:    {np_vl_5m}')
-                logging.debug(f'[{ticker}] NP_TL_5M:    {np_tl_5m}')
-    
-                '''
-
 
                 ############# INDICATORS / CALCULATIONS ###########################
 
@@ -735,7 +625,7 @@ if __name__ == '__main__':
 
                     squeeze_bb_justoutof_keltner = True
 
-                if mom_cl_1m[-1] > 0:
+                if mom_cl_1m[-1] > 0:       # debating whether to add mom_cl_1m[-2] > 0 here??
                     squeeze_mom_is_positive = True
 
                 # REF: https://www.tradingview.com/script/nqQ1DT5a-Squeeze-Momentum-Indicator-LazyBear/
