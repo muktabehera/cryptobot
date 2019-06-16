@@ -3,8 +3,8 @@ live_trade = False                      # SET TO TRUE WHEN TRADING LIVE!!!
 
 testing_algo_after_hours = True         # Set to False ALWAYS unless testing after hours
 
-data_provider = 'alpaca'                # polygon or alpaca
-# data_provider = 'polygon'             # polygon or alpaca
+# data_provider = 'alpaca'                # polygon or alpaca
+data_provider = 'polygon'             # polygon or alpaca
 
 api_version = 'v2'
 
