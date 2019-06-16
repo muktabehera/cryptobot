@@ -60,7 +60,8 @@ clock_uri = f'{base_url}/clock'
 
 tickers = {
     "1": ["MSFT", "AMZN", "AAPL", "GOOG", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
-          "BA", "NFLX", "PYPL", "NKE", "CRM"],
+          "BA", "NFLX", "PYPL", "NKE", "CRM", "COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD", "SHOP", "NOK", "SIRI", "DBX", "SPOT",
+          "TWLO", "LYFT", "CGC", "ROKU", "VZ", "KO", "SBUX", "SQ", "LUV", "CTSH", "TSLA", "ADBE", "ACN"],
 
     "2": ["COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD", "SHOP", "NOK", "SIRI", "DBX", "SPOT",
           "TWLO", "LYFT", "CGC", "ROKU", "VZ"],
