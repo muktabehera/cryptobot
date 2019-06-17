@@ -76,7 +76,7 @@ tickers = {
     # "UBER": "UBER",
 
 
-limit_1m = 20     # 100 i.e the number of last bars to fetch for each symbol for backtesting and signal generation
+limit_1m = 100     # 100 i.e the number of last bars to fetch for each symbol for backtesting and signal generation
 # limit_5m = 100
 # limit_15m = 100
 
