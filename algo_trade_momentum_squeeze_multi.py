@@ -698,8 +698,10 @@ if __name__ == '__main__':
 
                 units_to_buy = units_to_short = int(equity_limit / np_cl_1m[-1])  # assign same value to both
 
+
                 if position_qty > 0:
                     units_to_buy = units_to_short = 0
+                    position = True                     # added since orders were being placed with 0 units and failing
 
                 logging.info(f'[{ticker}] units_to_buy:     {units_to_buy}')
                 logging.info(f'[{ticker}] units_to_sell:    {units_to_short}')
