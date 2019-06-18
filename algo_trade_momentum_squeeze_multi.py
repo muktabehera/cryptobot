@@ -389,11 +389,23 @@ if __name__ == '__main__':
 
             for ticker in tickers:
 
-                # ol_1m = list()
+                account = dict()                        # default for account response
+                buy_price = sell_price = 0.0            # default to 0 for each ticker
+
+                position = False                        # default position to False
+                positions_response = dict()             # reset to null dict for each ticker
+                position_qty = 0  # default             # reset to default
+                position_side = None                    # default position side (buy or sell)
+
+                equity = 0.00  # default to 0           # reset to default
+                equity_limit = 0.0  # default           # reset to default
+                cash = 0.0  # default cash              # reset to default
+
+                # ol_1m = list()                        # reset to null for each ticker
                 hl_1m = list()
                 ll_1m = list()
                 cl_1m = list()
-                vl_1m = list()
+                # vl_1m = list()
                 tl_1m = list()
                 float_tl_1m = list()
 
@@ -434,24 +446,20 @@ if __name__ == '__main__':
 
                 positions_response = requests.get(url=positions_uri, headers=headers).json()
 
-                position = False        # default position to False
-                position_side = None    # default position side (buy or sell)
-
-
                 # check if key exists in dict, code indicates error or no position
                 # TODO: Work on an alternate implementation for checking position
 
-                if 'code' not in positions_response:
+                if "code" not in positions_response:
                     position = True
                     position_qty = int(positions_response['qty']).__abs__()     # to make -ve units positive
                     position_side = positions_response['side']  # long or short
 
                     if position_side == 'long':
                         buy_price = round(float(positions_response['avg_entry_price']),2)
-                        sell_price = 0.0
+                        # sell_price = 0.0
 
                     if position_side == 'short':
-                        buy_price = 0.0
+                        # buy_price = 0.0
                         sell_price = round(float(positions_response['avg_entry_price']), 2)
 
                 # LIMIT TOTAL TRADABLE AMOUNT
@@ -471,7 +479,7 @@ if __name__ == '__main__':
                     time.sleep(secs_to_sleep)
                     continue
 
-                logging.info(f'[{ticker}] equity:   ${equity}   cash:   ${cash} max_open_positions_allowed: {config.max_open_positions_allowed}')
+                logging.info(f'[{ticker}] equity:   ${equity}   cash:   ${cash}     max_open_positions_allowed: {config.max_open_positions_allowed}')
                 logging.info(f'[{ticker}] equity_limit: [${int(equity_limit)}] of [${int(equity_less_daytrademin)}] day_trade_minimum: [${day_trade_minimum}]')
 
                 logging.info(f'[{ticker}] current_position: [{position_qty}]    side:   [{position_side}]')
@@ -749,7 +757,7 @@ if __name__ == '__main__':
                 # [SHORT] For sell to buy --> current price [-1] is < or equal to the target price with profit percentage
                 logging.debug(f"bool_buy_profit_target [{bool_buy_profit_target}] = float({np_cl_1m[-1]}) <= float({buy_target_based_on_profit_percentage})")
 
-                logging.info(f"[{ticker}] bool_closing_time:  {bool_closing_time}")
+                logging.info(f"[{ticker}] bool_closing_time:                                {bool_closing_time}")
 
 
                 ################################ SELL AND SHORT INDICATORS #####################
@@ -771,16 +779,16 @@ if __name__ == '__main__':
                 bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)
                 # current price > sell target
 
-                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_momentum:    {bool_buy_momentum}")
-                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_momentum:   {bool_sell_momentum} [{mom_cl_1m[-1]} < 0 AND {mom_cl_1m[-2]} < 0]")
+                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_momentum:               {bool_buy_momentum}")
+                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_momentum:              {bool_sell_momentum} [{mom_cl_1m[-1]} < 0 AND {mom_cl_1m[-2]} < 0]")
 
-                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_above_buy:    {bool_sell_price_above_buy} [{np_cl_1m[-1]} > {buy_price}]")
-                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_below_sell:    {bool_buy_price_below_sell} [{np_cl_1m[-1]} < {sell_price}]")
+                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_above_buy:       {bool_sell_price_above_buy} [{np_cl_1m[-1]} > {buy_price}]")
+                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_below_sell:       {bool_buy_price_below_sell} [{np_cl_1m[-1]} < {sell_price}]")
 
-                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_profit_target:   {bool_buy_profit_target} [{buy_target_based_on_profit_percentage}]")  # [shorting]
-                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_profit_target:  {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
+                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_profit_target:          {bool_buy_profit_target} [{buy_target_based_on_profit_percentage}]")  # [shorting]
+                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_profit_target:         {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
 
-                logging.info(f"[{ticker}] bool_short_momentum:      {bool_short_momentum}")
+                logging.info(f"[{ticker}] bool_short_momentum:                              {bool_short_momentum}")
 
                 # TODO: [IMPORTANT] don't use int, it drops the decimal places during comparison, use float instead
 
@@ -813,8 +821,8 @@ if __name__ == '__main__':
                 if bool_close_short_momentum and (np_cl_1m[-1] >= np_cl_1m[-3] or np_cl_1m[-1] >= np_cl_1m[-4]):
                     bear_flag_1m = True  # [shorting]
 
-                logging.info(f'[{ticker}] bull_flag_1m:  {bull_flag_1m}')
-                logging.info(f'[{ticker}] bear_flag_1m:  {bear_flag_1m}')  # [shorting]
+                logging.info(f'[{ticker}] bull_flag_1m:                                     {bull_flag_1m}')
+                logging.info(f'[{ticker}] bear_flag_1m:                                     {bear_flag_1m}')  # [shorting]
 
                 ################### <<< END BULL FLAG EXCEPTION <<< #######
 

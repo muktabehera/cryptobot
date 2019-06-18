@@ -60,20 +60,20 @@ clock_uri = f'{base_url}/clock'
 
 tickers = {
     "1": ["MSFT", "AMZN", "AAPL", "GOOG", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
-          "BA", "NFLX", "PYPL", "NKE", "CRM", "COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD", "SHOP", "NOK", "SIRI", "DBX", "SPOT",
-          "TWLO", "LYFT", "CGC", "ROKU", "VZ", "KO", "SBUX", "SQ", "LUV", "CTSH", "TSLA", "ADBE", "ACN"],
+          "BA", "NFLX", "PYPL", "NKE", "CRM", "COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD",
+          "SHOP", "NOK", "SIRI", "DBX", "SPOT", "TWLO", "LYFT", "CGC", "ROKU", "VZ", "KO", "SBUX", "SQ", "LUV", "CTSH",
+          "TSLA", "ADBE", "ACN"],
 
-    "2": ["COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD", "SHOP", "NOK", "SIRI", "DBX", "SPOT",
-          "TWLO", "LYFT", "CGC", "ROKU", "VZ"],
+    "2": ["MSFT", "AMZN"],
 
-    "3": ["KO", "SBUX", "SQ", "LUV", "CTSH", "TSLA", "ADBE", "ACN"],
+    "3": [],
 
     "4": [],
 
     "5": []
 }
 
-    # "UBER": "UBER",
+    # "UBER": "UBER",       # Not supported by Alpaca Data Feed
 
 
 limit_1m = 100     # 100 i.e the number of last bars to fetch for each symbol for backtesting and signal generation
