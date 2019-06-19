@@ -493,7 +493,7 @@ if __name__ == '__main__':
 
                 equity_limit = equity / config.max_open_positions_allowed
 
-                if cash <= 0:
+                if cash <= 0 and not position:          # else it exits without closing open positions
                     equity_limit = 0        # added cash check to avoid margin trading
                     logging.info(f'[{ticker}] equity:   ${equity}   cash:   ${cash}     NO CASH AVAILABLE, EXITING')
                     logging.info('--' * 40)
