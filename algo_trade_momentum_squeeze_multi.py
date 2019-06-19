@@ -221,6 +221,16 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             np_tl_1m = np.array(tl_1m)
             float_np_tl_1m = np.array(float_tl_1m, dtype=float)
 
+            # round to 2 decimal places
+
+            # np_ol_1m = np.round(np_ol_1m, 2)
+            np_hl_1m = np.round(np_hl_1m, 2)
+            np_ll_1m = np.round(np_ll_1m, 2)
+            np_cl_1m = np.round(np_cl_1m, 2)
+            # np_vl_1m = np.round(np_vl_1m, 2)
+
+            # no need to round of time np arrays
+
         # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
         bars_response = {
@@ -283,6 +293,16 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             # np_vl_1m = np.array(vl_1m, dtype=float)
             np_tl_1m = np.array(tl_1m)
             float_np_tl_1m = np.array(float_tl_1m, dtype=float)
+
+            # round to 2 decimal places
+
+            # np_ol_1m = np.round(np_ol_1m, 2)
+            np_hl_1m = np.round(np_hl_1m, 2)
+            np_ll_1m = np.round(np_ll_1m, 2)
+            np_cl_1m = np.round(np_cl_1m, 2)
+            # np_vl_1m = np.round(np_vl_1m, 2)
+
+            # no need to round of time np arrays
 
         # logging.info(f'np_tl_1m    {len(np_tl_1m)}  np_cl_1m    {len(np_cl_1m)}')
 
@@ -409,6 +429,7 @@ if __name__ == '__main__':
                 tl_1m = list()
                 float_tl_1m = list()
 
+                logging.info('--' * 40)
                 logging.info(f'[{ticker}] [{x}] market_is_open: {market_is_open} time_left:  {trading_time_left} mins')
 
                 if config.live_trade:
@@ -512,6 +533,7 @@ if __name__ == '__main__':
                 ############# INDICATORS / CALCULATIONS ###########################
 
                 mom_cl_1m = talib.MOM(np_cl_1m, timeperiod=1)          # 1M CLOSE MOMENTUM
+                mom_cl_1m = np.round(mom_cl_1m, 2)                     # Round to 2 decimal places
                 logging.debug(f'[{ticker}] mom_cl_1m:  {mom_cl_1m}')
 
                 '''            
@@ -549,6 +571,7 @@ if __name__ == '__main__':
                 # TODO: Get 15 min and an hour long trend at least
 
                 sma_1m = talib.SMA(np_cl_1m, timeperiod=10) # 10 to keep it smooth
+                sma_1m = np.round(sma_1m, 2)    # round off SMA10 1M to 2 places
 
                 if (sma_1m[-1] >= sma_1m[-2]) and (sma_1m[-2] >= sma_1m[-3]):   # > or = for uptrend to relax it a little
                     bool_uptrend_1m = True
@@ -569,6 +592,10 @@ if __name__ == '__main__':
                 ################### BOLLINGER BANDS FOR SQUEEZE + DYNAMIC SUPPORT AND RESISTANCE >>>>>>>>
 
                 bb_cl_upperband_1m, bb_cl_midband_1m, bb_cl_lowerband_1m = talib.BBANDS(np_cl_1m, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
+
+                bb_cl_upperband_1m = np.round(bb_cl_upperband_1m, 2)        # round to 2 places
+                bb_cl_midband_1m = np.round(bb_cl_midband_1m, 2)            # round to 2 places
+                bb_cl_lowerband_1m = np.round(bb_cl_lowerband_1m, 2)        # round to 2 places
 
                 bb_support_cl_1m = bb_cl_lowerband_1m
                 # set lowerband as dynamic support
@@ -596,12 +623,18 @@ if __name__ == '__main__':
                 '''
 
                 ema20_1m = talib.EMA(np_cl_1m, timeperiod=20)
+                ema20_1m = np.round(ema20_1m, 2)
+
                 atr10_1m = talib.ATR(np_hl_1m, np_ll_1m, np_cl_1m, timeperiod=10)
+                atr10_1m = np.round(atr10_1m, 2)
+
 
                 keltner_upperband_cl_1m = ema20_1m + (2 * atr10_1m)
                 keltner_lowerband_cl_1m = ema20_1m - (2 * atr10_1m)
                 # keltner_midband_cl_1m = ema20_1m[-1]
 
+                keltner_upperband_cl_1m = np.round(keltner_upperband_cl_1m, 2)  # round to 2 decimal places
+                keltner_lowerband_cl_1m = np.round(keltner_lowerband_cl_1m, 2)  # round to 2 decimal places
 
                 ################### TTM SQUEEZE >>>>>>>>>
 
@@ -643,7 +676,8 @@ if __name__ == '__main__':
                 # Ref: http://beancoder.com/linear-regression-stock-prediction/
 
                 sma20_1m = talib.SMA(np_cl_1m, timeperiod=20)
-                sma20_1m = sma20_1m[-20:]    # splice to recent 20 values
+                sma20_1m = np.round(sma20_1m, 2)                # round to 2 decimal places
+                sma20_1m = sma20_1m[-20:]                       # splice to recent 20 values
 
                 # calculate squeeze histogram
 
@@ -666,6 +700,7 @@ if __name__ == '__main__':
                 squeeze_hist_2d = linear_mod.predict(float_np_tl_1m_2d)
 
                 squeeze_hist = squeeze_hist_2d.flatten()    # convert results back to 1D array
+                squeeze_hist = np.round(squeeze_hist, 3)    # round squeeze hist to 3 places for accuracy
                 # TODO: Plot squeeze histogram
 
                 if squeeze_mom_is_positive and (squeeze_hist[-1] < squeeze_hist[-2]):
@@ -725,10 +760,10 @@ if __name__ == '__main__':
                 price_delta = float(config.price_delta)
 
                 sell_target_based_on_profit_percentage = buy_price + (
-                        buy_price * profit_percentage) + price_delta # LONG, buy higher than buy price]
+                        buy_price * profit_percentage) + price_delta    # LONG, buy higher than buy price]
 
                 buy_target_based_on_profit_percentage = sell_price - (
-                        sell_price * profit_percentage) - price_delta  # [shorting, buy even lower than sell price]
+                        sell_price * profit_percentage) - price_delta   # [shorting, buy even lower than sell price]
 
                 # ---> Calculated again below for LONG BUY and SHORT SELL
 
@@ -770,10 +805,10 @@ if __name__ == '__main__':
 
                 # TODO: SHORT MOMENTUM needs some more thought
 
-                bool_sell_price_above_buy = float(np_cl_1m[-1]) > buy_price
+                bool_sell_price_above_buy = float(np_cl_1m[-1]) > (buy_price + config.small_price_increment)
                 # flag to indicate current price is gt buy price
 
-                bool_buy_price_below_sell = float(np_cl_1m[-1]) < sell_price
+                bool_buy_price_below_sell = float(np_cl_1m[-1]) < (sell_price - config.small_price_increment)
                 # flag to indicate current price is less than sell price
 
                 bool_sell_profit_target = float(np_cl_1m[-1]) >= float(sell_target_based_on_profit_percentage)
@@ -782,8 +817,8 @@ if __name__ == '__main__':
                 logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_momentum:               {bool_buy_momentum}")
                 logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_momentum:              {bool_sell_momentum} [{mom_cl_1m[-1]} < 0 AND {mom_cl_1m[-2]} < 0]")
 
-                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_above_buy:       {bool_sell_price_above_buy} [{np_cl_1m[-1]} > {buy_price}]")
-                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_below_sell:       {bool_buy_price_below_sell} [{np_cl_1m[-1]} < {sell_price}]")
+                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_above_buy:       {bool_sell_price_above_buy} [{np_cl_1m[-1]} > {(buy_price + config.small_price_increment)}]")
+                logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_below_sell:       {bool_buy_price_below_sell} [{np_cl_1m[-1]} < {(sell_price - config.small_price_increment)}]")
 
                 logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_buy_profit_target:          {bool_buy_profit_target} [{buy_target_based_on_profit_percentage}]")  # [shorting]
                 logging.info(f"[{ticker}] [{np_cl_1m[-1]}] bool_sell_profit_target:         {bool_sell_profit_target} [{sell_target_based_on_profit_percentage}]")
@@ -821,8 +856,8 @@ if __name__ == '__main__':
                 if bool_close_short_momentum and (np_cl_1m[-1] >= np_cl_1m[-3] or np_cl_1m[-1] >= np_cl_1m[-4]):
                     bear_flag_1m = True  # [shorting]
 
-                logging.info(f'[{ticker}] bull_flag_1m:                                     {bull_flag_1m}')
-                logging.info(f'[{ticker}] bear_flag_1m:                                     {bear_flag_1m}')  # [shorting]
+                logging.info(f'[{ticker}] bull_flag_1m:                         {bull_flag_1m}')
+                logging.info(f'[{ticker}] bear_flag_1m:                         {bear_flag_1m}')  # [shorting]
 
                 ################### <<< END BULL FLAG EXCEPTION <<< #######
 
@@ -1105,7 +1140,7 @@ if __name__ == '__main__':
 
                         # slackit(channel='apca_paper', msg=sell_order_text)  # post to slack
 
-                        trade_text = f'[{ticker}] [LONG] [{current_ts}] BUY {position_qty} @ ${buy_price} SELL @ ${sell_price} \n PNL ${profit}'
+                        trade_text = f'[{ticker}] [LONG] [{current_ts}] BUY {position_qty} @ ${buy_price} SELL @ ${sell_price}  PNL ${profit}'
 
                         logging.info(trade_text)
                         slackit(channel=config.slack_channel, msg=trade_text)    # post to slack

@@ -1,10 +1,10 @@
 
-live_trade = False                      # SET TO TRUE WHEN TRADING LIVE!!!
+live_trade = False                          # SET TO TRUE WHEN TRADING LIVE!!!
 
-testing_algo_after_hours = False         # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = True             # Set to False ALWAYS unless testing after hours
 
-# data_provider = 'alpaca'                # polygon or alpaca
-data_provider = 'polygon'             # polygon or alpaca
+# data_provider = 'alpaca'                  # polygon or alpaca
+data_provider = 'polygon'                   # polygon or alpaca
 
 api_version = 'v2'
 
@@ -23,12 +23,18 @@ day_trade_minimum = 0.00                    # this can be set to 25000.00 to kee
 max_open_positions_allowed = 5              # Use to divide total equity among X max allowed open positions
 closing_window = 60                         # time left for market to close
 
-secs_to_sleep = 1                          # time between reruns if market is open.
+secs_to_sleep = 1                           # time between reruns if market is open.
 profit_percentage = 0.02                    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0                             # use either profit percentage or price delta
 
 if profit_percentage == 0:
     price_delta = 0.5       # 50 Cents
+
+
+# to avoid selling or buying too quickly when bool_sell_price_above_buy or bool_buy_price_below_sell are True
+# adding a delta price component. This is different from price delta above
+small_price_increment = 0.20    # 20 cents
+
 
 slack_channel = ''
 
@@ -59,12 +65,12 @@ clock_uri = f'{base_url}/clock'
 # Top Popular Large and Mid Cap stocks on Robinhood
 
 tickers = {
-    "1": ["MSFT", "AMZN", "AAPL", "GOOG", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
+    "1": ["MSFT", "AMZN", "AAPL", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
           "BA", "NFLX", "PYPL", "NKE", "CRM", "COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD",
           "SHOP", "NOK", "SIRI", "DBX", "SPOT", "TWLO", "LYFT", "CGC", "ROKU", "VZ", "KO", "SBUX", "SQ", "LUV", "CTSH",
           "TSLA", "ADBE", "ACN"],
 
-    "2": ["MSFT", "AMZN"],
+    "2": ["AMZN", "GOOG"],
 
     "3": [],
 
