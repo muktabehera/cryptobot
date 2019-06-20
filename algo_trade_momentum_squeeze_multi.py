@@ -916,14 +916,20 @@ if __name__ == '__main__':
 
                 ################### <<< END BULL FLAG EXCEPTION <<< #######
 
-
+                '''
+                # COMMENTED TEMPORARILY
+                
                 ############ START SUPPORT AND RESISTANCES #############
 
+                sr_error_margin = config.sr_error_margin
+                sr_percent_bounce = config.sr_percent_bounce
+                sr_min_touches = config.sr_min_touches
+                
                 support, resistance = support_resistance(low=np_ll_1m,
                                                          high=np_hl_1m,
-                                                         min_touches=3,         # price has tested x # times
-                                                         percent_bounce=0.05,   # price bounced x %
-                                                         error_margin=0.1)     # price increment for errors
+                                                         min_touches=sr_min_touches,         # price has tested x # times
+                                                         percent_bounce=sr_percent_bounce,   # price bounced x %
+                                                         error_margin=sr_error_margin)      # price increment for errors
                 bool_price_less_than_resistance = False
                 bool_price_gt_than_support = False
 
@@ -933,10 +939,11 @@ if __name__ == '__main__':
                 if np_cl_1m[-1] > support:
                     bool_price_gt_than_support = True
 
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] support:     {support}           bool_price_gt_than_support:     {bool_price_gt_than_support}')
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] resistance:  {resistance}            bool_price_less_than_resistance: {bool_price_less_than_resistance}')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] support:     {support}   bool_price_gt_than_support: {bool_price_gt_than_support}')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] resistance:  {resistance}    bool_price_less_than_resistance:    {bool_price_less_than_resistance}')
 
                 ############ END SUPPORT AND RESISTANCES #############
+                '''
 
                 ###########################################
                 #####        LONG POSITIONS        ########
@@ -946,13 +953,13 @@ if __name__ == '__main__':
                 ################################ LONG BUY SIGNAL - TO OPEN NEW LONG POSITION ###########################
 
                 long_buy_signal_squeeze = squeeze_long_buy and \
-                                          not bool_closing_time and \
-                                          bool_price_less_than_resistance
+                                          not bool_closing_time
+                                          # and bool_price_less_than_resistance
                 #
                 long_buy_signal_mom = bool_buy_momentum and \
                                       bool_uptrend_1m and \
-                                      not bool_closing_time and \
-                                      bool_price_less_than_resistance
+                                      not bool_closing_time
+                                      # and bool_price_less_than_resistance
 
                 LONG_BUY_SIGNAL = long_buy_signal_squeeze   # or long_buy_signal_mom
 
@@ -973,7 +980,7 @@ if __name__ == '__main__':
                                    (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
                                    (bool_sell_price_above_buy and bool_closing_time)
 
-                LONG_SELL_SIGNAL = long_sell_signal_squeeze     # or long_sell_signal_mom
+                LONG_SELL_SIGNAL = long_sell_signal_squeeze or long_sell_signal_mom
 
                 # SELL only if a buy position exists.
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_sell_signal_squeeze:     {long_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
@@ -990,14 +997,14 @@ if __name__ == '__main__':
 
                 short_sell_signal_squeeze = squeeze_short_buy and \
                                     not bool_closing_time \
-                                    and shorting_enabled and \
-                                    bool_price_gt_than_support
+                                    and shorting_enabled
+                                    # and bool_price_gt_than_support
 
                 short_sell_signal_mom = bool_short_momentum and \
                                     bool_downtrend_1m and \
                                     not bool_closing_time \
-                                    and shorting_enabled and \
-                                    bool_price_gt_than_support
+                                    and shorting_enabled
+                                    # and bool_price_gt_than_support
 
                 SHORT_SELL_SIGNAL = short_sell_signal_squeeze   # or short_sell_signal_mom
                 # TODO: Check for support before selling
@@ -1017,7 +1024,7 @@ if __name__ == '__main__':
                                    (squeeze_short_buy and bool_buy_price_below_sell and not bear_flag_1m) or \
                                    (bool_buy_price_below_sell and bool_closing_time)
 
-                SHORT_BUY_SIGNAL = short_buy_signal_squeeze     # or short_buy_signal_mom
+                SHORT_BUY_SIGNAL = short_buy_signal_squeeze or short_buy_signal_mom
 
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal_mom:         {short_buy_signal_mom}')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal_squeeze:     {short_buy_signal_squeeze}')

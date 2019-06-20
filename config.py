@@ -36,6 +36,14 @@ if profit_percentage == 0:
 small_price_increment = 0.20    # 20 cents
 
 
+## Support - Resistance Params
+
+sr_error_margin = 0.0       # price increment for errors
+sr_percent_bounce = 0.05    # price bounced x %
+sr_min_touches = 3          # price has tested x # times
+
+# END SR Params
+
 slack_channel = ''
 
 if live_trade:  # LIVE!!!
