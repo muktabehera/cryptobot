@@ -321,6 +321,60 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
 
         return bars_response
 
+
+def support_resistance(low, high, min_touches=3, percent_bounce=0.05, error_margin=0.1):
+
+    '''
+    ref: https://www.candlestick.ninja/2019/02/support-and-resistance.html
+    determine support and resistances
+    :param low:                     np_ll_1m
+    :param high:                    np_hl_1m
+    :param min_touches:             min touches to establish support or resistance
+    :param percent_error_margin:    margin of error to give some room
+    :param percent_bounce:          % price needs to bounce off each level
+    :param error_margin:            to reduce resistance and increase support for better signals  in cents
+    :return:                        sup and res
+    '''
+
+    support = resistance = None        # default
+
+    max_1m = np_hl_1m.max()
+    min_1m = np_ll_1m.min()
+
+    movement_range = max_1m - min_1m
+    bounce_distance = movement_range * percent_bounce
+
+    # Calculate Resistance
+
+    touches = 0
+    bounced = False
+
+    for x in range(0, len(np_hl_1m)):
+        if abs(max_1m - np_hl_1m[x]) < movement_range and not bounced:
+            touches += 1
+            bounced = True
+        elif abs(max_1m - np_hl_1m[x]) > bounce_distance:
+            bounced = False
+    if touches >= min_touches:
+        resistance = max_1m - error_margin  # to reduce resistance by error margin, used for price_less_than_resistance
+
+    # Calculate Support
+
+    touches = 0
+    bounced = False
+
+    for x in range(0, len(np_ll_1m)):
+        if abs(np_ll_1m[x] - min_1m) < movement_range and not bounced:
+            touches += 1
+            bounced = True
+        elif abs(np_ll_1m[x] - min_1m) > bounce_distance:
+            bounced = False
+    if touches >= min_touches:
+        support = min_1m + error_margin # to increase support by error margin
+
+    return support,resistance
+
+
 # TODO: Add ETAs at each step
 
 
@@ -606,6 +660,7 @@ if __name__ == '__main__':
                 bb_mid_cl_1m = bb_cl_midband_1m
                 # set mid band as mid band
 
+
                 ################### Keltner Channels >>>>>>>>>
 
                 '''
@@ -861,6 +916,28 @@ if __name__ == '__main__':
 
                 ################### <<< END BULL FLAG EXCEPTION <<< #######
 
+
+                ############ START SUPPORT AND RESISTANCES #############
+
+                support, resistance = support_resistance(low=np_ll_1m,
+                                                         high=np_hl_1m,
+                                                         min_touches=3,         # price has tested x # times
+                                                         percent_bounce=0.05,   # price bounced x %
+                                                         error_margin=0.1)     # price increment for errors
+                bool_price_less_than_resistance = False
+                bool_price_gt_than_support = False
+
+                if np_cl_1m[-1] < resistance :
+                    bool_price_less_than_resistance = True
+
+                if np_cl_1m[-1] > support:
+                    bool_price_gt_than_support = True
+
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] support:     {support}           bool_price_gt_than_support:     {bool_price_gt_than_support}')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] resistance:  {resistance}            bool_price_less_than_resistance: {bool_price_less_than_resistance}')
+
+                ############ END SUPPORT AND RESISTANCES #############
+
                 ###########################################
                 #####        LONG POSITIONS        ########
                 ###########################################
@@ -869,11 +946,13 @@ if __name__ == '__main__':
                 ################################ LONG BUY SIGNAL - TO OPEN NEW LONG POSITION ###########################
 
                 long_buy_signal_squeeze = squeeze_long_buy and \
-                                          not bool_closing_time
+                                          not bool_closing_time and \
+                                          bool_price_less_than_resistance
                 #
                 long_buy_signal_mom = bool_buy_momentum and \
-                                  bool_uptrend_1m and \
-                                  not bool_closing_time
+                                      bool_uptrend_1m and \
+                                      not bool_closing_time and \
+                                      bool_price_less_than_resistance
 
                 LONG_BUY_SIGNAL = long_buy_signal_squeeze   # or long_buy_signal_mom
 
@@ -911,12 +990,14 @@ if __name__ == '__main__':
 
                 short_sell_signal_squeeze = squeeze_short_buy and \
                                     not bool_closing_time \
-                                    and shorting_enabled
+                                    and shorting_enabled and \
+                                    bool_price_gt_than_support
 
                 short_sell_signal_mom = bool_short_momentum and \
                                     bool_downtrend_1m and \
                                     not bool_closing_time \
-                                    and shorting_enabled
+                                    and shorting_enabled and \
+                                    bool_price_gt_than_support
 
                 SHORT_SELL_SIGNAL = short_sell_signal_squeeze   # or short_sell_signal_mom
                 # TODO: Check for support before selling
