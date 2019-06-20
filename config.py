@@ -21,9 +21,9 @@ if data_provider == 'polygon':
 day_trade_minimum = 0.00                    # this can be set to 25000.00 to keep min balance to avoid PDT flag
 
 max_open_positions_allowed = 5              # Use to divide total equity among X max allowed open positions
-closing_window = 60                         # time left for market to close
+closing_window = 120                        # time left for market to close
 
-secs_to_sleep = 1                           # time between reruns if market is open.
+secs_to_sleep = 0                           # time between reruns if market is open.
 profit_percentage = 0.02                    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0                             # use either profit percentage or price delta
 
@@ -49,8 +49,8 @@ if live_trade:  # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PKQ48RGDO6QD9OSI8Y56'
-    APCA_API_SECRET_KEY = 'z6HICCqF1Q3p26EoJOisXDIsXgzWlqeUXx89sbgY'
+    APCA_API_KEY_ID = 'PKP7TGF43LLXT71ZW2JU'
+    APCA_API_SECRET_KEY = 'sjPVyJhd3R8c/MIfhxkrNdJMqKS6IyGscA4icbAn'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_channel = 'PAPER'
 
@@ -65,7 +65,7 @@ clock_uri = f'{base_url}/clock'
 # Top Popular Large and Mid Cap stocks on Robinhood
 
 tickers = {
-    "1": ["MSFT", "AMZN", "AAPL", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
+    "1": ["MSFT", "AAPL", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
           "BA", "NFLX", "PYPL", "NKE", "CRM", "COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD",
           "SHOP", "NOK", "SIRI", "DBX", "SPOT", "TWLO", "LYFT", "CGC", "ROKU", "VZ", "KO", "SBUX", "SQ", "LUV", "CTSH",
           "TSLA", "ADBE", "ACN"],

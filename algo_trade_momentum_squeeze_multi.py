@@ -1354,7 +1354,7 @@ if __name__ == '__main__':
         if health_check_alert_counter == 1:
             msg = f'SET {set} [CHECK] OK'
             slackit(channel="CHECK", msg=msg)                    # Post to health-check slack channel
-        elif health_check_alert_counter > 360:
+        elif health_check_alert_counter > 120:
             health_check_alert_counter = 0
 
         health_check_alert_counter += 1
