@@ -894,7 +894,7 @@ if __name__ == '__main__':
                                    (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
                                    (bool_sell_price_above_buy and bool_closing_time)
 
-                LONG_SELL_SIGNAL = long_sell_signal_squeeze or long_sell_signal_mom
+                LONG_SELL_SIGNAL = long_sell_signal_squeeze     # or long_sell_signal_mom
 
                 # SELL only if a buy position exists.
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_sell_signal_squeeze:     {long_sell_signal_squeeze} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
@@ -936,7 +936,7 @@ if __name__ == '__main__':
                                    (squeeze_short_buy and bool_buy_price_below_sell and not bear_flag_1m) or \
                                    (bool_buy_price_below_sell and bool_closing_time)
 
-                SHORT_BUY_SIGNAL = short_buy_signal_squeeze or short_buy_signal_mom
+                SHORT_BUY_SIGNAL = short_buy_signal_squeeze     # or short_buy_signal_mom
 
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal_mom:         {short_buy_signal_mom}')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal_squeeze:     {short_buy_signal_squeeze}')
@@ -1193,7 +1193,6 @@ if __name__ == '__main__':
                         error_text = f'[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_sell_signal] Error placing order: {str(e)}'
                         logging.info(error_text)
                         slackit(channel="ERROR", msg=error_text)
-
 
                     sell_order_executed = False
 
