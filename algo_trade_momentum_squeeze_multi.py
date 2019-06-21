@@ -424,7 +424,6 @@ if __name__ == '__main__':
     # logging.info(f"[START][{ticker}]")
 
     x = 0
-    start_time = None  # default
 
     while True:  # infinite
 
@@ -456,6 +455,8 @@ if __name__ == '__main__':
 
         if config.testing_algo_after_hours:     ######### CHECK THIS ###########
             market_is_open = True
+
+        start_time = datetime.now()  # to calculate ETA for all tickers
 
         if market_is_open:
 
