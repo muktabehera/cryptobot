@@ -1,7 +1,7 @@
 
 live_trade = False                          # SET TO TRUE WHEN TRADING LIVE!!!
 
-testing_algo_after_hours = True             # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = False             # Set to False ALWAYS unless testing after hours
 
 # data_provider = 'alpaca'                  # polygon or alpaca
 data_provider = 'polygon'                   # polygon or alpaca
@@ -33,14 +33,14 @@ if profit_percentage == 0:
 
 # to avoid selling or buying too quickly when bool_sell_price_above_buy or bool_buy_price_below_sell are True
 # adding a delta price component. This is different from price delta above
-small_price_increment = 0.20    # 20 cents
+small_price_increment = 0.10    # 20 cents
 
 
 # uptrend timeperiod sma_1m
 timeperiod = 10
 
 
-## Support - Resistance Params
+# Support - Resistance Params
 
 sr_error_margin = 0.1       # price increment for errors, 10 cents
 sr_percent_bounce = 0.05    # price bounced x %
