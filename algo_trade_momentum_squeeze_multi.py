@@ -1085,7 +1085,7 @@ if __name__ == '__main__':
                     logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_buy_signal] buy_order_data: {buy_order_data}')
 
                     buy_order_sent = False
-
+                    buy_order_placed = None
                     try:
                         buy_order_placed = requests.post(url=order_uri, headers=headers,
                                                          data=buy_order_data).json()
@@ -1095,7 +1095,7 @@ if __name__ == '__main__':
                         logging.info(f"[{ticker}] [long_buy_signal] [buy_order_id] {order_id}")
 
                     except Exception as e:
-                        error_text = f'[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_buy_signal] Error placing order: {str(e)}'
+                        error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_buy_signal] Error placing order: {str(buy_order_placed['message'])}"
                         logging.info(error_text)
                         slackit(channel="ERROR", msg=error_text)
 
@@ -1175,7 +1175,7 @@ if __name__ == '__main__':
                     logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_sell_signal] sell_order_data:    {sell_order_data}')
 
                     sell_order_sent = False
-
+                    sell_order_placed = None
                     try:
                         sell_order_placed = requests.post(url=order_uri, headers=headers,
                                                           data=sell_order_data).json()
@@ -1185,7 +1185,7 @@ if __name__ == '__main__':
                         logging.info(f"[{ticker}] [long_sell_signal] [sell_order_id] [{order_id}] ")
 
                     except Exception as e:
-                        error_text = f'[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_sell_signal] Error placing order: {str(e)}'
+                        error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_sell_signal] Error placing order: {str(sell_order_placed['message'])}"
                         logging.info(error_text)
                         slackit(channel="ERROR", msg=error_text)
 
@@ -1274,7 +1274,7 @@ if __name__ == '__main__':
                     logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_sell_signal] sell_order_data:    {sell_order_data}')
 
                     sell_order_sent = False
-
+                    sell_order_placed = None
                     try:
                         sell_order_placed = requests.post(url=order_uri, headers=headers,
                                                           data=sell_order_data).json()
@@ -1284,7 +1284,7 @@ if __name__ == '__main__':
                         logging.info(f"[{ticker}] [short_sell_signal] [sell_order_id] [{order_id}] ")
 
                     except Exception as e:
-                        error_text = f'[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_sell_signal] Error placing order: {str(e)}'
+                        error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_sell_signal] Error placing order: {str(sell_order_placed['message'])})"
                         logging.info(error_text)
                         slackit(channel="ERROR", msg=error_text)
 
@@ -1366,7 +1366,7 @@ if __name__ == '__main__':
                     logging.debug(f'[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_buy_signal] buy_order_data: {buy_order_data}')
 
                     buy_order_sent = False
-
+                    buy_order_placed = None
                     try:
                         buy_order_placed = requests.post(url=order_uri, headers=headers,
                                                          data=buy_order_data).json()
@@ -1376,7 +1376,7 @@ if __name__ == '__main__':
                         logging.info(f"[{ticker}] [short_buy_signal] [buy_order_id] {order_id}")
 
                     except Exception as e:
-                        error_text = f'[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_buy_signal] Error placing order: {str(e)}'
+                        error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_buy_signal] Error placing order: {str(buy_order_placed['message'])}"
                         logging.info(error_text)
                         slackit(channel="ERROR", msg=error_text)
 

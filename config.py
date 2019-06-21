@@ -80,7 +80,7 @@ positions_uri = f'{base_url}/positions'
 tickers = {
     "1": ["MSFT", "AAPL", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
           "BA", "NFLX", "PYPL", "NKE", "CRM", "COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD",
-          "SHOP", "NOK", "SIRI", "DBX", "SPOT", "TWLO", "LYFT", "CGC", "ROKU", "VZ", "KO", "SBUX", "SQ", "LUV", "CTSH",
+          "SHOP", "NOK", "SIRI", "DBX", "SPOT", "TWLO", "CGC", "ROKU", "VZ", "KO", "SBUX", "SQ", "LUV", "CTSH",
           "TSLA", "ADBE", "ACN"],
 
     "2": ["V"],
@@ -89,7 +89,7 @@ tickers = {
 
     "4": [],
 
-    "5": []
+    "5": ["LYFT"]   # can't be short sold
 }
 
     # "UBER": "UBER",       # Not supported by Alpaca Data Feed
