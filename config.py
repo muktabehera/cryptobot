@@ -1,7 +1,7 @@
 
 live_trade = False                          # SET TO TRUE WHEN TRADING LIVE!!!
 
-testing_algo_after_hours = False             # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = True             # Set to False ALWAYS unless testing after hours
 
 # data_provider = 'alpaca'                  # polygon or alpaca
 data_provider = 'polygon'                   # polygon or alpaca
@@ -24,7 +24,7 @@ max_open_positions_allowed = 5              # Use to divide total equity among X
 closing_window = 120                        # time left for market to close
 
 secs_to_sleep = 0                           # time between reruns if market is open.
-profit_percentage = 0.02                    # profit taking percentage - used in a sell signal - updated to 10% test squeeze
+profit_percentage = 0                       # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0                             # use either profit percentage or price delta
 
 if profit_percentage == 0:
@@ -36,9 +36,13 @@ if profit_percentage == 0:
 small_price_increment = 0.20    # 20 cents
 
 
+# uptrend timeperiod sma_1m
+timeperiod = 10
+
+
 ## Support - Resistance Params
 
-sr_error_margin = 0.0       # price increment for errors
+sr_error_margin = 0.1       # price increment for errors, 10 cents
 sr_percent_bounce = 0.05    # price bounced x %
 sr_min_touches = 3          # price has tested x # times
 
@@ -68,6 +72,7 @@ else:   # PAPER TRADE
 account_uri = f'{base_url}/account'
 order_uri = f'{base_url}/orders'
 clock_uri = f'{base_url}/clock'
+positions_uri = f'{base_url}/positions'
 
 
 # Top Popular Large and Mid Cap stocks on Robinhood
@@ -78,7 +83,7 @@ tickers = {
           "SHOP", "NOK", "SIRI", "DBX", "SPOT", "TWLO", "LYFT", "CGC", "ROKU", "VZ", "KO", "SBUX", "SQ", "LUV", "CTSH",
           "TSLA", "ADBE", "ACN"],
 
-    "2": ["AMZN", "GOOG"],
+    "2": ["V"],
 
     "3": [],
 
