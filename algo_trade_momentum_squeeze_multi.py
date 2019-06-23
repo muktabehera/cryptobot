@@ -418,11 +418,11 @@ if __name__ == '__main__':
     equity_limit = 0.0  # default
     cash = 0.0          # default cash
 
-    health_check_alert_counter = 0
     max_open_positions_allowed = int(config.max_open_positions_allowed)
 
     # logging.info(f"[START][{ticker}]")
 
+    health_check_alert_counter = 0
     x = 0
 
     while True:  # infinite
@@ -453,14 +453,14 @@ if __name__ == '__main__':
 
         # new_bar_available = True
 
-        if config.testing_algo_after_hours:     ######### CHECK THIS ###########
+        if config.testing_algo_after_hours:                     ######### CHECK THIS ###########
             market_is_open = True
 
         start_time = datetime.now()  # to calculate ETA for all tickers
 
         if market_is_open:
 
-            start_time = datetime.now()                 # to calculate ETA for all tickers
+            start_time = datetime.now()                         # to calculate ETA for all tickers
 
             for ticker in tickers:
 
@@ -471,6 +471,7 @@ if __name__ == '__main__':
                 positions_response = dict()             # reset to null dict for each ticker
                 position_qty = 0  # default             # reset to default
                 position_side = None                    # default position side (buy or sell)
+                unrealized_intraday_pl = None              # default intraday pnl in a given open position
 
                 equity = 0.00  # default to 0           # reset to default
                 equity_limit = 0.0  # default           # reset to default
@@ -509,9 +510,11 @@ if __name__ == '__main__':
                 equity = float(account["equity"])       # equity
                 cash = float(account["cash"])           # cash
 
-                shorting_enabled = account["shorting_enabled"]  # Only short if enabled, else go long only!!
+                # shorting enabled with override
+                account_shorting_enabled = account["shorting_enabled"]  # Only short if enabled, else go long only!!
+                bool_shorting_enabled = account_shorting_enabled and config.allow_shorting  # Only short if enabled, else go long only!!
 
-                logging.info(f'[{ticker}] shorting_enabled = {shorting_enabled}')
+                logging.info(f'[{ticker}] bool_shorting_enabled = {bool_shorting_enabled}   config.allow_shorting: {config.allow_shorting}')
 
                 current_open_positions = 0
 
@@ -539,8 +542,9 @@ if __name__ == '__main__':
 
                 if "code" not in positions_response:
                     position = True
-                    position_qty = int(positions_response['qty']).__abs__()     # to make -ve units positive
-                    position_side = positions_response['side']  # long or short
+                    position_qty = abs(int(positions_response['qty']))              # to make -ve units positive
+                    position_side = positions_response['side']  # long or short-0.0142711518858308-0.0142711518858308-0.0142711518858308
+                    unrealized_intraday_pl = float(positions_response["unrealized_intraday_pl"])  # dropping the decimals
 
                     if position_side == 'long':
                         buy_price = round(float(positions_response['avg_entry_price']),2)
@@ -558,7 +562,7 @@ if __name__ == '__main__':
 
                 # cash_limit = cash * config.position_size    # E.G 1 (100%) if trading one stock only
 
-                equity_limit = equity / max_open_positions_allowed
+                equity_limit = equity_less_daytrademin / max_open_positions_allowed
 
                 if current_open_positions >= max_open_positions_allowed:
                     cash = 0
@@ -577,6 +581,7 @@ if __name__ == '__main__':
                 logging.info(f'[{ticker}] current_position: [{position_qty}]    side:   [{position_side}]')
                 logging.info(f'[{ticker}] buy_price:    ${buy_price}')
                 logging.info(f'[{ticker}] sell_price:   ${sell_price}')
+                # logging.info(f'[{ticker}] unrealized_intraday_pl:   ${unrealized_intraday_pl}')
 
 
                 ############ >_< FETCH TICKERS BASED ON CURRENT TS ############
@@ -645,20 +650,20 @@ if __name__ == '__main__':
                 sma_1m = talib.SMA(np_cl_1m, timeperiod=config.timeperiod)      # 10 to keep it smooth
                 sma_1m = np.round(sma_1m, 2)                                    # round off SMA10 1M to 2 places
 
-                if (sma_1m[-1] >= sma_1m[-2]) and (sma_1m[-2] >= sma_1m[-3]):   # > or = for uptrend to relax it a little
+                if (sma_1m[-1] > sma_1m[-2]) and (sma_1m[-2] > sma_1m[-3]):   # [OPTIONAL] >= to relax it a little
                     bool_uptrend_1m = True
                     logging.debug(f"bool_uptrend_1m [{np_cl_1m[-1]}] [{bool_uptrend_1m} = {sma_1m[-1]} > {sma_1m[-2]}) and ({sma_1m[-2]} > {sma_1m[-3]}")
 
-                if (sma_1m[-1] <= sma_1m[-2]) and (sma_1m[-2] <= sma_1m[-3]):
+                if (sma_1m[-1] < sma_1m[-2]) and (sma_1m[-2] < sma_1m[-3]):
                     bool_downtrend_1m = True
                     logging.debug(f"bool_downtrend_1m [{np_cl_1m[-1]}]  [{bool_downtrend_1m}] = {sma_1m[-1]} < {sma_1m[-2]}) and ({sma_1m[-2]} < {sma_1m[-3]}")
 
-                # if (sma_1m[-1] == sma_1m[-2]) and (sma_1m[-2] == sma_1m[-3]):
-                #     bool_sideways_1m = True
+                if (sma_1m[-1] == sma_1m[-2]) and (sma_1m[-2] == sma_1m[-3]):
+                    bool_sideways_1m = True
 
                 logging.info(f'[{ticker}] bool_uptrend_1m:  {bool_uptrend_1m}')
                 logging.info(f'[{ticker}] bool_downtrend_1m:  {bool_downtrend_1m}')
-                # logging.info(f'[{ticker}] bool_sideways_1m:  {bool_sideways_1m}')
+                logging.info(f'[{ticker}] bool_sideways_1m:  {bool_sideways_1m}')
 
 
                 ################### BOLLINGER BANDS FOR SQUEEZE + DYNAMIC SUPPORT AND RESISTANCE >>>>>>>>
@@ -930,12 +935,12 @@ if __name__ == '__main__':
                 if bool_close_short_momentum and (np_cl_1m[-1] >= np_cl_1m[-3] or np_cl_1m[-1] >= np_cl_1m[-4]):
                     bear_flag_1m = True  # [shorting]
 
-                logging.info(f'[{ticker}] bull_flag_1m:                         {bull_flag_1m}')
-                logging.info(f'[{ticker}] bear_flag_1m:                         {bear_flag_1m}')  # [shorting]
+                logging.info(f'[{ticker}] bull_flag_1m:                           {bull_flag_1m}')
+                logging.info(f'[{ticker}] bear_flag_1m:                           {bear_flag_1m}')  # [shorting]
 
                 ################### <<< END BULL FLAG EXCEPTION <<< #######
 
-                ############ START SUPPORT AND RESISTANCES #############
+                ############ START SUPPORT AND RESISTANCES ################
 
                 sr_error_margin = config.sr_error_margin
                 sr_percent_bounce = config.sr_percent_bounce
@@ -945,7 +950,7 @@ if __name__ == '__main__':
                                                          high=np_hl_1m,
                                                          min_touches=sr_min_touches,         # price has tested x # times
                                                          percent_bounce=sr_percent_bounce,   # price bounced x %
-                                                         error_margin=sr_error_margin)      # price increment for errors
+                                                         error_margin=sr_error_margin)       # price increment for errors
                 bool_price_less_than_resistance = False
                 bool_price_gt_than_support = False
 
@@ -955,10 +960,61 @@ if __name__ == '__main__':
                 if np_cl_1m[-1] > support:
                     bool_price_gt_than_support = True
 
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] support:     {support}   bool_price_gt_than_support: {bool_price_gt_than_support}')
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] resistance:  {resistance}    bool_price_less_than_resistance:    {bool_price_less_than_resistance}')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] support:     {support}               bool_price_gt_than_support:         {bool_price_gt_than_support}[{support}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] resistance:  {resistance}            bool_price_less_than_resistance:    {bool_price_less_than_resistance}[{resistance}]')
 
                 ############ END SUPPORT AND RESISTANCES #############
+
+
+                ############ START SIGNAL BUY AT SUPPORT SELL AT RESISTANCE ----- >>
+                '''
+                PURPOSE: ideally, price is range bound or market is moving sideways, buy at support
+                         sell at resistance.
+                '''
+                bool_buy_at_support = False
+                bool_price_at_support = False
+
+                bool_sell_at_resistance = False
+                bool_price_at_resistance = False
+
+                # check if price has been rangebound
+                price_is_rangebound = False
+
+                if (resistance >= np_cl_1m.all()) and (support <= np_cl_1m.all()):  # are 100 min close bars enough??
+                    price_is_rangebound = True
+
+                # check if price is currently at support or resistance
+
+                if price_is_rangebound and np_cl_1m[-1] == support:
+                    bool_price_at_support = True
+                elif price_is_rangebound and np_cl_1m[-1] == resistance:
+                    bool_price_at_resistance = True
+
+                # create signal to buy sell on a sideways market
+                # TODO: revisit and possibly remove, sideways_1m seems unreasonable.
+
+                if price_is_rangebound and bool_sideways_1m and (np_cl_1m[-1] == support):
+                    bool_buy_at_support = True
+                elif price_is_rangebound and bool_sideways_1m and (np_cl_1m[-1] == resistance):
+                    bool_sell_at_resistance = True
+
+                ############ END SIGNAL BUY AT SUPPORT SELL AT RESISTANCE --------- <<
+
+
+                ############ START UNREALIZED_INTRADAY_PL ----- >>
+
+                '''
+                PURPOSE: to close open positions once $ profit threshold is met
+                '''
+
+                bool_unrealized_intraday_pl = False
+
+                if position and (unrealized_intraday_pl >= config.profit_threshold_to_close_position):
+                    bool_unrealized_intraday_pl = True
+
+                ############ END UNREALIZED_INTRADAY_PL --------- <<
+
+
 
                 ###########################################
                 #####        LONG POSITIONS        ########
@@ -968,13 +1024,13 @@ if __name__ == '__main__':
                 ################################ LONG BUY SIGNAL - TO OPEN NEW LONG POSITION ###########################
 
                 long_buy_signal_squeeze = squeeze_long_buy and \
+                                          bool_price_less_than_resistance and \
                                           not bool_closing_time
-                                          # and bool_price_less_than_resistance
                 #
                 long_buy_signal_mom = bool_buy_momentum and \
                                       bool_uptrend_1m and \
-                                      not bool_closing_time and \
-                                      bool_price_less_than_resistance
+                                      bool_price_less_than_resistance and \
+                                      not bool_closing_time
 
                 LONG_BUY_SIGNAL = long_buy_signal_squeeze or long_buy_signal_mom
 
@@ -987,16 +1043,21 @@ if __name__ == '__main__':
 
                 ################################ LONG SELL SIGNAL - TO CLOSE OPEN LONG POSITION ###################
 
-                long_sell_signal_mom = bool_sell_profit_target or \
-                                   (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
-                                   (bool_sell_price_above_buy and bool_closing_time)
+                bool_long_sell_signal = bool_sell_profit_target or \
+                                        bool_unrealized_intraday_pl or \
+                                        (bool_sell_momentum and bool_sell_price_above_buy and not bull_flag_1m) or \
+                                        (bool_price_at_resistance and bool_sell_price_above_buy and not bool_closing_time and not bull_flag_1m) or \
+                                        (bool_sell_price_above_buy and bool_closing_time)
 
-                LONG_SELL_SIGNAL = long_sell_signal_mom
+                # NOTE: for short resistance and support flip, so bool_price_at_resistance is used
+                # in place of bool_price_at_support for short buy
+
+                LONG_SELL_SIGNAL = bool_long_sell_signal
 
                 # SELL only if a buy position exists.
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_sell_signal:             {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}] [{np_cl_1m[-1]}]')
-
-
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_sell_signal:             {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_unrealized_intraday_pl:  {bool_unrealized_intraday_pl} [{unrealized_intraday_pl}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_price_at_resistance:     {bool_price_at_resistance}[{resistance}]')
                 ###########################################
                 #####        SHORT POSITIONS       #######
                 ###########################################
@@ -1005,15 +1066,15 @@ if __name__ == '__main__':
                 ################################ SHORT SELL SIGNAL - TOP OPEN NEW SHORT POSITION ###########################
 
                 short_sell_signal_squeeze = squeeze_short_sell and \
-                                    not bool_closing_time and \
-                                    shorting_enabled and \
-                                    bool_price_gt_than_support
+                                            not bool_closing_time and \
+                                            bool_shorting_enabled and \
+                                            bool_price_gt_than_support
 
                 short_sell_signal_mom = bool_short_momentum and \
-                                    bool_downtrend_1m and \
-                                    not bool_closing_time and \
-                                    shorting_enabled and \
-                                    bool_price_gt_than_support
+                                        bool_downtrend_1m and \
+                                        not bool_closing_time and \
+                                        bool_shorting_enabled and \
+                                        bool_price_gt_than_support
 
                 SHORT_SELL_SIGNAL = short_sell_signal_squeeze or short_sell_signal_mom
 
@@ -1026,15 +1087,21 @@ if __name__ == '__main__':
 
                 ################################ SHORT BUY SIGNAL - TO CLOSE OPEN SHORT POSITION #####################
 
-                short_buy_signal_mom = bool_buy_profit_target or \
-                                   (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
-                                   (bool_buy_price_below_sell and bool_closing_time)
+                bool_short_buy_signal = bool_buy_profit_target or \
+                                        bool_unrealized_intraday_pl or \
+                                        (bool_close_short_momentum and bool_buy_price_below_sell and not bear_flag_1m) or \
+                                        (bool_price_at_resistance and bool_buy_price_below_sell and not bool_closing_time and not bear_flag_1m) or \
+                                        (bool_buy_price_below_sell and bool_closing_time)
 
+                # NOTE: for short resistance and support flip, so bool_price_at_resistance is used
+                # in place of bool_price_at_support for short buy
+                # Ref: https://www.fxacademy.com/learn/support-and-resistance-basics/sr-basics-long-and-short-trades
 
-                SHORT_BUY_SIGNAL = short_buy_signal_mom
+                SHORT_BUY_SIGNAL = bool_short_buy_signal
 
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal_mom:         {short_buy_signal_mom}')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal_mom:         {bool_short_buy_signal}')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal:             {SHORT_BUY_SIGNAL}')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_price_at_resistance:     {bool_price_at_resistance}[{resistance}]')
 
 
                 ################################################################
@@ -1440,7 +1507,8 @@ if __name__ == '__main__':
 
                 ###########################################################################################################
 
-        # HEALTH CHECK
+        # HEALTH CHECK START ------ >>
+
         end_time = datetime.now() - start_time
         logging.info(f"Finished {num_tickers} tickers in {end_time.seconds} seconds")
 
@@ -1452,7 +1520,7 @@ if __name__ == '__main__':
 
         health_check_alert_counter += 1
 
-        # HEALTH COUNTER END
+        # HEALTH CHECK END --------- <<
 
         x += 1
 

@@ -153,13 +153,13 @@ ts_str = ''
 
 # TODO: Add positionSizing = 0.25 for each stock
 
-tickers = config.tickers
+tickers = config.paper_tickers
 
 for ticker in tickers:
 
-    limit_1m = config.limit_1m # 78 * 5
-    limit_5m = config.limit_5m   # 78 bars in a regular trading day 9.30 AM - 3:55 PM
-    limit_15m = config.limit_15m  # 78 / 3
+    limit_1m = config.paper_limit_1m    # 78 * 5
+    limit_5m = config.paper_limit_5m   # 78 bars in a regular trading day 9.30 AM - 3:55 PM
+    limit_15m = config.paper_limit_15m  # 78 / 3
 
     payload_1m = {
         "symbols": ticker,
