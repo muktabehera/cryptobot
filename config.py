@@ -10,7 +10,7 @@ data_provider = 'polygon'                   # polygon or alpaca
 
 api_version = 'v2'
 
-day_trade_minimum = 25000.00                    # this can be set to 25000.00 to keep min balance to avoid PDT flag
+day_trade_minimum = 0.00                    # this can be set to 25000.00 to keep min balance to avoid PDT flag
 
 max_open_positions_allowed = 5              # Use to divide total equity among X max allowed open positions
 closing_window = 120                        # time left for market to close
@@ -19,14 +19,15 @@ secs_to_sleep = 0                           # time between reruns if market is o
 
 profit_percentage = 0                       # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0                             # use either profit percentage or price delta
+
 if profit_percentage == 0:
     price_delta = 0.5       # 50 Cents
 
-profit_threshold_to_close_position = 20     # in dollars, this will set the max profit in any position
+profit_threshold_to_close_position = 10     # in dollars, this will set the max profit in any position
 
 # to avoid selling or buying too quickly when bool_sell_price_above_buy or bool_buy_price_below_sell are True
 # adding a delta price component. This is different from price delta above
-small_price_increment = 0.10    # 20 cents
+small_price_increment = 0.05    # 5 cents
 
 # uptrend timeperiod sma_1m
 timeperiod = 20
@@ -39,6 +40,9 @@ sr_percent_bounce = 0.05    # price bounced x %
 sr_min_touches = 3          # price has tested x # times
 
 # END SR Params
+
+order_wait_counter = 10     # [REDACTED] max retries before you skip checking for an order status
+
 
 if data_provider == 'alpaca':
     data_api_version = 'v1'
@@ -63,8 +67,8 @@ if live_trade:  # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PK22F8EWPZS5GQW6NBW0'
-    APCA_API_SECRET_KEY = '3M2X4K0faAXAUuCAKAImdhQxEPUehndzzOtYqSYk'
+    APCA_API_KEY_ID = 'PKIVNEGF3II8V933GNJK'
+    APCA_API_SECRET_KEY = 'xyEzn1mhWcSu9v76Bu8gxJAjAjLh8bto1gGCG9R1'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_channel = 'PAPER'
 
@@ -82,8 +86,7 @@ positions_uri = f'{base_url}/positions'
 tickers = {
     "1": ["MSFT", "AAPL", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
           "BA", "NFLX", "PYPL", "NKE", "CRM", "COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD",
-          "SHOP", "NOK", "SIRI", "DBX", "SPOT", "TWLO", "CGC", "ROKU", "VZ", "KO", "SBUX", "SQ", "LUV", "CTSH",
-          "TSLA", "ADBE", "ACN", "UBER"],
+          "NOK", "DBX", "SPOT", "TWLO", "VZ", "KO", "SBUX", "LUV", "CTSH", "ADBE", "ACN"],
 
     "2": ["V", "MSFT", "CRM", "BABA"],
 
@@ -91,7 +94,7 @@ tickers = {
 
     "4": [],
 
-    "5": ["LYFT", "WORK"]   # can't be short sold
+    "5": ["LYFT", "WORK", "CGC", "SHOP", "SIRI", "ROKU", "SQ", "TSLA", "UBER"]   # can't be short sold
 }
 
     # "UBER": "UBER",       # Not supported by Alpaca Data Feed
