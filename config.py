@@ -3,7 +3,7 @@ live_trade = False                          # SET TO TRUE WHEN TRADING LIVE!!!
 
 allow_shorting = True                       # SET False to Disable Shorting
 
-testing_algo_after_hours = True             # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = False            # Set to False ALWAYS unless testing after hours
 
 # data_provider = 'alpaca'                  # polygon or alpaca
 data_provider = 'polygon'                   # polygon or alpaca
