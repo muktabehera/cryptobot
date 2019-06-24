@@ -1159,18 +1159,22 @@ if __name__ == '__main__':
                         buy_order_sent = True
                         order_id = buy_order_placed['id']
 
-                        logging.info(f"[{ticker}] [long_buy_signal] [buy_order_id] {order_id}")
+                        order_text = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]} [ORDER] [long_buy_signal] [buy_order_id] {order_id}"
+                        logging.info(order_text)
+                        slackit(channel=config.slack_channel, msg=order_text)
 
                     except Exception as e:
                         error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_buy_signal] Error placing order: {str(buy_order_placed['message'])}"
                         logging.info(error_text)
                         slackit(channel="ERROR", msg=error_text)
 
+                    '''
+
                     buy_order_executed = False
 
                     if buy_order_placed['status'] is not None:  # to check if order was placed
-
-                        while not buy_order_executed:
+                        order_wait_counter = 0
+                        while order_wait_counter <= int(config.order_wait_counter) and not buy_order_executed:  # wait 10 tries
 
                             # keep checking until order is filled
                             # buy_order_details_data = {'order_id': order_id}
@@ -1189,8 +1193,9 @@ if __name__ == '__main__':
 
                             logging.info(f"[{ticker}] [long_buy_signal] buy_order_status:    {buy_order_placed['status']} ")
 
+                            order_wait_counter += 1
                             # time.sleep(1)  # WAIT 10 SECS BEFORE NEXT CHECK
-
+                        
                         ###############
                         buy_price = float(buy_order_details['filled_avg_price'])  # ACTUAL FROM BUY ORDER
                         ###############
@@ -1216,8 +1221,11 @@ if __name__ == '__main__':
                               f'sell_target_based_on_profit_percentage [{sell_target_based_on_profit_percentage}]        ')
 
                         position = True # set position to True once BUY is executed
+                        
                     else:
                         logging.error(f"[{current_ts}] [ERROR] {buy_order_details['side']} ORDER WAS NOT PLACED")
+                        
+                    '''
 
                 ################################ LONG_SELL - Close Existing Open Long Position ###########################
 
@@ -1249,20 +1257,24 @@ if __name__ == '__main__':
                         sell_order_sent = True
                         order_id = sell_order_placed['id']
 
-                        logging.info(f"[{ticker}] [long_sell_signal] [sell_order_id] [{order_id}] ")
+                        order_text = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [ORDER] [long_sell_signal] [sell_order_id] [{order_id}]"
+                        logging.info(order_text)
+                        slackit(channel=config.slack_channel, msg=order_text)
 
                     except Exception as e:
                         error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_sell_signal] Error placing order: {str(sell_order_placed['message'])}"
                         logging.info(error_text)
                         slackit(channel="ERROR", msg=error_text)
 
+                    '''
                     sell_order_executed = False
 
                     # logging.info(f"SELL Order Placed Status Code:           {sell_order_placed['status_code']} ")
 
                     if sell_order_placed['status'] is not None:
 
-                        while not sell_order_executed:
+                        order_wait_counter = 0
+                        while order_wait_counter <= int(config.order_wait_counter) and not sell_order_executed:
 
                             # keep checking until order is filled
 
@@ -1282,6 +1294,8 @@ if __name__ == '__main__':
                                 sell_order_executed = True
 
                             logging.info(f"[{ticker}] [LONG_SELL_SIGNAL] SELL ORDER STATUS:   {sell_order_placed['status']} ")
+
+                            order_wait_counter += 1
 
                             # time.sleep(1)  # WAIT 10 SECS BEFORE NEXT CHECK
 
@@ -1317,6 +1331,8 @@ if __name__ == '__main__':
                           f'bool_sell_price_above_buy       {bool_sell_price_above_buy}')
 
                     position = False  # set position to false once a sale has completed
+                    
+                    '''
 
                 ################################ SHORT SELL - Open New Short Position #####################################
 
@@ -1348,20 +1364,23 @@ if __name__ == '__main__':
                         sell_order_sent = True
                         order_id = sell_order_placed['id']
 
-                        logging.info(f"[{ticker}] [short_sell_signal] [sell_order_id] [{order_id}] ")
+                        order_text = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [ORDER] [short_sell_signal] [sell_order_id] [{order_id}]"
+                        logging.info(order_text)
+                        slackit(channel=config.slack_channel, msg=order_text)
 
                     except Exception as e:
                         error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_sell_signal] Error placing order: {str(sell_order_placed['message'])})"
                         logging.info(error_text)
                         slackit(channel="ERROR", msg=error_text)
 
+                    '''
                     sell_order_executed = False
 
                     # logging.info(f"SELL Order Placed Status Code:           {sell_order_placed['status_code']} ")
 
                     if sell_order_placed['status'] is not None:
-
-                        while not sell_order_executed:
+                        order_wait_counter = 0
+                        while order_wait_counter <= int(config.order_wait_counter) and not sell_order_executed:
 
                             # keep checking until order is filled
 
@@ -1369,7 +1388,7 @@ if __name__ == '__main__':
 
                             sell_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 
-                            waiting_to_sell = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [SHORT_SELL_SIGNAL] [SELL] [WAITING_TO_EXECUTE] [{sell_order_details['submitted_at']}] " \
+                            waiting_to_sell = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [{order_wait_counter}] [SHORT_SELL_SIGNAL] [SELL] [WAITING_TO_EXECUTE] [{sell_order_details['submitted_at']}] " \
                                 f"[{sell_order_details['status']}] {sell_order_details['side']} " \
                                 f"order for {sell_order_details['qty']} shares of {sell_order_details['symbol']}"
 
@@ -1380,8 +1399,9 @@ if __name__ == '__main__':
                             if sell_order_details['status'] == 'filled':  # or order_details.status == 'partially_filled':
                                 sell_order_executed = True
 
-                            logging.info(f"[{ticker}] [SHORT_SELL_SIGNAL] SELL ORDER STATUS:   {sell_order_placed['status']} ")
+                            logging.info(f"[{ticker}] [{order_wait_counter}] [SHORT_SELL_SIGNAL] SELL ORDER STATUS:   {sell_order_placed['status']} ")
 
+                            order_wait_counter += 1
                             # time.sleep(1)  # WAIT 1 SEC BEFORE NEXT CHECK
 
                         ###############
@@ -1414,6 +1434,8 @@ if __name__ == '__main__':
                           f'bool_buy_price_below_sell       {bool_buy_price_below_sell}')
 
                     position = True  # set position to false once short sell is initiated
+                    
+                    '''
 
                 ################################ SHORT BUY - Close Existing Short Sell Position ###########################
 
@@ -1440,18 +1462,21 @@ if __name__ == '__main__':
                         buy_order_sent = True
                         order_id = buy_order_placed['id']
 
-                        logging.info(f"[{ticker}] [short_buy_signal] [buy_order_id] {order_id}")
+                        order_text = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [ORDER]  [short_buy_signal] [buy_order_id] {order_id}"
+
+                        logging.info(order_text)
+                        slackit(channel=config.slack_channel, msg=order_text)
 
                     except Exception as e:
                         error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_buy_signal] Error placing order: {str(buy_order_placed['message'])}"
                         logging.info(error_text)
                         slackit(channel="ERROR", msg=error_text)
-
+                    '''
                     buy_order_executed = False
 
                     if buy_order_placed['status'] is not None:  # to check if order was placed
-
-                        while not buy_order_executed:
+                        order_wait_counter = 0
+                        while order_wait_counter <= int(config.order_wait_counter) and not buy_order_executed:
 
                             # keep checking until order is filled
                             # buy_order_details_data = {'order_id': order_id}
@@ -1461,14 +1486,14 @@ if __name__ == '__main__':
 
                             buy_order_details = requests.get(url=get_order_details_uri, headers=headers).json()
 
-                            logging.info(f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [SHORT_BUY_SIGNAL] [BUY] [WAITING_TO_EXECUTE] [{buy_order_details['submitted_at']}] "
+                            logging.info(f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [{order_wait_counter}] [SHORT_BUY_SIGNAL] [BUY] [WAITING_TO_EXECUTE] [{buy_order_details['submitted_at']}] "
                                   f"[{buy_order_details['status']}] {buy_order_details['side']} "
                                   f"order for {buy_order_details['qty']} shares of {buy_order_details['symbol']}")
 
                             if buy_order_details['status'] == 'filled':  # or order_details.status == 'partially_filled':
                                 buy_order_executed = True
 
-                            logging.info(f"[{ticker}] [SHORT_BUY_SIGNAL] BUY_ORDER_STATUS:    {buy_order_placed['status']} ")
+                            logging.info(f"[{ticker}] [{order_wait_counter}] [SHORT_BUY_SIGNAL] BUY_ORDER_STATUS:    {buy_order_placed['status']} ")
 
                             # time.sleep(1)  # WAIT 5 SECS BEFORE NEXT CHECK
 
@@ -1504,6 +1529,7 @@ if __name__ == '__main__':
                         position = False # set position to True once BUY is executed
                     else:
                         logging.error(f"[{current_ts}] [SHORT_BUY_SIGNAL] [ERROR] {buy_order_details['side']} ORDER WAS NOT PLACED")
+                    '''
 
                 ###########################################################################################################
 
