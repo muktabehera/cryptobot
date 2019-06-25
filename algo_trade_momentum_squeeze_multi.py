@@ -960,8 +960,8 @@ if __name__ == '__main__':
                 if np_cl_1m[-1] > support:
                     bool_price_gt_than_support = True
 
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] support:     {support}               bool_price_gt_than_support:         {bool_price_gt_than_support}[{support}]')
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] resistance:  {resistance}            bool_price_less_than_resistance:    {bool_price_less_than_resistance}[{resistance}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] support:     {support}')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] resistance:  {resistance}')
 
                 ############ END SUPPORT AND RESISTANCES #############
 
@@ -1000,6 +1000,36 @@ if __name__ == '__main__':
 
                 ############ END SIGNAL BUY AT SUPPORT SELL AT RESISTANCE --------- <<
 
+                ############ START SIGNAL BUY / SELL AT MEAN-SUPPORT-RESISTANCE ----- >>
+
+                '''
+                PURPOSE:
+                 
+                To get a better quality long buy or sell position. 
+                    > For long buy, buy when current_price <= avg of support and resistance
+                    > For long sell, sell when current_price >= avg of support and resistance
+                '''
+
+                bool_buy_price_mean_supp_res = False
+                bool_sell_price_mean_supp_res = False
+
+                avg_support_resistance = (support + resistance) / 2
+                avg_support_resistance = round(avg_support_resistance, 2)       # round off to 2 decimal places
+
+                # long buy
+                if np_cl_1m[-1] <= avg_support_resistance:
+                    bool_buy_price_mean_supp_res = True
+
+                # long sell
+                if np_cl_1m[-1] >= avg_support_resistance:
+                    bool_sell_price_mean_supp_res = True
+
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_mean_supp_res:    {bool_buy_price_mean_supp_res}  [{np_cl_1m[-1]} <= {avg_support_resistance}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_mean_supp_res:   {bool_sell_price_mean_supp_res} [{np_cl_1m[-1]} >= {avg_support_resistance}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] avg_support_resistance:          {avg_support_resistance}')
+
+                ############ END SIGNAL BUY / SELL AT MEAN-SUPPORT-RESISTANCE ----- <<
+
 
                 ############ START UNREALIZED_INTRADAY_PL ----- >>
 
@@ -1024,19 +1054,23 @@ if __name__ == '__main__':
                 ################################ LONG BUY SIGNAL - TO OPEN NEW LONG POSITION ###########################
 
                 long_buy_signal_squeeze = squeeze_long_buy and \
-                                          bool_price_less_than_resistance and \
+                                          bool_buy_price_mean_supp_res and \
                                           not bool_closing_time
+                                          # bool_price_less_than_resistance and \
+
                 #
                 long_buy_signal_mom = bool_buy_momentum and \
                                       bool_uptrend_1m and \
-                                      bool_price_less_than_resistance and \
+                                      bool_buy_price_mean_supp_res and \
                                       not bool_closing_time
+                                      # bool_price_less_than_resistance and \
 
                 LONG_BUY_SIGNAL = long_buy_signal_squeeze or long_buy_signal_mom
 
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_buy_signal_squeeze:      {long_buy_signal_squeeze}')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_buy_signal_mom:          {long_buy_signal_mom}')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_buy_signal:              {LONG_BUY_SIGNAL}')
+
 
                 # TODO: add resistance check during buy
                 # TODO: Vol check, add later
@@ -1057,7 +1091,7 @@ if __name__ == '__main__':
                 # SELL only if a buy position exists.
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_sell_signal:             {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}]')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_unrealized_intraday_pl:  {bool_unrealized_intraday_pl} [{unrealized_intraday_pl}]')
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_price_at_resistance:     {bool_price_at_resistance}[{resistance}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_price_at_resistance:     {bool_price_at_resistance} [{resistance}]')
                 ###########################################
                 #####        SHORT POSITIONS       #######
                 ###########################################
@@ -1068,13 +1102,15 @@ if __name__ == '__main__':
                 short_sell_signal_squeeze = squeeze_short_sell and \
                                             not bool_closing_time and \
                                             bool_shorting_enabled and \
-                                            bool_price_gt_than_support
+                                            bool_sell_price_mean_supp_res
+                                            # bool_price_gt_than_support
 
                 short_sell_signal_mom = bool_short_momentum and \
                                         bool_downtrend_1m and \
                                         not bool_closing_time and \
                                         bool_shorting_enabled and \
-                                        bool_price_gt_than_support
+                                        bool_sell_price_mean_supp_res
+                                        # bool_price_gt_than_support
 
                 SHORT_SELL_SIGNAL = short_sell_signal_squeeze or short_sell_signal_mom
 
@@ -1101,7 +1137,7 @@ if __name__ == '__main__':
 
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal_mom:         {bool_short_buy_signal}')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_buy_signal:             {SHORT_BUY_SIGNAL}')
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_price_at_resistance:     {bool_price_at_resistance}[{resistance}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_price_at_resistance:     {bool_price_at_resistance} [{resistance}]')
 
 
                 ################################################################
