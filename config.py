@@ -67,8 +67,8 @@ if live_trade:  # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PKIVNEGF3II8V933GNJK'
-    APCA_API_SECRET_KEY = 'xyEzn1mhWcSu9v76Bu8gxJAjAjLh8bto1gGCG9R1'
+    APCA_API_KEY_ID = 'PKPIND5FM8B0M8U7GOYD'
+    APCA_API_SECRET_KEY = 'V70G6k6DOWc7Nx/SAoJSIT00UUQeMJk0mUWU3pLd'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_channel = 'PAPER'
 
