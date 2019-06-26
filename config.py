@@ -3,7 +3,7 @@ live_trade = False                          # SET TO TRUE WHEN TRADING LIVE!!!
 
 allow_shorting = True                       # SET False to Disable Shorting
 
-testing_algo_after_hours = True            # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = False            # Set to False ALWAYS unless testing after hours
 
 # data_provider = 'alpaca'                  # polygon or alpaca
 data_provider = 'polygon'                   # polygon or alpaca
@@ -70,8 +70,8 @@ if live_trade:  # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PKPIND5FM8B0M8U7GOYD'
-    APCA_API_SECRET_KEY = 'V70G6k6DOWc7Nx/SAoJSIT00UUQeMJk0mUWU3pLd'
+    APCA_API_KEY_ID = 'PKUDMXZHO81ONNKLPZGT'
+    APCA_API_SECRET_KEY = 'tZDTUzBo8g5UGgrsQuN1V3npt3zhOXYPkTZLQAEw'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_channel = 'PAPER'
 
