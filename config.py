@@ -3,7 +3,7 @@ live_trade = False                          # SET TO TRUE WHEN TRADING LIVE!!!
 
 allow_shorting = True                       # SET False to Disable Shorting
 
-testing_algo_after_hours = False            # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = True            # Set to False ALWAYS unless testing after hours
 
 # data_provider = 'alpaca'                  # polygon or alpaca
 data_provider = 'polygon'                   # polygon or alpaca
@@ -23,7 +23,10 @@ price_delta = 0                             # use either profit percentage or pr
 if profit_percentage == 0:
     price_delta = 0.5       # 50 Cents
 
-profit_threshold_to_close_position = 10     # in dollars, this will set the max profit in any position
+# Risk / Reward : 3/2
+profit_threshold_to_close_position = 20     # in dollars, this will set the max profit in any position
+loss_threshold_to_close_position = -30      # in $, THIS HAS TO BE -VE and will set the max loss in any position
+
 
 # to avoid selling or buying too quickly when bool_sell_price_above_buy or bool_buy_price_below_sell are True
 # adding a delta price component. This is different from price delta above
@@ -100,10 +103,9 @@ tickers = {
     # "UBER": "UBER",       # Not supported by Alpaca Data Feed
 
 
-limit_1m = 100     # 100 i.e the number of last bars to fetch for each symbol for backtesting and signal generation
+limit_1m = 360     # ~6 Hours i.e the number of last bars to fetch for each symbol for backtesting and signal generation
 # limit_5m = 100
 # limit_15m = 100
-
 
 
 ############ BACKTEST ONLY ##################
