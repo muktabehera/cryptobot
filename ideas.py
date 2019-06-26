@@ -29,6 +29,8 @@ handled
 
 # switch from intraday_pnl to unrelaized_pnl
 
+# Don't trade for the first hour of the market!! - Revisit
+
 
 ##################
 # Note:

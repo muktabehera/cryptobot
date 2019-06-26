@@ -1001,14 +1001,14 @@ if __name__ == '__main__':
                 ############ END SIGNAL BUY AT SUPPORT SELL AT RESISTANCE --------- <<
 
                 ############ START SIGNAL BUY / SELL AT MEAN-SUPPORT-RESISTANCE ----- >>
-
                 '''
-                PURPOSE:
-                 
-                To get a better quality long buy or sell position. 
-                    > For long buy, buy when current_price <= avg of support and resistance
-                    > For long sell, sell when current_price >= avg of support and resistance
-                '''
+                #
+                # PURPOSE:
+                #  
+                # To get a better quality long buy or sell position. 
+                #     > For long buy, buy when current_price <= avg of support and resistance
+                #     > For long sell, sell when current_price >= avg of support and resistance
+                #
 
                 bool_buy_price_mean_supp_res = False
                 bool_sell_price_mean_supp_res = False
@@ -1027,23 +1027,46 @@ if __name__ == '__main__':
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_mean_supp_res:    {bool_buy_price_mean_supp_res}  [{np_cl_1m[-1]} <= {avg_support_resistance}]')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_mean_supp_res:   {bool_sell_price_mean_supp_res} [{np_cl_1m[-1]} >= {avg_support_resistance}]')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] avg_support_resistance:          {avg_support_resistance}')
-
+                
+                '''
                 ############ END SIGNAL BUY / SELL AT MEAN-SUPPORT-RESISTANCE ----- <<
+
+                ############ START SIGNAL BUY / SELL AT SUPPORT-RESISTANCE ----- >>
+
+                bool_buy_price_lt_eq_supp = False
+                bool_sell_price_gt_eq_supp = False
+
+                # long buy
+                if np_cl_1m[-1] <= support:
+                    bool_buy_price_lt_eq_supp = True
+
+                # long sell
+                if np_cl_1m[-1] >= support:
+                    bool_sell_price_gt_eq_supp = True
+
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_lt_eq_supp:    {bool_buy_price_lt_eq_supp}  [{np_cl_1m[-1]} <= {support}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_gt_eq_supp:   {bool_sell_price_gt_eq_supp} [{np_cl_1m[-1]} >= {support}]')
+
+                ############ END SIGNAL BUY / SELL AT SUPPORT-RESISTANCE ----- <<
 
 
                 ############ START UNREALIZED_INTRADAY_PL ----- >>
 
                 '''
-                PURPOSE: to close open positions once $ profit threshold is met
+                PURPOSE: to close open positions once $ profit or loss threshold is met
                 '''
 
-                bool_unrealized_intraday_pl = False
+                bool_unrealized_intraday_pl = False     # default
+                bool_profit_intraday_pl = False         # default
+                bool_loss_intraday_pl = False           # default
 
-                if position and (unrealized_intraday_pl >= config.profit_threshold_to_close_position):
+                bool_profit_intraday_pl = position and (unrealized_intraday_pl >= config.profit_threshold_to_close_position)
+                bool_loss_intraday_pl   = position and (unrealized_intraday_pl <= config.loss_threshold_to_close_position)
+
+                if bool_profit_intraday_pl or bool_loss_intraday_pl:
                     bool_unrealized_intraday_pl = True
 
                 ############ END UNREALIZED_INTRADAY_PL --------- <<
-
 
 
                 ###########################################
@@ -1054,16 +1077,13 @@ if __name__ == '__main__':
                 ################################ LONG BUY SIGNAL - TO OPEN NEW LONG POSITION ###########################
 
                 long_buy_signal_squeeze = squeeze_long_buy and \
-                                          bool_buy_price_mean_supp_res and \
+                                          bool_buy_price_lt_eq_supp and \
                                           not bool_closing_time
-                                          # bool_price_less_than_resistance and \
 
-                #
                 long_buy_signal_mom = bool_buy_momentum and \
                                       bool_uptrend_1m and \
-                                      bool_buy_price_mean_supp_res and \
+                                      bool_buy_price_lt_eq_supp and \
                                       not bool_closing_time
-                                      # bool_price_less_than_resistance and \
 
                 LONG_BUY_SIGNAL = long_buy_signal_squeeze or long_buy_signal_mom
 
@@ -1091,7 +1111,7 @@ if __name__ == '__main__':
                 # SELL only if a buy position exists.
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] long_sell_signal:             {LONG_SELL_SIGNAL} [{np_tl_1m[-1]}]')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_unrealized_intraday_pl:  {bool_unrealized_intraday_pl} [{unrealized_intraday_pl}]')
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_price_at_resistance:     {bool_price_at_resistance} [{resistance}]')
+
                 ###########################################
                 #####        SHORT POSITIONS       #######
                 ###########################################
@@ -1102,19 +1122,15 @@ if __name__ == '__main__':
                 short_sell_signal_squeeze = squeeze_short_sell and \
                                             not bool_closing_time and \
                                             bool_shorting_enabled and \
-                                            bool_sell_price_mean_supp_res
-                                            # bool_price_gt_than_support
+                                            bool_sell_price_gt_eq_supp
 
                 short_sell_signal_mom = bool_short_momentum and \
                                         bool_downtrend_1m and \
                                         not bool_closing_time and \
                                         bool_shorting_enabled and \
-                                        bool_sell_price_mean_supp_res
-                                        # bool_price_gt_than_support
+                                        bool_sell_price_gt_eq_supp
 
                 SHORT_SELL_SIGNAL = short_sell_signal_squeeze or short_sell_signal_mom
-
-                # TODO: Check for support before selling
 
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_sell_signal_squeeze:    {short_sell_signal_squeeze}')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] short_sell_signal_mom:        {short_sell_signal_mom}')
@@ -1195,9 +1211,9 @@ if __name__ == '__main__':
                         buy_order_sent = True
                         order_id = buy_order_placed['id']
 
-                        order_text = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]} [ORDER] [long_buy_signal] [buy_order_id] {order_id}"
+                        order_text = f"[{ticker}] [{np_cl_1m[-1]} [ORDER] [long_buy_signal] [buy_order_id] {order_id}"
                         logging.info(order_text)
-                        slackit(channel=config.slack_channel, msg=order_text)
+                        # slackit(channel=config.slack_channel, msg=order_text)
 
                     except Exception as e:
                         error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_buy_signal] Error placing order: {str(buy_order_placed['message'])}"
@@ -1283,7 +1299,7 @@ if __name__ == '__main__':
                     }
                     sell_order_data = json.dumps(sell_order_data)
 
-                    logging.info(f'[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [long_sell_signal] sell_order_data:    {sell_order_data}')
+                    logging.info(f'[{ticker}] [$PL:{unrealized_intraday_pl}] [{np_cl_1m[-1]}] [long_sell_signal] sell_order_data:    {sell_order_data}')
 
                     sell_order_sent = False
                     sell_order_placed = None
@@ -1293,7 +1309,7 @@ if __name__ == '__main__':
                         sell_order_sent = True
                         order_id = sell_order_placed['id']
 
-                        order_text = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [ORDER] [long_sell_signal] [sell_order_id] [{order_id}]"
+                        order_text = f"[{ticker}] [$PL:{unrealized_intraday_pl}] [{np_cl_1m[-1]}] [ORDER] [long_sell_signal] [sell_order_id] [{order_id}]"
                         logging.info(order_text)
                         slackit(channel=config.slack_channel, msg=order_text)
 
@@ -1402,7 +1418,7 @@ if __name__ == '__main__':
 
                         order_text = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [ORDER] [short_sell_signal] [sell_order_id] [{order_id}]"
                         logging.info(order_text)
-                        slackit(channel=config.slack_channel, msg=order_text)
+                        # slackit(channel=config.slack_channel, msg=order_text)
 
                     except Exception as e:
                         error_text = f"[ERROR] [{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [short_sell_signal] Error placing order: {str(sell_order_placed['message'])})"
@@ -1498,7 +1514,7 @@ if __name__ == '__main__':
                         buy_order_sent = True
                         order_id = buy_order_placed['id']
 
-                        order_text = f"[{ticker}] [{np_tl_1m[-1]}] [{np_cl_1m[-1]}] [ORDER]  [short_buy_signal] [buy_order_id] {order_id}"
+                        order_text = f"[{ticker}] [$PL:{unrealized_intraday_pl}] [{np_cl_1m[-1]}] [ORDER]  [short_buy_signal] [buy_order_id] {order_id}"
 
                         logging.info(order_text)
                         slackit(channel=config.slack_channel, msg=order_text)
