@@ -12,7 +12,7 @@ api_version = 'v2'
 
 day_trade_minimum = 0.00                    # this can be set to 25000.00 to keep min balance to avoid PDT flag
 
-max_open_positions_allowed = 5              # Use to divide total equity among X max allowed open positions
+max_open_positions_allowed = 2              # Use to divide total equity among X max allowed open positions
 closing_window = 120                        # time left for market to close
 
 secs_to_sleep = 0                           # time between reruns if market is open or testing after hours.
@@ -24,8 +24,8 @@ if profit_percentage == 0:
     price_delta = 0.5       # 50 Cents
 
 # Risk / Reward : 3/2
-profit_threshold_to_close_position = 20     # in dollars, this will set the max profit in any position
-loss_threshold_to_close_position = -30      # in $, THIS HAS TO BE -VE and will set the max loss in any position
+profit_threshold_to_close_position = 50         # in dollars, this will set the max profit in any position
+loss_threshold_to_close_position = -3000        # in $, THIS HAS TO BE -VE and will set the max loss in any position
 
 
 # to avoid selling or buying too quickly when bool_sell_price_above_buy or bool_buy_price_below_sell are True
@@ -38,9 +38,9 @@ timeperiod = 20
 
 # Support - Resistance Params
 
-sr_error_margin = 0.0       # price increment for errors, 10 cents
-sr_percent_bounce = 0.05    # price bounced x %
-sr_min_touches = 3          # price has tested x # times
+sr_error_margin = 0.0           # price increment for errors, 10 cents
+sr_percent_bounce = 0.1         # price bounced x %
+sr_min_touches = 10             # price has tested x # times
 
 # END SR Params
 
@@ -103,7 +103,7 @@ tickers = {
     # "UBER": "UBER",       # Not supported by Alpaca Data Feed
 
 
-limit_1m = 360     # ~6 Hours i.e the number of last bars to fetch for each symbol for backtesting and signal generation
+limit_1m = 720      # ~12 Hours i.e the number of last bars to fetch for each symbol for signal generation
 # limit_5m = 100
 # limit_15m = 100
 

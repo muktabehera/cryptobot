@@ -1027,25 +1027,27 @@ if __name__ == '__main__':
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_mean_supp_res:    {bool_buy_price_mean_supp_res}  [{np_cl_1m[-1]} <= {avg_support_resistance}]')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_mean_supp_res:   {bool_sell_price_mean_supp_res} [{np_cl_1m[-1]} >= {avg_support_resistance}]')
                 logging.info(f'[{ticker}] [{np_cl_1m[-1]}] avg_support_resistance:          {avg_support_resistance}')
-                
                 '''
+
                 ############ END SIGNAL BUY / SELL AT MEAN-SUPPORT-RESISTANCE ----- <<
 
                 ############ START SIGNAL BUY / SELL AT SUPPORT-RESISTANCE ----- >>
 
-                bool_buy_price_lt_eq_supp = False
-                bool_sell_price_gt_eq_supp = False
+                bool_buy_price_supres = False
+                bool_sell_price_supres = False
+
+                avg_support_resistance = round(((support + resistance) / 2), 2)     # round off to 2 decimal places
 
                 # long buy
-                if np_cl_1m[-1] <= support:
-                    bool_buy_price_lt_eq_supp = True
+                if (np_cl_1m[-2] >= support) and (np_cl_1m[-1] > np_cl_1m[-2]) and (np_cl_1m[-1] < avg_support_resistance):
+                    bool_buy_price_supres = True
 
                 # long sell
-                if np_cl_1m[-1] >= support:
-                    bool_sell_price_gt_eq_supp = True
+                if (np_cl_1m[-2] <= support) and (np_cl_1m[-1] < np_cl_1m[-2]) and (np_cl_1m[-1] > avg_support_resistance):
+                    bool_sell_price_supres = True
 
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_lt_eq_supp:    {bool_buy_price_lt_eq_supp}  [{np_cl_1m[-1]} <= {support}]')
-                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_gt_eq_supp:   {bool_sell_price_gt_eq_supp} [{np_cl_1m[-1]} >= {support}]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_buy_price_supres:    {bool_buy_price_supres}  [({np_cl_1m[-2]} >= {support}) and ({np_cl_1m[-1]} > {np_cl_1m[-2]}) and ({np_cl_1m[-1]} < {avg_support_resistance})]')
+                logging.info(f'[{ticker}] [{np_cl_1m[-1]}] bool_sell_price_supres:   {bool_sell_price_supres} [({np_cl_1m[-2]} <= {support}) and ({np_cl_1m[-1]} < {np_cl_1m[-2]}) and ({np_cl_1m[-1]} > {avg_support_resistance})]')
 
                 ############ END SIGNAL BUY / SELL AT SUPPORT-RESISTANCE ----- <<
 
@@ -1063,7 +1065,7 @@ if __name__ == '__main__':
                 bool_profit_intraday_pl = position and (unrealized_intraday_pl >= config.profit_threshold_to_close_position)
                 bool_loss_intraday_pl   = position and (unrealized_intraday_pl <= config.loss_threshold_to_close_position)
 
-                if bool_profit_intraday_pl or bool_loss_intraday_pl:
+                if bool_profit_intraday_pl or bool_loss_intraday_pl:    # TODO: revisit!!
                     bool_unrealized_intraday_pl = True
 
                 ############ END UNREALIZED_INTRADAY_PL --------- <<
@@ -1077,12 +1079,12 @@ if __name__ == '__main__':
                 ################################ LONG BUY SIGNAL - TO OPEN NEW LONG POSITION ###########################
 
                 long_buy_signal_squeeze = squeeze_long_buy and \
-                                          bool_buy_price_lt_eq_supp and \
+                                          bool_buy_price_supres and \
                                           not bool_closing_time
 
                 long_buy_signal_mom = bool_buy_momentum and \
                                       bool_uptrend_1m and \
-                                      bool_buy_price_lt_eq_supp and \
+                                      bool_buy_price_supres and \
                                       not bool_closing_time
 
                 LONG_BUY_SIGNAL = long_buy_signal_squeeze or long_buy_signal_mom
@@ -1122,13 +1124,13 @@ if __name__ == '__main__':
                 short_sell_signal_squeeze = squeeze_short_sell and \
                                             not bool_closing_time and \
                                             bool_shorting_enabled and \
-                                            bool_sell_price_gt_eq_supp
+                                            bool_sell_price_supres
 
                 short_sell_signal_mom = bool_short_momentum and \
                                         bool_downtrend_1m and \
                                         not bool_closing_time and \
                                         bool_shorting_enabled and \
-                                        bool_sell_price_gt_eq_supp
+                                        bool_sell_price_supres
 
                 SHORT_SELL_SIGNAL = short_sell_signal_squeeze or short_sell_signal_mom
 
