@@ -5,20 +5,20 @@ allow_shorting = False                       # SET False to Disable Shorting
 
 tickers = {
     "V": {
-        "buy_price": 175.00,
-        "price_diff_to_sell": 1        # 1 = $1
+        "buy_price": 171.50,
+        "price_diff_to_sell": 1.20        # 1 = $1
         # "account_portion_to_invest": 1  # 1=100 %, 0.5 = 50%
     },
 
     "CTSH": {
-        "buy_price": 68.00,
-        "price_diff_to_sell": 0.70
+        "buy_price": 63.10,
+        "price_diff_to_sell": 0.50
         # "account_portion_to_invest": 1  # 1=100 %, 0.5 = 50%
     },
 
     "UBER": {
-        "buy_price": 46.50,
-        "price_diff_to_sell": 0.50
+        "buy_price": 45.00,
+        "price_diff_to_sell": 1
         # "account_portion_to_invest": 1  # 1=100 %, 0.5 = 50%
     }
 }
