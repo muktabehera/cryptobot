@@ -715,7 +715,7 @@ if __name__ == '__main__':
 
                         logging.info(f"[{arg_ticker}] [long_buy_signal] buy_order_status:    {buy_order_placed['status']} ")
 
-                        # time.sleep(1)  # WAIT 10 SECS BEFORE NEXT CHECK
+                        time.sleep(5)  # WAIT 5 SECS BEFORE NEXT CHECK
                     
                     ###############
                     buy_filled_avg_price = float(buy_order_details['filled_avg_price'])  # ACTUAL FROM BUY ORDER
@@ -801,7 +801,7 @@ if __name__ == '__main__':
 
                         logging.info(f"[{arg_ticker}] [LONG_SELL_SIGNAL] SELL ORDER STATUS:   {sell_order_placed['status']} ")
 
-                        # time.sleep(1)  # WAIT 10 SECS BEFORE NEXT CHECK
+                        time.sleep(5)  # WAIT 10 SECS BEFORE NEXT CHECK
 
                     ###############
                     sell_filled_avg_price = round(float(sell_order_details['filled_avg_price']), 2)
