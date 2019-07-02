@@ -103,7 +103,7 @@ clock_uri = f'{base_url}/clock'
 positions_uri = f'{base_url}/positions'
 
 
-limit_1m = 720      # ~12 Hours i.e the number of last bars to fetch for each symbol for signal generation
+limit_1m = 2        # ~12 Hours i.e the number of last bars to fetch for each symbol for signal generation
 # limit_5m = 100
 # limit_15m = 100
 

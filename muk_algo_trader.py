@@ -159,8 +159,8 @@ def get_ts():
 
 def fetch_bars(data_provider):       # data_provider = config.data_provider
 
-    np_hl_1m = np.array([])
-    np_ll_1m = np.array([])
+    # np_hl_1m = np.array([])
+    # np_ll_1m = np.array([])
     np_cl_1m = np.array([])
     # np_vl_1m = np.array([])
     np_tl_1m = np.array([])
@@ -204,8 +204,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
 
             # append 1m bars to list
             # ol_1m.append(v1m['o'])
-            ll_1m.append(v1m['l'])
-            hl_1m.append(v1m['h'])
+            # ll_1m.append(v1m['l'])
+            # hl_1m.append(v1m['h'])
             cl_1m.append(v1m['c'])
             # vl_1m.append(v1m['v'])
             tl_1m.append(v1m_ts)
@@ -214,8 +214,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             # convert to 1m np array
             # added datatype float to avoid real is not double error during MOM cacl
             # np_ol_1m = np.array(ol_1m, dtype=float)
-            np_hl_1m = np.array(hl_1m, dtype=float)
-            np_ll_1m = np.array(ll_1m, dtype=float)
+            # np_hl_1m = np.array(hl_1m, dtype=float)
+            # np_ll_1m = np.array(ll_1m, dtype=float)
             np_cl_1m = np.array(cl_1m, dtype=float)
             # np_vl_1m = np.array(vl_1m, dtype=float)
             np_tl_1m = np.array(tl_1m)
@@ -224,8 +224,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             # round to 2 decimal places
 
             # np_ol_1m = np.round(np_ol_1m, 2)
-            np_hl_1m = np.round(np_hl_1m, 2)
-            np_ll_1m = np.round(np_ll_1m, 2)
+            # np_hl_1m = np.round(np_hl_1m, 2)
+            # np_ll_1m = np.round(np_ll_1m, 2)
             np_cl_1m = np.round(np_cl_1m, 2)
             # np_vl_1m = np.round(np_vl_1m, 2)
 
@@ -236,8 +236,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
         bars_response = {
 
             # "np_ol_1m": np_ol_1m,
-            "np_hl_1m": np_hl_1m,
-            "np_ll_1m": np_ll_1m,
+            # "np_hl_1m": np_hl_1m,
+            # "np_ll_1m": np_ll_1m,
             "np_cl_1m": np_cl_1m,
             # "np_vl_1m": np_vl_1m,
             "np_tl_1m": np_tl_1m,
@@ -278,8 +278,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
 
             # append 1m bars to list
             # ol_1m.append(v1m['o'])
-            ll_1m.append(v1m['l'])
-            hl_1m.append(v1m['h'])
+            # ll_1m.append(v1m['l'])
+            # hl_1m.append(v1m['h'])
             cl_1m.append(v1m['c'])
             # vl_1m.append(v1m['v'])
             tl_1m.append(v1m_ts)
@@ -288,8 +288,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             # convert to 1m np array
             # added datatype float to avoid real is not double error during MOM cacl
             # np_ol_1m = np.array(ol_1m, dtype=float)
-            np_hl_1m = np.array(hl_1m, dtype=float)
-            np_ll_1m = np.array(ll_1m, dtype=float)
+            # np_hl_1m = np.array(hl_1m, dtype=float)
+            # np_ll_1m = np.array(ll_1m, dtype=float)
             np_cl_1m = np.array(cl_1m, dtype=float)
             # np_vl_1m = np.array(vl_1m, dtype=float)
             np_tl_1m = np.array(tl_1m)
@@ -298,8 +298,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             # round to 2 decimal places
 
             # np_ol_1m = np.round(np_ol_1m, 2)
-            np_hl_1m = np.round(np_hl_1m, 2)
-            np_ll_1m = np.round(np_ll_1m, 2)
+            # np_hl_1m = np.round(np_hl_1m, 2)
+            # np_ll_1m = np.round(np_ll_1m, 2)
             np_cl_1m = np.round(np_cl_1m, 2)
             # np_vl_1m = np.round(np_vl_1m, 2)
 
@@ -310,8 +310,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
         bars_response = {
 
             # "np_ol_1m": np_ol_1m,
-            "np_hl_1m": np_hl_1m[::-1],                 # reverse the list since polygon data is orders in asc order
-            "np_ll_1m": np_ll_1m[::-1],                 # reverse the list since polygon data is orders in asc order
+            # "np_hl_1m": np_hl_1m[::-1],                 # reverse the list since polygon data is orders in asc order
+            # "np_ll_1m": np_ll_1m[::-1],                 # reverse the list since polygon data is orders in asc order
             "np_cl_1m": np_cl_1m[::-1],                 # reverse the list since polygon data is orders in asc order
             # "np_vl_1m": np_vl_1m[::-1],               # reverse the list since polygon data is orders in asc order
             "np_tl_1m": np_tl_1m[::-1],                 # reverse the list since polygon data is orders in asc order
@@ -425,9 +425,9 @@ if __name__ == '__main__':
             equity_limit = 0.0  # default           # reset to default
             cash = 0.0  # default cash              # reset to default
 
-            ol_1m = list()                        # reset to null for each ticker
-            hl_1m = list()
-            ll_1m = list()
+            # ol_1m = list()                        # reset to null for each ticker
+            # hl_1m = list()
+            # ll_1m = list()
             cl_1m = list()
             # vl_1m = list()
             tl_1m = list()
@@ -557,8 +557,8 @@ if __name__ == '__main__':
 
             ############### 1 MIN ###############
             # np_ol_1m = bars['np_ol_1m']
-            np_hl_1m = bars['np_hl_1m']
-            np_ll_1m = bars['np_ll_1m']
+            # np_hl_1m = bars['np_hl_1m']
+            # np_ll_1m = bars['np_ll_1m']
             np_cl_1m = bars['np_cl_1m']
             # np_vl_1m = bars['np_vl_1m']
             np_tl_1m = bars['np_tl_1m']
@@ -566,8 +566,8 @@ if __name__ == '__main__':
 
 
             # logging.debug(f'[{ticker}] NP_OL_1M:    {np_ol_1m}')
-            logging.debug(f'[{arg_ticker}] np_hl_1m:    {np_hl_1m}')
-            logging.debug(f'[{arg_ticker}] np_ll_1m:    {np_ll_1m}')
+            # logging.debug(f'[{arg_ticker}] np_hl_1m:    {np_hl_1m}')
+            # logging.debug(f'[{arg_ticker}] np_ll_1m:    {np_ll_1m}')
             logging.debug(f'[{arg_ticker}] np_cl_1m:    {np_cl_1m}')
             # logging.debug(f'[{ticker}] np_vl_1m:    {np_vl_1m}')
             # logging.debug(f'[{ticker}] np_tl_1m:    {np_tl_1m}')      # TOO MUCH INFO FOR DEBUG
