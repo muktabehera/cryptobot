@@ -1,24 +1,24 @@
 
 live_trade = False                          # SET TO TRUE WHEN TRADING LIVE!!!
 testing_algo_after_hours = False            # Set to False ALWAYS unless testing after hours
-allow_shorting = False                       # SET False to Disable Shorting
+allow_shorting = False                      # SET False to Disable Shorting
 
 tickers = {
     "V": {
-        "buy_price": 171.50,
-        "price_diff_to_sell": 1.20        # 1 = $1
+        "buy_price": 172,
+        "price_diff_to_sell": 1        # 1 = $1
         # "account_portion_to_invest": 1  # 1=100 %, 0.5 = 50%
     },
 
     "CTSH": {
-        "buy_price": 63.10,
+        "buy_price": 63.5,
         "price_diff_to_sell": 0.50
         # "account_portion_to_invest": 1  # 1=100 %, 0.5 = 50%
     },
 
     "UBER": {
-        "buy_price": 45.00,
-        "price_diff_to_sell": 1
+        "buy_price": 44.20,
+        "price_diff_to_sell": 0.80
         # "account_portion_to_invest": 1  # 1=100 %, 0.5 = 50%
     }
 }
@@ -34,9 +34,10 @@ api_version = 'v2'
 day_trade_minimum = 0.00                    # this can be set to 25000.00 to keep min balance to avoid PDT flag
 
 max_open_positions_allowed = 1              # Use to divide total equity among X max allowed open positions
+
 closing_window = 60                         # time left for market to close
 
-secs_to_sleep = 0                           # time between reruns if market is open or testing after hours.
+max_secs_to_sleep = 30                        # between 0 to Max Random
 
 # profit_percentage = 0                       # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 # price_delta = 0                             # use either profit percentage or price delta
@@ -51,7 +52,7 @@ secs_to_sleep = 0                           # time between reruns if market is o
 
 # to avoid selling or buying too quickly when bool_sell_price_above_buy or bool_buy_price_below_sell are True
 # adding a delta price component. This is different from price delta above
-small_price_increment = 0.05    # 5 cents
+small_price_increment = 0.1    # 5 cents
 
 # uptrend timeperiod sma_1m
 # timeperiod = 20

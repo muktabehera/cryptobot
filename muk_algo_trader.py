@@ -16,8 +16,8 @@ import dateutil.parser
 
 import numpy as np
 import talib  # https://mrjbq7.github.io/ta-lib/
-
-from sklearn import linear_model
+import random
+# from sklearn import linear_model
 
 nyc = pytz.timezone('America/New_York')
 
@@ -333,7 +333,10 @@ if __name__ == '__main__':
     sell_order_placed = dict()
     sell_order_details = dict()
 
-    secs_to_sleep = config.secs_to_sleep
+
+    # secs_to_sleep = config.secs_to_sleep          # check inside while
+
+
     order_uri = config.order_uri
     clock_uri = config.clock_uri
 
@@ -371,6 +374,8 @@ if __name__ == '__main__':
     x = 0
 
     while True:  # infinite
+
+        secs_to_sleep = random.randint(0, config.max_secs_to_sleep)
 
         # SET LOGGING LEVEL
 
@@ -542,6 +547,7 @@ if __name__ == '__main__':
                 open_order_qty = order["qty"]
                 open_order_filled_qty = order["filled_qty"]
 
+            logging.info(f'[{arg_ticker}] open_order_exists: [{open_order_exists}]    open_order_qty:   [{open_order_qty}]')
 
             ############ >_< FETCH TICKERS BASED ON CURRENT TS ############
 
@@ -842,5 +848,6 @@ if __name__ == '__main__':
         # logging.info('\n')
         logging.info('--'*40)
         time.sleep(int(secs_to_sleep))
+        logging.info(f'[{arg_ticker}] secs_to_sleep:   [{secs_to_sleep}]')
 
 
