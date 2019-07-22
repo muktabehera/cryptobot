@@ -18,7 +18,7 @@ closing_window = 120                        # time left for market to close
 
 secs_to_sleep = 0                           # time between reruns if market is open or testing after hours.
 
-profit_percentage = 0.3                     # or 0.5 % profit taking percentage - used in a sell signal - updated to 10% test squeeze
+profit_percentage = 0.003                     #i.e. 0.3% - 0.5 % profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0                             # use either profit percentage or price delta
 
 if profit_percentage == 0:
