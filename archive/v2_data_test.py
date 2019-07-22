@@ -1,5 +1,5 @@
 import requests
-import config
+from archive import config
 
 url = f'https://data.alpaca.markets/v2/bars/1Min'
 

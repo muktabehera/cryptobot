@@ -1,10 +1,11 @@
 # Brancing
 ## 1. Creating branches
 
--  git checkout -b KeltnerChannels
+- git checkout -b KeltnerChannels
 - git status
 - git commit -am "adding keltner channels"
 - git log
+- git push origin KeltnerChannels
 - to switch back to master > git checkout master
 
 ## 2. Merging

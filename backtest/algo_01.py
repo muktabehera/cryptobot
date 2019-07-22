@@ -2,11 +2,9 @@
 
 # import alpaca_trade_api as tradeapi
 import pandas as pd
-import time
 import logging
 import config
 import requests
-import json
 
 from datetime import datetime
 import pytz # for timezones

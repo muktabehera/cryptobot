@@ -1,8 +1,8 @@
 # Structure
 
-##Main
+## Main
 
-<code>
+```
 while True:
     
     if market_is_open
@@ -33,7 +33,46 @@ while True:
         market_is_closed()
         sleep(60 sec)
 
-</code>
+```
 
+## Strategies:
 
- 
+### PREV DAY HIGH LOW - [ref](https://www.youtube.com/watch?v=kMAxntMXMvQ)
+
+```
+    # Get high and low of previous day (for ui, use a 30 min chart)
+
+    # if current day's open is below / breaks below the prev day low
+
+        # get high and low of today's 30 min open candle
+        # if current day's price breaks above30 min open candle's high, buy, keep a small buffer
+        # if current day's price breaks below 30 min open candle's  low, sell
+
+    # if 30 min open candle is above the prev day high
+
+        # get high and low of today's 30 min open candle
+        # if current day's price breaks above 30 min open candle's high, buy with small buffer
+        # if current day's price breaks below 30 min open candle's low, sell
+```
+
+### VOLUME TRADED STRATEGY:
+
+```
+    # check previous day's volume traded data
+    # if this volume is covered within 2 hours of market open - stock will go up
+    # if stock is trending upwards - price momentum to continue
+    # if negative then downwards
+``` 
+
+### PREV CLOSE STRATEGY:
+
+```
+    # get value for previous day close
+    # identify today's 15m bar which cuts the previous close
+    # get the high and low of the 15m bar
+    # trade the breakout
+    #        > if current price goes above high, buy 1m
+    #        > if current prices goes below low, sell 1m
+    # target 0.3 % either way
+```
+

@@ -4,7 +4,7 @@
 import pandas as pd
 import time
 import logging
-import config
+from archive import config
 import requests
 import json
 import argparse

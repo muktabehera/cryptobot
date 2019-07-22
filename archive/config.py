@@ -3,22 +3,21 @@ live_trade = False                          # SET TO TRUE WHEN TRADING LIVE!!!
 
 allow_shorting = True                       # SET False to Disable Shorting
 
-testing_algo_after_hours = False             # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = False            # Set to False ALWAYS unless testing after hours
 
-data_provider = 'alpaca'                    # polygon or alpaca
-# data_provider = 'polygon'                   # polygon or alpaca
+# data_provider = 'alpaca'                  # polygon or alpaca
+data_provider = 'polygon'                   # polygon or alpaca
 
 api_version = 'v2'
 
 day_trade_minimum = 0.00                    # this can be set to 25000.00 to keep min balance to avoid PDT flag
 
-max_open_positions_allowed = 3              # Use to divide total equity among X max allowed open positions
-
+max_open_positions_allowed = 2              # Use to divide total equity among X max allowed open positions
 closing_window = 120                        # time left for market to close
 
 secs_to_sleep = 0                           # time between reruns if market is open or testing after hours.
 
-profit_percentage = 0.3                     # or 0.5 % profit taking percentage - used in a sell signal - updated to 10% test squeeze
+profit_percentage = 0                       # profit taking percentage - used in a sell signal - updated to 10% test squeeze
 price_delta = 0                             # use either profit percentage or price delta
 
 if profit_percentage == 0:
@@ -71,8 +70,8 @@ if live_trade:  # LIVE!!!
 else:   # PAPER TRADE
 
     APCA_PAPER_BASE_URL = 'https://paper-api.alpaca.markets'
-    APCA_API_KEY_ID = 'PKV4GJ4QOTFPW7Z4DWBN'
-    APCA_API_SECRET_KEY = 'p2rkP4WjGlQUZSogXOFz4fs/vE3rGUwM7omzyJrg'
+    APCA_API_KEY_ID = 'PKUDMXZHO81ONNKLPZGT'
+    APCA_API_SECRET_KEY = 'tZDTUzBo8g5UGgrsQuN1V3npt3zhOXYPkTZLQAEw'
     base_url = f'{APCA_PAPER_BASE_URL}/{api_version}'
     slack_channel = 'PAPER'
 
@@ -104,9 +103,10 @@ tickers = {
     # "UBER": "UBER",       # Not supported by Alpaca Data Feed
 
 
-limit_1m = 60      # ~12 Hours i.e the number of last bars to fetch for each symbol for signal generation
-limit_15m = 2      # for 30 min
-limit_1d = 1
+limit_1m = 720      # ~12 Hours i.e the number of last bars to fetch for each symbol for signal generation
+# limit_5m = 100
+# limit_15m = 100
+
 
 ############ BACKTEST ONLY ##################
 

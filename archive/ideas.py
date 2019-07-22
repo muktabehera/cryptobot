@@ -1,3 +1,25 @@
+
+# scalper main
+# get support(s) and resistance(s) from last day, week, month and year
+# store current open
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 '''
 
 positions are the account level

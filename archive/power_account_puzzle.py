@@ -12,13 +12,9 @@ dayofweek(trading_2018[X]) => Thursday
 '''
 
 import requests
-import config
-import dateutil
+from archive import config
 import pytz
-import pandas as pd
 import numpy as np
-from datetime import datetime
-
 
 nyc = pytz.timezone('America/New_York')
 

@@ -4,7 +4,7 @@
 import pandas as pd
 import time
 import logging
-import muk_config as config
+from archive import muk_config as config
 import requests
 import json
 import argparse
@@ -15,7 +15,6 @@ import dateutil.parser
 # ref: https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
 
 import numpy as np
-import talib  # https://mrjbq7.github.io/ta-lib/
 import random
 # from sklearn import linear_model
 
@@ -333,9 +332,7 @@ if __name__ == '__main__':
     sell_order_placed = dict()
     sell_order_details = dict()
 
-
     # secs_to_sleep = config.secs_to_sleep          # check inside while
-
 
     order_uri = config.order_uri
     clock_uri = config.clock_uri
@@ -583,6 +580,9 @@ if __name__ == '__main__':
             buy_price = float(ticker_data["buy_price"])    # value from config
             units_to_buy = int(equity_limit / buy_price )  # assign same value to both
 
+            if np_cl_1m[-1] <= buy_price:
+                bool_buy_price = True
+
             if position_qty > 0 or open_order_exists:
                 units_to_buy = 0
                 position = True                     # added since orders were being placed with 0 units and failing
@@ -596,7 +596,7 @@ if __name__ == '__main__':
                 else:
                     sell_target = None
 
-            logging.info(f"[{arg_ticker}] [{np_cl_1m[-1]}] units_to_buy: {units_to_buy}  sell_target:    ${sell_target}   price_diff_to_sell: ${price_diff_to_sell}")
+            logging.info(f"[{arg_ticker}] [{np_cl_1m[-1]}] buy_price:   {buy_price} {bool_buy_price}  units_to_buy: {units_to_buy}  sell_target:    ${sell_target}   price_diff_to_sell: ${price_diff_to_sell}")
 
             ########################### BUY / SELL INDICATORS ####################
 

@@ -17,8 +17,8 @@ tickers = {
     },
 
     "UBER": {
-        "buy_price": 44.20,
-        "price_diff_to_sell": 0.80
+        "buy_price": 44.00,
+        "price_diff_to_sell": 0.50
         # "account_portion_to_invest": 1  # 1=100 %, 0.5 = 50%
     }
 }

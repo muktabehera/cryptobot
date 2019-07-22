@@ -1,7 +1,5 @@
 import requests
-import json
-import config
-
+from archive import config
 
 channel = "ERROR"
 
