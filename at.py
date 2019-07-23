@@ -104,8 +104,12 @@ def get_ts():
 
     open_ts_30m = open_ts + pd.Timedelta('30 Minutes')
     open_ts_30m_str = open_ts_30m.strftime('%Y-%m-%d %H:%M:%S')
-
     open_ts_str = datetime.strptime(today_ts.strftime('%Y-%m-%d') + ' ' + cal[0]['open'], '%Y-%m-%d %H:%M').strftime('%Y-%m-%d %H:%M:%S')
+
+    # to get prices from alpaca data api ref: https://docs.alpaca.markets/api-documentation/web-api/market-data/bars/
+    open_ts_iso = open_ts.isoformat()
+    open_ts_30m_iso = open_ts_30m.isoformat()
+
 
     close_ts_pst = dateutil.parser.parse(today_ts.strftime('%Y-%m-%d') + ' ' + cal[0]['close']) - pd.Timedelta("180 Minutes")
     close_ts_nyc = close_ts_pst.astimezone(nyc)
@@ -152,7 +156,11 @@ def get_ts():
 
         "prev_dt_str": prev_dt_str,
         "open_ts_str": open_ts_str,
-        "open_ts_30m_str": open_ts_30m_str
+        "open_ts_30m_str": open_ts_30m_str,
+        "open_ts_iso": open_ts_iso,
+        "open_ts_30m_iso": open_ts_30m_iso,
+
+
 
         # "start_1m": start_1m,
         # "start_5m": start_5m,
@@ -356,7 +364,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
     ll_prev_1d = None
     hl_open_30m = None
     ll_open_30m = None
-    market_open_price_15m = None
+    market_open_price_30m = None
 
     limit_1m = config.limit_1m
     limit_15m = config.limit_15m    # used for 30m
@@ -440,8 +448,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
         payload_15m = {
             "symbols": ticker,
             "limit": limit_15m,
-            # "start": ts['open_ts_str'],     # always points to market open
-            # "end": ts['open_ts_30m_str']        # always points to 30 mins after market open
+            # "start": ts['open_ts_iso'],     # always points to market open
+            "end": ts['open_ts_30m_iso']      # always points to 30 mins after market open ISO Format
         }
         base_uri_15m = f'{config.data_url}/bars/{bar_interval}'
         bars_15m = requests.get(url=base_uri_15m, params=payload_15m, headers=headers).json()
@@ -457,20 +465,19 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             tl_15m.append(v15m_ts)
 
             np_ol_15m = np.array(ol_15m, dtype=float)
+            # logging.info(f'%%%%%%%%%%%%%%% np_ol_15m:   {np_ol_15m}')
+
             np_hl_15m = np.array(hl_15m, dtype=float)
             np_ll_15m = np.array(ll_15m, dtype=float)
             np_tl_15m = np.array(tl_15m)
 
-            # using 15 min interval to get opening price since no action would happen until 30 min
 
-            if np_tl_15m[-1] == ts['open_ts_str']:
-                market_open_price_15m = round(np_ol_15m[-1], 2)   # set open price using 15 min candle
+            hl_open_30m = round(float(max(np_hl_15m)),2)
+            ll_open_30m = round(float(min(np_ll_15m)),2)
 
-            if np_tl_15m[-1] == ts['open_ts_30m_str']:
-                # i.e. the time now is 30 min after market open
-                # time to rollup
-                hl_open_30m = round(float(max(np_hl_15m)),2)
-                ll_open_30m = round(float(min(np_ll_15m)),2)
+            # # using 15 min interval to get opening price since no action would happen until 30 min
+            market_open_price_30m = round(np_ol_15m[0], 2)   # first open price using 15 min bars of the 2 bars
+
 
         bars_response = {
 
@@ -488,7 +495,7 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
             "hl_open_30m": hl_open_30m,
             "ll_open_30m": ll_open_30m,
 
-            "market_open_price_15m": market_open_price_15m
+            "market_open_price_30m": market_open_price_30m
         }
 
         logging.debug(f"bars_response : {bars_response}")
@@ -889,7 +896,7 @@ if __name__ == '__main__':
 
                 ############### 15 MIN ###############
 
-                market_open_price_15m = bars["market_open_price_15m"]
+                market_open_price_30m = bars["market_open_price_30m"]
 
                 ############### 30 MIN ###############
 
@@ -908,7 +915,7 @@ if __name__ == '__main__':
                 # logging.debug(f'[{ticker}] np_vl_1m:    {np_vl_1m}')
                 # logging.debug(f'[{ticker}] np_tl_1m:    {np_tl_1m}')      # TOO MUCH INFO FOR DEBUG
 
-                logging.info(f'[{ticker}] market_open_price_15m:    {market_open_price_15m}')
+                logging.info(f'[{ticker}] market_open_price_30m:    {market_open_price_30m}')
                 logging.info(f'[{ticker}] hl_open_30m:    {hl_open_30m}    ll_open_30m: {ll_open_30m}')
                 logging.info(f'[{ticker}] hl_prev_1d:    {hl_prev_1d}  ll_prev_1d:  {ll_prev_1d}')
 
@@ -966,7 +973,7 @@ if __name__ == '__main__':
 
                 bool_buy_30min_strategy = False
 
-                if market_open_price_15m and (market_open_price_15m > hl_prev_1d):    # to handle None for market_open_price_15m
+                if market_open_price_30m and (market_open_price_30m > hl_prev_1d):    # to handle None for market_open_price_15m
                     if np_cl_1m[-1] > hl_open_30m:
                         bool_buy_30min_strategy = True
 
@@ -986,7 +993,7 @@ if __name__ == '__main__':
 
                 bool_short_30min_strategy = False
 
-                if market_open_price_15m and (market_open_price_15m < ll_prev_1d):
+                if market_open_price_30m and (market_open_price_30m < ll_prev_1d):
                     if np_cl_1m[-1] < ll_open_30m:
                         bool_short_30min_strategy = True
 
