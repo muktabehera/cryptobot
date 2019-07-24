@@ -3,7 +3,7 @@ live_trade = False                          # SET TO TRUE WHEN TRADING LIVE!!!
 
 allow_shorting = True                       # SET False to Disable Shorting
 
-testing_algo_after_hours = False             # Set to False ALWAYS unless testing after hours
+testing_algo_after_hours = True             # Set to False ALWAYS unless testing after hours
 
 data_provider = 'alpaca'                    # polygon or alpaca
 # data_provider = 'polygon'                   # polygon or alpaca
@@ -88,13 +88,13 @@ positions_uri = f'{base_url}/positions'
 # Top Popular Large and Mid Cap stocks on Robinhood
 
 tickers = {
-    "1": ["MSFT", "AAPL", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
-          "BA", "NFLX", "PYPL", "NKE", "CRM", "COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD",
-          "NOK", "DBX", "SPOT", "TWLO", "VZ", "KO", "SBUX", "LUV", "CTSH", "ADBE", "ACN"],
+    "1": ["MSFT", "CTSH", "SNAP", "GOOG", "V", "AAPL", "CRM", "SBUX", "WORK", "PYPL"],
 
     "2": ["V", "MSFT", "CRM", "BABA"],
 
-    "3": [],
+    "3": ["MSFT", "AAPL", "FB", "BRK.B", "BABA", "V", "JPM", "WMT", "BAC", "CSCO", "DIS", "PFE", "T",
+          "BA", "NFLX", "PYPL", "NKE", "CRM", "COST", "NVDA", "GE", "QCOM", "CVS", "SNE", "GM", "MU", "ATVI", "JD",
+          "NOK", "DBX", "SPOT", "TWLO", "VZ", "KO", "SBUX", "LUV", "CTSH", "ADBE", "ACN"],
 
     "4": [],
 
@@ -105,7 +105,7 @@ tickers = {
 
 
 limit_1m = 60      # ~12 Hours i.e the number of last bars to fetch for each symbol for signal generation
-limit_15m = 2      # for 30 min
+limit_15m = 3      # for 30 min
 limit_1d = 1
 
 ############ BACKTEST ONLY ##################

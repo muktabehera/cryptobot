@@ -448,8 +448,8 @@ def fetch_bars(data_provider):       # data_provider = config.data_provider
         payload_15m = {
             "symbols": ticker,
             "limit": limit_15m,
-            # "start": ts['open_ts_iso'],     # always points to market open
-            "end": ts['open_ts_30m_iso']      # always points to 30 mins after market open ISO Format
+            "start": ts['open_ts_iso'],         # always points to market open
+            "end": ts['open_ts_30m_iso']        # always points to 30 mins after market open ISO Format
         }
         base_uri_15m = f'{config.data_url}/bars/{bar_interval}'
         bars_15m = requests.get(url=base_uri_15m, params=payload_15m, headers=headers).json()
