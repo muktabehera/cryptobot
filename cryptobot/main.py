@@ -7,6 +7,7 @@ import requests
 import logging
 import json
 import urllib.parse
+# import numpy as np
 
 # headers
 
@@ -40,11 +41,25 @@ def get_response(payload, api_method, resource):
         'Api-Signature': api_signature,
     }
 
-    response = requests.get(url=api_url, headers=headers).json()
+    if api_method == "POST":
+        response = requests.post(url=api_url, data=json.dumps(payload), headers=headers).json()
+    elif api_method == "DELETE":
+        response = requests.delete(url=api_url, headers=headers).json()
+    else:
+        response = requests.get(url=api_url, params=payload, headers=headers).json()
+
     return response
 
 
-def get_balance():
+def get_balance(pair):
+    resource = f"balances/{pair}"
+    payload = ""
+    api_method = "GET"
+    balances = get_response(payload, api_method, resource)
+    logging.info(balances)
+
+
+def get_total_balances():
     resource = "balances"
     payload = ""
     api_method = "GET"
@@ -52,7 +67,7 @@ def get_balance():
     logging.info(balances)
 
 
-def get_openorders(pair):
+def get_open_orders(pair):
     resource = f"orders/open?{urllib.parse.urlencode({'marketSymbol': pair})}"
     payload = ""
     api_method = "GET"
@@ -60,7 +75,32 @@ def get_openorders(pair):
     logging.info(openorders)
 
 
-def get_orderhistory(pair):
+def get_order_details(orderid):
+    resource = f"orders/{orderid}"
+    payload = ""
+    api_method = "GET"
+    orderDetails = get_response(payload, api_method, resource)
+    logging.info(orderDetails)
+
+
+def get_order_executions(orderid):
+    resource = f"orders/{orderid}/executions"
+    payload = ""
+    api_method = "GET"
+    orderexecutions = get_response(payload, api_method, resource)
+    logging.info(orderexecutions)
+
+
+
+def cancel_order(orderid):
+    resource = f"orders/{orderid}"
+    payload = ""
+    api_method = "DELETE"
+    cancelorder = get_response(payload, api_method, resource)
+    logging.info(cancelorder)
+
+
+def get_order_history(pair):
     resource = f"orders/closed?{urllib.parse.urlencode({'marketSymbol': pair})}"
     payload = ""
     api_method = "GET"
@@ -68,29 +108,75 @@ def get_orderhistory(pair):
     logging.info(orderhist)
 
 
+def buy(marketSymbol, qty):
+    resource = "orders"
+    payload = f"{'marketSymbol': {marketSymbol}, 'direction': 'BUY', 'type': 'MARKET', 'timeInForce': 'GOOD_TIL_CANCELLED', 'quantity': {qty}}"
+    api_method = "POST"
+    buylimit = get_response(payload, api_method, resource)
+    logging.info(buylimit)
+
+
+def sell(marketSymbol, qty):
+    '''
+    Place a limit sell order.
+    ref: https://bittrex.github.io/api/v3#definition-NewOrder
+    :param symbol:
+    :param qty:
+    :param rate:
+    :return:
+    '''
+    resource = "orders"
+    payload = f"{'marketSymbol': {marketSymbol}, 'direction': 'BUY', 'type': 'MARKET', 'timeInForce': 'GOOD_TIL_CANCELLED'}"
+    api_method = "POST"
+    selllimit = get_response(payload, api_method, resource)
+    logging.info(selllimit)
+
+
+def get_orderbook(marketSymbol):
+    resource = f"markets/{marketSymbol}/orderbook"
+    payload = ""
+    api_method = "GET"
+    orderbook = get_response(payload, api_method, resource)
+    logging.info(orderbook)
+
+
+def get_candles(marketSymbol, candleInterval):
+
+    # https://bittrex.github.io/api/v3#operation--markets--marketSymbol--candles--candleInterval--recent-get
+    # MINUTE_1: 1 day, MINUTE_5: 1 day, HOUR_1: 31 days, DAY_1: 366 days
+
+    resource = f"markets/{marketSymbol}/candles/{candleInterval}/recent"
+    payload = ""
+    api_method = "GET"
+    r_candles = get_response(payload, api_method, resource)
+    # logging.info(r_candles)
+
+    candles = list()
+    for i in r_candles:
+        candles.append(i['close'])
+
+    # logging.info(candles)
+    # logging.info(len(candles))
+    return candles
+
+
+
+
 if __name__ == '__main__':
-    # get_balance()
-    # get_openorders('XRP-USD')
-    # get_orderhistory('BTC-USD')
+
+    # get_balance('USD')
+    # get_total_balances()
+    # get_open_orders('XRP-USD')
+    # get_order_history('BTC-USD')
+    # get_order_details('5d3fc794-8f32-42e3-850c-ecd642b5b763') # orderid
+    # get_order_executions('5d3fc794-8f32-42e3-850c-ecd642b5b763')
+    # cancel_order('5d3fc794-8f32-42e3-850c-ecd642b5b763')    # {'code': 'ORDER_NOT_OPEN'}
+    # buy_market('XRP-USD', '100')
+    # sell_market('XRP-USD', '100')
+    # get_orderbook('XRP-USD')
+    get_candles('XRP-USD', 'DAY_1')
+
     pass
-'''
-
-def buylimit(market, quantity, rate):
-    return query('POST', 'orders', {'marketSymbol': market, 'direction': 'BUY', 'type': 'LIMIT', 'timeInForce': 'GOOD_TIL_CANCELLED', 'quantity': quantity, 'limit': rate})
-
-def selllimit(market, quantity, rate):
-    return query('POST', 'orders', {'marketSymbol': market, 'direction': 'SELL', 'type': 'LIMIT', 'timeInForce': 'GOOD_TIL_CANCELLED', 'quantity': quantity, 'limit': rate})
-
-def cancel(uuid):
-    return query('DELETE', 'orders', uuid)
-
-#print (getbalance())
-#print (getopenorders('XRP-USD'))
-#print (buylimit('XRP-USD', '60', '0.10000000'))
-#print (selllimit('XRP-USD', '100', '0.20000000'))
-#print (getorderhistory('XRP-USD'))
-#print (cancel('orderid-bla-bla-bla'))
-'''
 
 
 
