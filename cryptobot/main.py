@@ -7,9 +7,8 @@ import requests
 import logging
 import json
 import urllib.parse
-# import numpy as np
-
-# headers
+import numpy as np
+import talib    # https://mrjbq7.github.io/ta-lib/
 
 # log_file_date = datetime.now().strftime("%Y%m%d")
 logger = logging.getLogger(__name__)
@@ -138,16 +137,13 @@ def sell(marketSymbol, qty):
     '''
     Place a limit sell order.
     ref: https://bittrex.github.io/api/v3#definition-NewOrder
-    :param symbol:
-    :param qty:
-    :param rate:
-    :return:
     '''
     resource = "orders"
-    payload = f"{'marketSymbol': {marketSymbol}, 'direction': 'BUY', 'type': 'MARKET', 'timeInForce': 'GOOD_TIL_CANCELLED'}"
+    payload = f"{{'marketSymbol': '{marketsymbol}', 'direction': 'SELL', 'type': 'MARKET', 'timeInForce': 'IMMEDIATE_OR_CANCEL', 'quantity': {qty}}}"
     api_method = "POST"
-    sell = get_response(payload, api_method, resource)
-    logging.info(sell)
+    sell_order_details = get_response(payload, api_method, resource)
+    logging.info(sell_order_details)
+    return sell_order_details
 
 
 def get_orderbook(marketSymbol):
@@ -196,7 +192,7 @@ if __name__ == '__main__':
     marketsymbol = 'BTC-USD'
     currencysymbol = 'BTC'
 
-    commission = 0.04           # .20% each side, total .40%
+    commission_percentage = 0.04           # .20% each side, total .40%
     slippage_buffer = 0.01
 
     sell_signal = False
@@ -222,7 +218,7 @@ if __name__ == '__main__':
 
     logging.info("checking for open order")
     open_order = get_open_orders(marketsymbol)
-    logging.info(open_order)
+    # logging.info(open_order)
     if open_order:
         open_order_exists = True
         qty = open_order['quantity']
@@ -242,28 +238,57 @@ if __name__ == '__main__':
 
             if recent_orders and recent_orders[0]['direction'] == 'BUY':
 
-                logging.info(recent_orders[0])
+                # logging.info(recent_orders[0])
                 recent_buy_order_id = recent_orders[0]['id']
-                recent_buy_order_commission = recent_orders[0]['commission']
+                recent_buy_order_commission =float(recent_orders[0]['commission'])
                 recent_buy_order_createdAt = recent_orders[0]['createdAt']
                 recent_buy_order_closedAt = recent_orders[0]['closedAt']
-                recent_buy_order_proceeds = recent_orders[0]['proceeds']
+                recent_buy_order_proceeds = float(recent_orders[0]['proceeds'])
                 # get buy price and qty filled from that order
-                qty = recent_orders[0]['fillQuantity']
+                qty = float(recent_orders[0]['fillQuantity'])
                 buy_price = (recent_buy_order_proceeds + recent_buy_order_commission) / qty
+                logging.info(f"recent {marketsymbol} buy price = {buy_price}")
 
-                # check if current ask_price
+                # check if current selling rate > buy_price + slippage + commission
+
+                # get sell rate
+                ticker = get_ticker(marketsymbol)
+                # {'symbol': 'XRP-USD', 'lastTradeRate': '0.17600000', 'bidRate': '0.17587000', 'askRate': '0.17644000'}
+                ask_rate = float(ticker['askRate'])
+                bid_rate = float(ticker['bidRate'])
+                sell_rate = (ask_rate + bid_rate) / 2
+
+                # calculate expected commision
+                total_commission = qty * sell_rate * commission_percentage
+                logging.info(f"total commission = ${total_commission}")
+
+                sell_ready_price = buy_price + (buy_price * slippage_buffer) + total_commission
+                logging.info(f"sell ready price = ${sell_ready_price}")
+
+                if sell_rate > sell_ready_price:
+                    sell_signal = True
+                    logging.info(f"Issue sell for {qty} units of {marketsymbol} @ {sell_rate}")
+                    # sell(marketsymbol, qty)
+                else:
+                    logging.info(f"Not ready to sell {qty} units of {marketsymbol} @ {sell_rate}")
 
         else:
             logging.info(f"0 units of {currencysymbol} available to sell")
 
+    #### check if sma 20 cross sma 50
+
+    np_close_1d = np.array([])
+    np_vol_1d = np.array([])
 
 
-    ticker = get_ticker(marketsymbol)
-    # {'symbol': 'XRP-USD', 'lastTradeRate': '0.17600000', 'bidRate': '0.17587000', 'askRate': '0.17644000'}
-    ask_rate = float(ticker['askRate'])
-    logging.info(f"{currencysymbol} ask_rate (offer) = {ask_rate}")
+    close_1d = get_candles('BTC-USD', 'DAY_1')['close']
+    vol_1d = get_candles('BTC-USD', 'DAY_1')['vol']
 
+    np_close_1d = np.array(close_1d, dtype=float)
+    np_vol_1d = np.array(vol_1d, dtype=float)
+
+    sma50_1d = talib.SMA(np_vol_1d, timeperiod=50)
+    sma100_1d = talib.SMA(np_vol_1d, timeperiod=100)
 
 
     # if ask_rate >=
@@ -272,11 +297,6 @@ if __name__ == '__main__':
         # if order exists
         # if ask (offer) >= buy_price + (buy_price * commission) + slippage
 
-    sell_signal = order_exists and offer_exists
-    
-    if sell_signal:
-        logging.info(f"sell {qty} at market")
-        # sell(marketsymbol, qty)
 
     # logging.info("cancelling order 'd91ba2c1-3ec8-428c-bc48-0073483e0734'")
     # cancel_order('d91ba2c1-3ec8-428c-bc48-0073483e0734')
@@ -294,8 +314,14 @@ if __name__ == '__main__':
     # get_ticker('XRP-USD')
     # get_closed_orders('BTC-USD')
     # get_open_orders('BTC-USD')
-    # logging.info(get_candles('XRP-USD', 'DAY_1')['close'])
-    # logging.info(get_candles('XRP-USD', 'DAY_1')['vol'])
+
+    # MINUTE_1: 1 day, MINUTE_5: 1 day, HOUR_1: 31 days, DAY_1: 366 days)
+    # logging.info(get_candles('BTC-USD', 'HOUR_1')['close'])
+    # logging.info(get_candles('BTC-USD', 'HOUR_1')['vol'])
+    # logging.info(get_candles('BTC-USD', 'DAY_1')['close'])
+    # logging.info(get_candles('BTC-USD', 'DAY_1')['vol'])
+
+
 
     # Strategy
     # 50, 200 SMA (buy)
