@@ -201,7 +201,7 @@ if __name__ == '__main__':
     currencysymbol = 'BTC'
 
     commission_percentage = 0.04           # .20% each side, total .40%
-    slippage_buffer = 0.01
+    slippage_buffer = 0.00                 # set to 0 since we're using mid range for bid and ask rates
 
     sell_signal = False
     buy_signal = False
@@ -280,7 +280,7 @@ if __name__ == '__main__':
                     sell_order_details = sell(marketsymbol, qty)
                     slack(message)
                     time.sleep(5)
-                    slack(sell_order_details)
+                    slack(json.dumps(sell_order_details))
                 else:
                     logging.info(f"not ready to sell {qty} units of {marketsymbol} @ {sell_rate}")
         else:
@@ -292,26 +292,30 @@ if __name__ == '__main__':
                 # price crosses ema series from above, sell
                 # https://www.learndatasci.com/tutorials/python-finance-part-3-moving-average-trading-strategy/
 
-            close_1h = get_candles('BTC-USD', 'HOUR_1')['close'] # list of closes
-            np_close_1h = np.asarray(close_1h, dtype=float)
+            close_5m = get_candles('BTC-USD', 'MINUTE_5')['close'] # list of closes
+            np_close_5m = np.asarray(close_5m, dtype=float)
 
             # type numpy array
-            np_close_ema20_1h = talib.EMA(np_close_1h, timeperiod=20)
-            np_price_diff = np.subtract(np_close_1h, np_close_ema20_1h)
+            np_close_ema20_5m = talib.EMA(np_close_5m, timeperiod=20)
+            np_price_diff = np.subtract(np_close_5m, np_close_ema20_5m)
             np_price_diff = np.where(np_price_diff > 0, 1, -1)  # set positive as 1, negative as -1
+            logging.info(f"Last 10 price to 20ema diff = {np_price_diff[-10:]}")   # last 10
 
             if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and not its above
-                logging.info(f"buy signal @ {close_1h[-1]}")
+                logging.info(f"buy signal @ {close_5m[-1]}")
                 buy_signal = True
-                message = f"issued buy for {qty} units of {marketsymbol} @ hourly close price of {close_1h[-1]}"
+                message = f"issued buy for {qty} units of {marketsymbol} @ hourly close price of {close_5m[-1]}"
                 buy_order_details = buy(marketsymbol, qty)
                 slack(message)
                 time.sleep(5)
-                slack(buy_order_details)
+                slack(json.dumps(buy_order_details))
             else:
-                logging.info(f"no buy signal @ {close_1h[-1]}")
+                logging.info(f"no buy signal @ {close_5m[-1]}")
                 pass
-    # slack("First message from cryptobot!")
+
+    # msg = {'x': 10}
+    # x = json.dumps(msg)
+    # slack(x)
     pass
 
 
