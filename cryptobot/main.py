@@ -12,9 +12,8 @@ import talib    # https://mrjbq7.github.io/ta-lib/
 
 # log_file_date = datetime.now().strftime("%Y%m%d")
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
+logging.basicConfig(level=config.logging_level, format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S') # filename=f"logs/set_{set}_{log_file_date}.log")
-
 
 def slack(msg):
     # curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' https://hooks.slack.com/services/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
@@ -277,11 +276,11 @@ if __name__ == '__main__':
                 if sell_rate > sell_ready_price:
                     sell_signal = True
                     logging.info(f"issue sell for {qty} units of {marketsymbol} @ {sell_rate}")
-                    # sell_order_details = sell(marketsymbol, qty)
-                    message = f"issue sell for {qty} units of {marketsymbol} @ {sell_rate}"
+                    message = f"issued sell for {qty} units of {marketsymbol} @ {sell_rate}"
+                    sell_order_details = sell(marketsymbol, qty)
                     slack(message)
                     time.sleep(5)
-                    # slack(sell_order_details)
+                    slack(sell_order_details)
                 else:
                     logging.info(f"not ready to sell {qty} units of {marketsymbol} @ {sell_rate}")
         else:
@@ -304,15 +303,14 @@ if __name__ == '__main__':
             if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and not its above
                 logging.info(f"buy signal @ {close_1h[-1]}")
                 buy_signal = True
-                # buy_order_details = buy(marketsymbol, qty)
-                message = f"issue buy for {qty} units of {marketsymbol} @ {close_1h[-1]}"
+                message = f"issued buy for {qty} units of {marketsymbol} @ hourly close price of {close_1h[-1]}"
+                buy_order_details = buy(marketsymbol, qty)
                 slack(message)
                 time.sleep(5)
-                # slack(buy_order_details)
+                slack(buy_order_details)
             else:
                 logging.info(f"no buy signal @ {close_1h[-1]}")
                 pass
-
     # slack("First message from cryptobot!")
     pass
 
