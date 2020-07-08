@@ -16,6 +16,15 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(mes
                     datefmt='%Y-%m-%d %H:%M:%S') # filename=f"logs/set_{set}_{log_file_date}.log")
 
 
+def slack(msg):
+    # curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' https://hooks.slack.com/services/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
+    data = {"text": msg}
+    headers = {"Content-Type": "application/json"}
+    url = 'https://hooks.slack.com/services/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'
+    slack_response =  requests.post(url=url, headers=headers, data=str(data))
+    logging.info(f"status code = {str(slack_response.status_code)}")
+    return str(slack_response.status_code)
+
 def get_response(payload, api_method, resource):
 
     # payload = ''
@@ -224,13 +233,13 @@ if __name__ == '__main__':
         qty = open_order['quantity']
         logging.info(f"open order exists for {qty} {marketsymbol}")
     else:
-        logging.info("No open order found")
+        logging.info("no open order found")
         # get current account balance
         balance = get_balance(currencysymbol)
         # logging.info(f"Balance = {order}")
-        if float(balance['available']) > 0.000:
-            balance_gt_0 = True
-            qty = float(balance['available'])
+        qty = float(balance['available'])
+
+        if qty > 0.000:
             logging.info(f"{qty} units of {currencysymbol} available to sell")
             # get buy price
             # since there's balance get most recent buy order id
@@ -267,66 +276,44 @@ if __name__ == '__main__':
 
                 if sell_rate > sell_ready_price:
                     sell_signal = True
-                    logging.info(f"Issue sell for {qty} units of {marketsymbol} @ {sell_rate}")
-                    # sell(marketsymbol, qty)
+                    logging.info(f"issue sell for {qty} units of {marketsymbol} @ {sell_rate}")
+                    # sell_order_details = sell(marketsymbol, qty)
+                    message = f"issue sell for {qty} units of {marketsymbol} @ {sell_rate}"
+                    slack(message)
+                    time.sleep(5)
+                    # slack(sell_order_details)
                 else:
-                    logging.info(f"Not ready to sell {qty} units of {marketsymbol} @ {sell_rate}")
-
+                    logging.info(f"not ready to sell {qty} units of {marketsymbol} @ {sell_rate}")
         else:
-            logging.info(f"0 units of {currencysymbol} available to sell")
+            logging.info(f"{marketsymbol} balance = {float(balance['available'])}")
+            logging.info(f"evaluating buy signal")
 
-    #### check if sma 20 cross sma 50
+            # buy strategy:
+                # price crosses ema series from below, buy
+                # price crosses ema series from above, sell
+                # https://www.learndatasci.com/tutorials/python-finance-part-3-moving-average-trading-strategy/
 
-    np_close_1d = np.array([])
-    np_vol_1d = np.array([])
+            close_1h = get_candles('BTC-USD', 'HOUR_1')['close'] # list of closes
+            np_close_1h = np.asarray(close_1h, dtype=float)
 
+            # type numpy array
+            np_close_ema20_1h = talib.EMA(np_close_1h, timeperiod=20)
+            np_price_diff = np.subtract(np_close_1h, np_close_ema20_1h)
+            np_price_diff = np.where(np_price_diff > 0, 1, -1)  # set positive as 1, negative as -1
 
-    close_1d = get_candles('BTC-USD', 'DAY_1')['close']
-    vol_1d = get_candles('BTC-USD', 'DAY_1')['vol']
+            if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and not its above
+                logging.info(f"buy signal @ {close_1h[-1]}")
+                buy_signal = True
+                # buy_order_details = buy(marketsymbol, qty)
+                message = f"issue buy for {qty} units of {marketsymbol} @ {close_1h[-1]}"
+                slack(message)
+                time.sleep(5)
+                # slack(buy_order_details)
+            else:
+                logging.info(f"no buy signal @ {close_1h[-1]}")
+                pass
 
-    np_close_1d = np.array(close_1d, dtype=float)
-    np_vol_1d = np.array(vol_1d, dtype=float)
-
-    sma50_1d = talib.SMA(np_vol_1d, timeperiod=50)
-    sma100_1d = talib.SMA(np_vol_1d, timeperiod=100)
-
-
-    # if ask_rate >=
-
-    # sell_signal
-        # if order exists
-        # if ask (offer) >= buy_price + (buy_price * commission) + slippage
-
-
-    # logging.info("cancelling order 'd91ba2c1-3ec8-428c-bc48-0073483e0734'")
-    # cancel_order('d91ba2c1-3ec8-428c-bc48-0073483e0734')
-
-    # get_balance('BTC')  # 'USD'
-    # get_total_balances()
-    # get_open_orders('XRP-USD')
-    # logging.info(get_order_history('BTC-USD'))
-    # get_order_details('5d3fc794-8f32-42e3-850c-ecd642b5b763') # orderid
-    # get_order_executions('5d3fc794-8f32-42e3-850c-ecd642b5b763')
-    # cancel_order('5d3fc794-8f32-42e3-850c-ecd642b5b763')    # {'code': 'ORDER_NOT_OPEN'}
-    # buy('BTC-USD', 0.01027115)
-    # sell_market('XRP-USD', '100')
-    # get_orderbook('XRP-USD')
-    # get_ticker('XRP-USD')
-    # get_closed_orders('BTC-USD')
-    # get_open_orders('BTC-USD')
-
-    # MINUTE_1: 1 day, MINUTE_5: 1 day, HOUR_1: 31 days, DAY_1: 366 days)
-    # logging.info(get_candles('BTC-USD', 'HOUR_1')['close'])
-    # logging.info(get_candles('BTC-USD', 'HOUR_1')['vol'])
-    # logging.info(get_candles('BTC-USD', 'DAY_1')['close'])
-    # logging.info(get_candles('BTC-USD', 'DAY_1')['vol'])
-
-
-
-    # Strategy
-    # 50, 200 SMA (buy)
-
-
+    # slack("First message from cryptobot!")
     pass
 
 
