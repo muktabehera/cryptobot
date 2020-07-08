@@ -227,6 +227,16 @@ if __name__ == '__main__':
     logging.info("checking for open order")
     open_order = get_open_orders(marketsymbol)
     # logging.info(open_order)
+
+    ticker = get_ticker(marketsymbol)
+    # {'symbol': 'XRP-USD', 'lastTradeRate': '0.17600000', 'bidRate': '0.17587000', 'askRate': '0.17644000'}
+    ask_rate = float(ticker['askRate'])
+    bid_rate = float(ticker['bidRate'])
+    sell_rate = (ask_rate + bid_rate) / 2
+
+    logging.info(f"current ask_rate: {ask_rate}, bid_rate = {bid_rate}, sell_rate = {sell_rate}")
+    usd_balance = get_balance('USD')
+
     if open_order:
         open_order_exists = True
         qty = open_order['quantity']
@@ -236,15 +246,16 @@ if __name__ == '__main__':
         # get current account balance
         balance = get_balance(currencysymbol)
         # logging.info(f"Balance = {order}")
-        qty = float(balance['available'])
 
-        if qty > 0.000:
+        if float(balance['available']) > 0.000:
+            # sell route
+            qty = float(balance['available'])
             logging.info(f"{qty} units of {currencysymbol} available to sell")
             # get buy price
             # since there's balance get most recent buy order id
             recent_orders = get_closed_orders(marketsymbol)
 
-            if recent_orders and recent_orders[0]['direction'] == 'BUY':
+            if recent_orders and recent_orders[0]['direction'] == 'BUY':    # double check
 
                 # logging.info(recent_orders[0])
                 recent_buy_order_id = recent_orders[0]['id']
@@ -260,11 +271,13 @@ if __name__ == '__main__':
                 # check if current selling rate > buy_price + slippage + commission
 
                 # get sell rate
-                ticker = get_ticker(marketsymbol)
+                # ticker = get_ticker(marketsymbol)
                 # {'symbol': 'XRP-USD', 'lastTradeRate': '0.17600000', 'bidRate': '0.17587000', 'askRate': '0.17644000'}
-                ask_rate = float(ticker['askRate'])
-                bid_rate = float(ticker['bidRate'])
-                sell_rate = (ask_rate + bid_rate) / 2
+                # ask_rate = float(ticker['askRate'])
+                # bid_rate = float(ticker['bidRate'])
+                # sell_rate = (ask_rate + bid_rate) / 2
+
+                # logging.info(f"current ask_rate: {ask_rate}, bid_rate = {bid_rate}, sell_rate = {sell_rate}")
 
                 # calculate expected commision
                 total_commission = qty * sell_rate * commission_percentage
@@ -298,14 +311,19 @@ if __name__ == '__main__':
             # type numpy array
             np_close_ema20_5m = talib.EMA(np_close_5m, timeperiod=20)
             np_price_diff = np.subtract(np_close_5m, np_close_ema20_5m)
+            # logging.info(f"Last 10 price to 20ema diff = {np_price_diff[-10:]}")  # last 10
             np_price_diff = np.where(np_price_diff > 0, 1, -1)  # set positive as 1, negative as -1
+
+            # logging.info(f"Last 10 price = {close_5m[-10:]}")  # last 10
+            # logging.info(f"Last 10 20ema = {np_close_ema20_5m[-10:]}")  # last 10
             logging.info(f"Last 10 price to 20ema diff = {np_price_diff[-10:]}")   # last 10
 
             if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and not its above
                 logging.info(f"buy signal @ {close_5m[-1]}")
                 buy_signal = True
-                message = f"issued buy for {qty} units of {marketsymbol} @ hourly close price of {close_5m[-1]}"
-                buy_order_details = buy(marketsymbol, qty)
+                buy_qty = (float(usd_balance) - (float(usd_balance) * (commission_percentage/2))) / sell_rate
+                message = f"issued buy for {buy_qty} units of {marketsymbol} @ hourly close price of {close_5m[-1]}"
+                buy_order_details = buy(marketsymbol, buy_qty)
                 slack(message)
                 time.sleep(5)
                 slack(json.dumps(buy_order_details))
