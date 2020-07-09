@@ -15,14 +15,15 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=config.logging_level, format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S') # filename=f"logs/set_{set}_{log_file_date}.log")
 
+
 def slack(msg):
-    # curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' https://hooks.slack.com/services/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
     data = {"text": msg}
     headers = {"Content-Type": "application/json"}
     url = 'https://hooks.slack.com/services/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'
     slack_response =  requests.post(url=url, headers=headers, data=str(data))
     logging.info(f"status code = {str(slack_response.status_code)}")
     return str(slack_response.status_code)
+
 
 def get_response(payload, api_method, resource):
 
@@ -318,11 +319,11 @@ if __name__ == '__main__':
             # logging.info(f"Last 10 20ema = {np_close_ema20_5m[-10:]}")  # last 10
             logging.info(f"Last 10 price to 20ema diff = {np_price_diff[-10:]}")   # last 10
 
-            if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and not its above
+            if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and now its above
                 logging.info(f"buy signal @ {close_5m[-1]}")
                 buy_signal = True
                 buy_qty = (float(usd_balance) - (float(usd_balance) * (commission_percentage/2))) / sell_rate
-                message = f"issued buy for {buy_qty} units of {marketsymbol} @ hourly close price of {close_5m[-1]}"
+                message = f"issued buy for {buy_qty} units of {marketsymbol} @ 5 Min close price of {close_5m[-1]}"
                 buy_order_details = buy(marketsymbol, buy_qty)
                 slack(message)
                 time.sleep(5)
