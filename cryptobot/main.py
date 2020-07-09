@@ -320,7 +320,7 @@ if __name__ == '__main__':
             # logging.info(f"Last 10 20ema = {np_close_ema20_5m[-10:]}")  # last 10
             logging.info(f"Last 10 price to 20ema diff = {np_price_diff[-10:]}")   # last 10
 
-            logging.info(f"np_price_diff[-1] {np_price_diff[-1]} > np_price_diff[-2] {np_price_diff[-2]}")
+            # logging.info(f"np_price_diff[-1] {np_price_diff[-1]} > np_price_diff[-2] {np_price_diff[-2]}")
 
             if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and now its above
 
@@ -340,6 +340,7 @@ if __name__ == '__main__':
     # msg = {'x': 10}
     # x = json.dumps(msg)
     # slack(x)
+    logging.info("end of run\n\n")
     pass
 
 
