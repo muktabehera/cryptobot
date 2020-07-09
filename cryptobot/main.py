@@ -10,11 +10,10 @@ import urllib.parse
 import numpy as np
 import talib    # https://mrjbq7.github.io/ta-lib/
 
-# log_file_date = datetime.now().strftime("%Y%m%d")
+log_file_date = datetime.now().strftime("%Y%m%d")
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=config.logging_level, format='%(asctime)s %(levelname)s: %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S') # filename=f"logs/set_{set}_{log_file_date}.log")
-
+                    datefmt='%Y-%m-%d %H:%M:%S',  filename=f"logs/cryptobot_{log_file_date}.log")
 
 def slack(msg):
     data = {"text": msg}
@@ -235,8 +234,10 @@ if __name__ == '__main__':
     bid_rate = float(ticker['bidRate'])
     sell_rate = (ask_rate + bid_rate) / 2
 
-    logging.info(f"current ask_rate: {ask_rate}, bid_rate = {bid_rate}, sell_rate = {sell_rate}")
     usd_balance = get_balance('USD')
+    usd_balance = float(usd_balance['available'])
+
+    logging.info(f"USD balance = {usd_balance} current ask_rate: {ask_rate}, bid_rate = {bid_rate}, sell_rate = {sell_rate}")
 
     if open_order:
         open_order_exists = True
@@ -319,11 +320,15 @@ if __name__ == '__main__':
             # logging.info(f"Last 10 20ema = {np_close_ema20_5m[-10:]}")  # last 10
             logging.info(f"Last 10 price to 20ema diff = {np_price_diff[-10:]}")   # last 10
 
+            logging.info(f"np_price_diff[-1] {np_price_diff[-1]} > np_price_diff[-2] {np_price_diff[-2]}")
+
             if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and now its above
+
                 logging.info(f"buy signal @ {close_5m[-1]}")
                 buy_signal = True
                 buy_qty = (float(usd_balance) - (float(usd_balance) * (commission_percentage/2))) / sell_rate
                 message = f"issued buy for {buy_qty} units of {marketsymbol} @ 5 Min close price of {close_5m[-1]}"
+                logging.info(message)
                 buy_order_details = buy(marketsymbol, buy_qty)
                 slack(message)
                 time.sleep(5)
@@ -336,6 +341,5 @@ if __name__ == '__main__':
     # x = json.dumps(msg)
     # slack(x)
     pass
-
 
 
