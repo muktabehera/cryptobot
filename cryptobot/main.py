@@ -197,11 +197,11 @@ def get_candles(marketSymbol, candleInterval):
 
 if __name__ == '__main__':
 
-    marketsymbol = 'BTC-USD'
-    currencysymbol = 'BTC'
+    marketsymbol = config.marketsymbol
+    currencysymbol = config.currencysymbol
 
     commission_percentage = 0.04           # .20% each side, total .40%
-    slippage_buffer = 0.00                 # set to 0 since we're using mid range for bid and ask rates
+    slippage_buffer = 0.01                 # set to 0 since we're using mid range for bid and ask rates
 
     sell_signal = False
     buy_signal = False
@@ -307,7 +307,7 @@ if __name__ == '__main__':
                 # price crosses ema series from above, sell
                 # https://www.learndatasci.com/tutorials/python-finance-part-3-moving-average-trading-strategy/
 
-            close_5m = get_candles('BTC-USD', 'MINUTE_5')['close'] # list of closes
+            close_5m = get_candles(marketsymbol, 'MINUTE_5')['close'] # list of closes
             np_close_5m = np.asarray(close_5m, dtype=float)
 
             # type numpy array
