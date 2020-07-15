@@ -200,8 +200,8 @@ if __name__ == '__main__':
     marketsymbol = config.marketsymbol
     currencysymbol = config.currencysymbol
 
-    commission_percentage = 0.004           # .20% each side, total .40%. This should be 0.004, but left as is for now.
-    slippage_buffer = 0.01                 # set to 0 since we're using mid range for bid and ask rates
+    commission_percentage = float(config.commission_percentage)        # .20% each side, total .40%. This should be 0.004, but left as is for now.
+    slippage_buffer = float(config.slippage_buffer)                 # set to 0 since we're using mid range for bid and ask rates
 
     sell_signal = False
     buy_signal = False
