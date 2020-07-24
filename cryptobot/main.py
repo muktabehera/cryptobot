@@ -307,12 +307,12 @@ if __name__ == '__main__':
                 # price crosses ema series from above, sell
                 # https://www.learndatasci.com/tutorials/python-finance-part-3-moving-average-trading-strategy/
 
-            close_5m = get_candles(marketsymbol, 'MINUTE_5')['close'] # list of closes
-            np_close_5m = np.asarray(close_5m, dtype=float)
+            close_1h = get_candles(marketsymbol, 'HOUR_1')['close'] # list of closes
+            np_close_1h = np.asarray(close_1h, dtype=float)
 
             # type numpy array
-            np_close_ema20_5m = talib.EMA(np_close_5m, timeperiod=20)
-            np_price_diff = np.subtract(np_close_5m, np_close_ema20_5m)
+            np_close_ema20_1h = talib.EMA(np_close_1h, timeperiod=20)
+            np_price_diff = np.subtract(np_close_1h, np_close_ema20_1h)
             # logging.info(f"Last 10 price to 20ema diff = {np_price_diff[-10:]}")  # last 10
             np_price_diff = np.where(np_price_diff > 0, 1, -1)  # set positive as 1, negative as -1
 
@@ -324,17 +324,17 @@ if __name__ == '__main__':
 
             if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and now its above
 
-                logging.info(f"buy signal @ {close_5m[-1]}")
+                logging.info(f"buy signal @ {close_1h[-1]}")
                 buy_signal = True
                 buy_qty = (float(usd_balance) - (float(usd_balance) * (commission_percentage/2))) / sell_rate
-                message = f"issued buy for {buy_qty} units of {marketsymbol} @ 5 Min close price of {close_5m[-1]}"
+                message = f"issued buy for {buy_qty} units of {marketsymbol} @ 1 Hour close price of {close_1h[-1]}"
                 logging.info(message)
                 buy_order_details = buy(marketsymbol, buy_qty)
                 slack(message)
                 time.sleep(5)
                 slack(json.dumps(buy_order_details))
             else:
-                logging.info(f"no buy signal @ {close_5m[-1]}")
+                logging.info(f"no buy signal @ {close_1h[-1]}")
                 pass
 
     # msg = {'x': 10}
