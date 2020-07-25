@@ -282,11 +282,13 @@ if __name__ == '__main__':
                 # logging.info(f"current ask_rate: {ask_rate}, bid_rate = {bid_rate}, sell_rate = {sell_rate}")
 
                 # calculate expected commision
-                total_commission = qty * sell_rate * commission_percentage
-                logging.info(f"total commission = ${total_commission}")
+                # total_commission = qty * sell_rate * commission_percentage
+                # logging.info(f"total commission = ${total_commission}")
 
-                sell_ready_price = buy_price + (buy_price * slippage_buffer) + total_commission
-                logging.info(f"sell ready price = ${sell_ready_price}")
+                sell_ready_price = buy_price + (buy_price * slippage_buffer)
+                expected_profit = (sell_ready_price - buy_price) * qty
+
+                logging.info(f"sell ready price = ${sell_ready_price} expected profit: {expected_profit}")
 
                 if sell_rate > sell_ready_price:
                     sell_signal = True
