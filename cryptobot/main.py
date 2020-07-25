@@ -201,7 +201,7 @@ if __name__ == '__main__':
     currencysymbol = config.currencysymbol
 
     commission_percentage = float(config.commission_percentage)        # .20% each side, total .40%. This should be 0.004, but left as is for now.
-    slippage_buffer = float(config.slippage_buffer)                 # set to 0 since we're using mid range for bid and ask rates
+    profit_target = float(config.profit_target)                 # set to 0 since we're using mid range for bid and ask rates
 
     sell_signal = False
     buy_signal = False
@@ -285,7 +285,7 @@ if __name__ == '__main__':
                 # total_commission = qty * sell_rate * commission_percentage
                 # logging.info(f"total commission = ${total_commission}")
 
-                sell_ready_price = buy_price + (buy_price * slippage_buffer)
+                sell_ready_price = buy_price + (buy_price * profit_target)
                 expected_profit = (sell_ready_price - buy_price) * qty
 
                 logging.info(f"sell ready price = ${sell_ready_price} expected profit: {expected_profit}")
