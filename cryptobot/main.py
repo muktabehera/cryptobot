@@ -293,8 +293,10 @@ if __name__ == '__main__':
                 if sell_rate > sell_ready_price:
                     sell_signal = True
                     logging.info(f"issue sell for {qty} units of {marketsymbol} @ {sell_rate}")
-                    message = f"issued sell for {qty} units of {marketsymbol} @ {sell_rate}"
                     sell_order_details = sell(marketsymbol, qty)
+
+                    profit = float(sell_order_details['proceeds']) - recent_buy_order_proceeds
+                    message = f"sold {float(sell_order_details['fillQuantity'])} units of {marketsymbol} for ${profit} profit"
                     slack(message)
                     time.sleep(5)
                     slack(json.dumps(sell_order_details))
