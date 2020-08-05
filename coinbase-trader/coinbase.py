@@ -301,8 +301,7 @@ if __name__ == '__main__':
                         profit = float(sell_order_deets['executed_value']) - recent_buy_order_proceeds
                         message = f"[Coinbase][{env}] SOLD {float(sell_order_deets['filled_size'])} units of {product_id} for ${round(profit, 2)} profit"
                         logging.info(message)
-
-                        # slack(message)
+                        slack(message)
                         # time.sleep(5)
                         # slack(json.dumps(sell_order_deets))
                     else:
@@ -334,8 +333,7 @@ if __name__ == '__main__':
 
                 # logging.info(f"np_price_diff[-1] {np_price_diff[-1]} > np_price_diff[-2] {np_price_diff[-2]}")
 
-                # if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and now its above
-                if True:
+                if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and now its above
                     logging.info(f"buy signal @ {close_1h[-1]}")
                     buy_signal = True
                     buy_qty = float(usd_balance) / sell_rate
@@ -358,7 +356,8 @@ if __name__ == '__main__':
                     message = f"[Coinbase][{env}] BOUGHT {actual_buy_qty} units of {product_id} @ {actual_buy_rate}, fees = {actual_buy_fees}, funds = {actual_buy_funds}"
                     logging.info(message)
                     slack(message)
-                    # slack(json.dumps(buy_order_deets))
+                    time.sleep(5)
+                    slack(json.dumps(buy_order_deets))
                 else:
                     logging.info(f"no buy signal @ {close_1h[-1]}")
                     pass
