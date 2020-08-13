@@ -1,10 +1,10 @@
 ../.DS_Store
-../Presbot/
-../apca/
+Presbot/
+apca/
 config.py
 venv/
-../cryptobot/config.py
-../cryptobot/venv/
-../product-hunt-bo
-../tumidpandoraBot/
+cryptobot/config.py
+cryptobot/venv/
+product-hunt-bo
+tumidpandoraBot/
 
