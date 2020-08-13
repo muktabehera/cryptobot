@@ -421,23 +421,36 @@ if __name__ == '__main__':
             if np_price_diff_50ma[-1] > np_price_diff_50ma[-2]:
                 price_cuts_50ma_from_bottom = True
 
+            logging.info(f"np_price_diff_200ma[-1] {np_price_diff_200ma[-1]} > np_price_diff_200ma[-2] {np_price_diff_200ma[-2]} = {price_cuts_200ma_from_bottom}")
+
+            logging.info(f"np_price_diff_50ma[-1] {np_price_diff_50ma[-1]} > np_price_diff_50ma[-2] {np_price_diff_50ma[-2]} = {price_cuts_50ma_from_bottom}")
             # buy strategy:
 
             # with ma_50 > ma_200,
             # ma_200 trending up (last 5 diffs positive)
             # price cuts 200 from below
+            # with ma_50 > ma_200,
+            # ma_200 trending up (last 5 diffs positive)
+            # price cuts 50 from below
 
             # with ma_50 < ma_200
             # ma_200 trending up (last 5 diffs positive)
             # price cuts 200 from below
             # buy mkt sell at resistance
 
-            if (ma_50 > ma_200) and ma_200_trending_up and price_cuts_200ma_from_bottom and price_lte_resistance_threshold:
+            # with ma_50 < ma_200
+            # ma_200 trending up (last 5 diffs positive)
+            # price cuts 50 from below
+
+            if ((ma_50 > ma_200) and ma_200_trending_up and price_lte_resistance_threshold) and (price_cuts_50ma_from_bottom or price_cuts_200ma_from_bottom):
                 buy_signal = True
                 logging.info(f"Buy condition 1 satisfied")
-            elif (ma_50 < ma_200) and ma_200_trending_up and price_cuts_200ma_from_bottom and price_lte_resistance_threshold:
+            elif ((ma_50 < ma_200) and ma_200_trending_up and price_lte_resistance_threshold) and (price_cuts_50ma_from_bottom or price_cuts_200ma_from_bottom):
                 buy_signal = True
                 logging.info(f"Buy condition 2 satisfied")
+            else:
+                logging.info(f"CONDITION 1: ((ma_50 {ma_50} > ma_200 {ma_200}) and ma_200_trending_up {ma_200_trending_up} and price_lte_resistance_threshold {price_lte_resistance_threshold}) and (price_cuts_50ma_from_bottom {price_cuts_50ma_from_bottom} or price_cuts_200ma_from_bottom {price_cuts_200ma_from_bottom})")
+                logging.info(f"CONDITION 2: ((ma_50 < ma_200) and ma_200_trending_up {ma_200_trending_up} and price_lte_resistance_threshold {price_lte_resistance_threshold}) and (price_cuts_50ma_from_bottom {price_cuts_50ma_from_bottom} or price_cuts_200ma_from_bottom{price_cuts_200ma_from_bottom})")
 
             if buy_signal:
                 logging.info(f"buy signal @ {close_1h[-1]}")
