@@ -201,14 +201,10 @@ if __name__ == '__main__':
     currencysymbol = config.currencysymbol
 
     commission_percentage = float(config.commission_percentage)        # .20% each side, total .40%. This should be 0.004, but left as is for now.
-    per_profit_target = float(config.profit_target)                 # set to 0 since we're using mid range for bid and ask rates
-    per_resistance_threshold = float(config.per_resistance_threshold)
+    profit_target = float(config.profit_target)                 # set to 0 since we're using mid range for bid and ask rates
 
     sell_signal = False
     buy_signal = False
-
-    support = -999999999.999999        # really low random val
-    resistance = 99999999999.999999    # really high random val
 
     qty = 0.000                 # float, 3 places of decimal
     buy_price = None
@@ -217,49 +213,6 @@ if __name__ == '__main__':
     open_order_exists = False   # open order exists
     order_exists = False        # order exists
     offer_exists = False        # ask price and vol exist  and account for slippage and commission
-
-    # Get Candles
-    close_1h = get_candles(marketsymbol, 'HOUR_1')['close'] # list of closes
-    np_close_1h = np.asarray(close_1h, dtype=float)
-
-    # 50 ma
-    np_close_ma50_1h = talib.MA(np_close_1h, timeperiod=50)
-    # 200 ma
-    np_close_ma200_1h = talib.MA(np_close_1h, timeperiod=200)
-
-    close = float(np_close_1h[-1])              # current closing price
-
-    ma_200 = float(np_close_ma200_1h[-1])       # 200 simple moving average
-    ma_50 = float(np_close_ma50_1h[-1])       # 400 simple moving average
-
-    logging.info(f"close = {close} ma_200 = {ma_200} ma_50 = {ma_50}")
-
-    ## support and resistance
-
-    # if price > 400 ma, support = 400 ma and resistance = 200 ma
-    # if price > 200 ma, support = 200 ma and resistance = max(price in last 24 hrs)
-    # if price > 400 ma and < 200 ma, support = 400 ma, resistance = 50 ma, 200 ma
-
-    if close >= ma_200 and close <= ma_50:
-        support = ma_200
-        resistance = ma_50
-        logging.info(f"support = ma_200 {ma_200} resistance = ma_50 {ma_50}")
-    elif close >= ma_50 and close <= ma_200:
-        support = min(np_close_1h[-24:])        # ma_50
-        resistance = ma_200
-        logging.info(f"support = min(np_close_1h[-24:]) {support} resistance = ma_200 {ma_200}")
-    elif close <= ma_200:                       # and ma_50 < ma_200:
-        resistance = ma_50                      # TODO: rethink to use ma_50 as resistance
-        support = min(np_close_1h[-24:])        # i.e. in last 24hrs
-        logging.info(f"support = ma_50 {ma_50} resistance = min(np_close_1h[-24:]) {resistance}")
-    elif close >= ma_50 and close >= ma_200:
-        support = ma_50
-        resistance = max(np_close_1h[-24:])      # i.e. in last 24hrs
-        logging.info(f"support = ma_50 {ma_50} resistance = max(np_close_1h[-24:]) {resistance}")
-
-    resistance_threshold = resistance - (resistance * per_resistance_threshold)
-    logging.info(f"support = {support} resistance = {resistance} resistance_threshold [{per_resistance_threshold * 100}%] = {resistance_threshold}")
-
 
     ## --> Trading Rules:
         # Only 1 open order at a time
@@ -270,7 +223,6 @@ if __name__ == '__main__':
         # check if open order exists, if yes, skip
         # if no, check balance of symbol
         # set order_exists = True
-
 
     logging.info("checking for open order")
     open_order = get_open_orders(marketsymbol)
@@ -309,37 +261,40 @@ if __name__ == '__main__':
 
                 # logging.info(recent_orders[0])
                 recent_buy_order_id = recent_orders[0]['id']
-                recent_buy_order_commission = float(recent_orders[0]['commission'])
+                recent_buy_order_commission =float(recent_orders[0]['commission'])
                 recent_buy_order_createdAt = recent_orders[0]['createdAt']
                 recent_buy_order_closedAt = recent_orders[0]['closedAt']
                 recent_buy_order_proceeds = float(recent_orders[0]['proceeds'])
                 # get buy price and qty filled from that order
                 qty = float(recent_orders[0]['fillQuantity'])
-                buy_price = (recent_buy_order_proceeds + (recent_buy_order_commission * 2)) / qty
+                buy_price = (recent_buy_order_proceeds + recent_buy_order_commission) / qty
                 logging.info(f"recent {marketsymbol} buy price = {buy_price}")
 
-                profit_target_price = float(buy_price + (buy_price * per_profit_target))
+                # check if current selling rate > buy_price + slippage + commission
 
-                if resistance >= profit_target_price:
+                # get sell rate
+                # ticker = get_ticker(marketsymbol)
+                # {'symbol': 'XRP-USD', 'lastTradeRate': '0.17600000', 'bidRate': '0.17587000', 'askRate': '0.17644000'}
+                # ask_rate = float(ticker['askRate'])
+                # bid_rate = float(ticker['bidRate'])
+                # sell_rate = (ask_rate + bid_rate) / 2
 
-                    sell_ready_price = (resistance + profit_target_price) / 2
-                    logging.info(f"resistance = ${resistance} >= profit_target_price {profit_target_price} ")
+                # logging.info(f"current ask_rate: {ask_rate}, bid_rate = {bid_rate}, sell_rate = {sell_rate}")
 
-                elif resistance < profit_target_price and resistance > buy_price:
-                    sell_ready_price = resistance
-                    logging.info(f"resistance = ${resistance} < profit_target_price {profit_target_price} and > buy_price {buy_price}")
+                # calculate expected commision
+                # total_commission = qty * sell_rate * commission_percentage
+                # logging.info(f"total commission = ${total_commission}")
 
-                expected_profit = round(((sell_ready_price - buy_price) * qty), 3)
+                sell_ready_price = buy_price + (buy_price * profit_target)
+                expected_profit = (sell_ready_price - buy_price) * qty
 
                 logging.info(f"sell ready price = ${sell_ready_price} expected profit: {expected_profit}")
 
-                if sell_rate >= sell_ready_price:
+                if sell_rate > sell_ready_price:
                     sell_signal = True
                     logging.info(f"issue sell for {qty} units of {marketsymbol} @ {sell_rate}")
-
                     sell_order_details = sell(marketsymbol, qty)
 
-                    time.sleep(10)
                     profit = float(sell_order_details['proceeds']) - recent_buy_order_proceeds
                     message = f"sold {float(sell_order_details['fillQuantity'])} units of {marketsymbol} for ${profit} profit"
                     slack(message)
@@ -351,93 +306,34 @@ if __name__ == '__main__':
             logging.info(f"{marketsymbol} balance = {float(balance['available'])}")
             logging.info(f"evaluating buy signal")
 
-            # buy
-
-            buy_signal = False
-
-            price_gte_support = False       # gt than or equal to
-            price_lte_resistance_threshold = False    # less than or equal to
-            ma_200_trending_up = False
-
-            if close >= support:
-                price_gte_support = True
-                logging.info(f"Close [{close} >= support [{support}] = {price_gte_support}")
-
-            if close <= resistance_threshold:
-                price_lte_resistance_threshold = True
-                logging.info(f"Close [{close} <= resistance_threshold [{resistance_threshold}]")
-
-            price_cuts_50ma_from_bottom = False
-            price_cuts_200ma_from_bottom = False
-
-            np_200ma_trend_diff = np.diff(np_close_ma200_1h)
-            np_200ma_trend_diff = np_200ma_trend_diff[-10:]  # last 5 hourly
-            if np_200ma_trend_diff.all() > 0:
-                ma_200_trending_up = True
-                logging.info(f"ma_200_trending_up = {ma_200_trending_up}")
-            else:
-                logging.info(f"ma_200_trending_up = {ma_200_trending_up}")
-
-            np_price_diff_50ma = np.subtract(np_close_1h, np_close_ma50_1h)
-            np_price_diff_200ma = np.subtract(np_close_1h, np_close_ma200_1h)
-
-            # logging.info(f"Last 10 price to 50ma diff = {np_price_diff_50ma[-10:]}")    # last 10
-            # logging.info(f"Last 10 price to 200ma diff = {np_price_diff_200ma[-10:]}")  # last 10
-
-            np_price_diff_50ma = np.where(np_price_diff_50ma > 0, 1, -1)    # set positive as 1, negative as -1
-            np_price_diff_200ma = np.where(np_price_diff_200ma > 0, 1, -1)  # set positive as 1, negative as -1
-
-            logging.info(f"Last 10 price to 50ma diff = {np_price_diff_50ma[-10:]}")  # last 10
-            logging.info(f"Last 10 price to 200ma diff = {np_price_diff_200ma[-10:]}")  # last 10
-
-            if np_price_diff_200ma[-1] > np_price_diff_200ma[-2]:
-                price_cuts_200ma_from_bottom = True
-
-            if np_price_diff_50ma[-1] > np_price_diff_50ma[-2]:
-                price_cuts_50ma_from_bottom = True
-
-            logging.info(f"np_price_diff_200ma[-1] {np_price_diff_200ma[-1]} > np_price_diff_200ma[-2] {np_price_diff_200ma[-2]} = {price_cuts_200ma_from_bottom}")
-
-            logging.info(f"np_price_diff_50ma[-1] {np_price_diff_50ma[-1]} > np_price_diff_50ma[-2] {np_price_diff_50ma[-2]} = {price_cuts_50ma_from_bottom}")
-
             # buy strategy:
+                # price crosses ema series from below, buy
+                # price crosses ema series from above, sell
+                # https://www.learndatasci.com/tutorials/python-finance-part-3-moving-average-trading-strategy/
 
-            # with ma_50 > ma_200,
-            # ma_200 trending up (last 5 diffs positive)
-            # price cuts 200 from below
+            close_1h = get_candles(marketsymbol, 'HOUR_1')['close'] # list of closes
+            np_close_1h = np.asarray(close_1h, dtype=float)
 
-            # with ma_50 > ma_200,
-            # ma_200 trending up (last 5 diffs positive)
-            # price cuts 50 from below
+            # type numpy array
+            np_close_ema20_1h = talib.EMA(np_close_1h, timeperiod=20)
+            np_price_diff = np.subtract(np_close_1h, np_close_ema20_1h)
+            # logging.info(f"Last 10 price to 20ema diff = {np_price_diff[-10:]}")  # last 10
+            np_price_diff = np.where(np_price_diff > 0, 1, -1)  # set positive as 1, negative as -1
 
-            # with ma_50 < ma_200
-            # ma_200 trending up (last 5 diffs positive)
-            # price cuts 200 from below
-            # buy mkt sell at resistance
+            # logging.info(f"Last 10 price = {close_5m[-10:]}")  # last 10
+            # logging.info(f"Last 10 20ema = {np_close_ema20_5m[-10:]}")  # last 10
+            logging.info(f"Last 10 price to 20ema diff = {np_price_diff[-10:]}")   # last 10
 
-            # with ma_50 < ma_200
-            # ma_200 trending up (last 5 diffs positive)
-            # price cuts 50 from below
+            # logging.info(f"np_price_diff[-1] {np_price_diff[-1]} > np_price_diff[-2] {np_price_diff[-2]}")
 
-            if ((ma_50 > ma_200) and ma_200_trending_up and price_lte_resistance_threshold) and (price_cuts_50ma_from_bottom or price_cuts_200ma_from_bottom):
-                buy_signal = True
-                logging.info(f"Buy condition 1 satisfied")
-            elif ((ma_50 < ma_200) and ma_200_trending_up and price_lte_resistance_threshold) and (price_cuts_50ma_from_bottom or price_cuts_200ma_from_bottom):
-                buy_signal = True
-                logging.info(f"Buy condition 2 satisfied")
-            else:
-                logging.info(f"CONDITION 1: ((ma_50 {ma_50} > ma_200 {ma_200}) and ma_200_trending_up {ma_200_trending_up} and price_lte_resistance_threshold {price_lte_resistance_threshold}) and (price_cuts_50ma_from_bottom {price_cuts_50ma_from_bottom} or price_cuts_200ma_from_bottom {price_cuts_200ma_from_bottom})")
-                logging.info(f"CONDITION 2: ((ma_50 < ma_200) and ma_200_trending_up {ma_200_trending_up} and price_lte_resistance_threshold {price_lte_resistance_threshold}) and (price_cuts_50ma_from_bottom {price_cuts_50ma_from_bottom} or price_cuts_200ma_from_bottom{price_cuts_200ma_from_bottom})")
+            if np_price_diff[-1] > np_price_diff[-2]:   # i.e price was below ema and now its above
 
-            if buy_signal:
                 logging.info(f"buy signal @ {close_1h[-1]}")
                 buy_signal = True
                 buy_qty = (float(usd_balance) - (float(usd_balance) * (commission_percentage/2))) / sell_rate
                 message = f"issued buy for {buy_qty} units of {marketsymbol} @ 1 Hour close price of {close_1h[-1]}"
                 logging.info(message)
-
                 buy_order_details = buy(marketsymbol, buy_qty)
-
                 slack(message)
                 time.sleep(5)
                 slack(json.dumps(buy_order_details))
