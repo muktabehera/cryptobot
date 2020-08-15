@@ -12,3 +12,4 @@ currencysymbol = 'XRP'
 commission_percentage = 0.004
 profit_target = 0.02      # % used as profit
 per_resistance_threshold = 0.0005    # Negligible, but can be adjusted if needed
+

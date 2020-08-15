@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=config.logging_level, format='%(asctime)s %(levelname)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',  filename=f"logs/cryptobot_{log_file_date}.log")
 
+
 def slack(msg):
     data = {"text": msg}
     headers = {"Content-Type": "application/json"}
