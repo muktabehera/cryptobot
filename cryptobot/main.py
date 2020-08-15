@@ -219,6 +219,8 @@ if __name__ == '__main__':
     order_exists = False        # order exists
     offer_exists = False        # ask price and vol exist  and account for slippage and commission
 
+    sell_ready_price = 999999999999.9999
+
     # Get Candles
     close_1h = get_candles(marketsymbol, 'HOUR_1')['close'] # list of closes
     np_close_1h = np.asarray(close_1h, dtype=float)
