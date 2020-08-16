@@ -323,14 +323,16 @@ if __name__ == '__main__':
 
                 profit_target_price = float(buy_price + (buy_price * per_profit_target))
 
+
+                # set sell ready price
+
                 if resistance >= profit_target_price:
 
                     sell_ready_price = (resistance + profit_target_price) / 2
                     logging.info(f"resistance = ${resistance} >= profit_target_price {profit_target_price} ")
 
-                elif resistance < profit_target_price and resistance > buy_price:
-                    sell_ready_price = resistance
-                    logging.info(f"resistance = ${resistance} < profit_target_price {profit_target_price} and > buy_price {buy_price}")
+                else:
+                    sell_ready_price = profit_target_price
 
                 expected_profit = round(((sell_ready_price - buy_price) * qty), 3)
 
@@ -340,14 +342,14 @@ if __name__ == '__main__':
                     sell_signal = True
                     logging.info(f"issue sell for {qty} units of {marketsymbol} @ {sell_rate}")
 
-                    sell_order_details = sell(marketsymbol, qty)
-
-                    time.sleep(10)
-                    profit = float(sell_order_details['proceeds']) - recent_buy_order_proceeds
-                    message = f"sold {float(sell_order_details['fillQuantity'])} units of {marketsymbol} for ${profit} profit"
-                    slack(message)
-                    time.sleep(5)
-                    slack(json.dumps(sell_order_details))
+                    # sell_order_details = sell(marketsymbol, qty)
+                    #
+                    # time.sleep(10)
+                    # profit = float(sell_order_details['proceeds']) - recent_buy_order_proceeds
+                    # message = f"sold {float(sell_order_details['fillQuantity'])} units of {marketsymbol} for ${profit} profit"
+                    # slack(message)
+                    # time.sleep(5)
+                    # slack(json.dumps(sell_order_details))
                 else:
                     logging.info(f"not ready to sell {qty} units of {marketsymbol} @ {sell_rate}")
         else:
@@ -438,12 +440,12 @@ if __name__ == '__main__':
                 buy_qty = (float(usd_balance) - (float(usd_balance) * (commission_percentage/2))) / sell_rate
                 message = f"issued buy for {buy_qty} units of {marketsymbol} @ 1 Hour close price of {close_1h[-1]}"
                 logging.info(message)
-
-                buy_order_details = buy(marketsymbol, buy_qty)
-
-                slack(message)
-                time.sleep(5)
-                slack(json.dumps(buy_order_details))
+                #
+                # buy_order_details = buy(marketsymbol, buy_qty)
+                #
+                # slack(message)
+                # time.sleep(5)
+                # slack(json.dumps(buy_order_details))
             else:
                 logging.info(f"no buy signal @ {close_1h[-1]}")
                 pass
